@@ -12,8 +12,8 @@ class DashboardScreen extends StatelessWidget {
         centerTitle: true,
         actions: [
           TextButton(
-            onPressed: () => context.go('/orders'),
-            child: const Text('Encomendas'),
+            onPressed: () => context.go("/orders"),
+            child: const Text("Encomendas"),
           ),
         ],
       ),

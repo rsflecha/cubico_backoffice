@@ -12,7 +12,7 @@ class App extends ConsumerWidget {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: 'CubicoDesign3D',
+      title: "CubicoDesign3D",
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       routerConfig: router,
