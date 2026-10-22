@@ -10,12 +10,6 @@ class DashboardScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text("Dashboard"),
         centerTitle: true,
-        actions: [
-          TextButton(
-            onPressed: () => context.go("/orders"),
-            child: const Text("Encomendas"),
-          ),
-        ],
       ),
     );
   }

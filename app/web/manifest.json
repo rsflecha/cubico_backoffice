@@ -6,7 +6,7 @@
     "background_color": "#F4F3EF",
     "theme_color": "#18181B",
     "description": "Gestão de encomendas, produção e custos da CubicoDesign3D.",
-    "orientation": "portrait-primary",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {
