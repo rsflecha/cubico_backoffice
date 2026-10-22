@@ -1,11 +1,11 @@
 {
-    "name": "cubico_backoffice",
-    "short_name": "cubico_backoffice",
+    "name": "CubicoDesign3D",
+    "short_name": "Cubico",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#F4F3EF",
+    "theme_color": "#18181B",
+    "description": "Gestão de encomendas, produção e custos da CubicoDesign3D.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

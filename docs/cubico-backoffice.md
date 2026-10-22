@@ -18,6 +18,7 @@
 - **Por desenhar:** Clientes; Definições (com gestão de utilizadores); versões do colaborador (sobretudo o dashboard operacional); Produção e Produtos no telemóvel.
 - **Decisões em aberto:** estados das encomendas e da produção estão completos?; falta algum campo nas encomendas (embrulho, nota ao cliente…)?; versão do MySQL/MariaDB no cPanel; preço de compra real da Bambu Lab A1 (para o desgaste).
 - **Decisões-chave:** Etsy entra sozinha; Instagram, Facebook e Pessoalmente registam-se em "Criar encomenda" (sem ficha de cliente obrigatória); dois papéis (administrador e colaborador — o colaborador nunca vê custos, lucros nem margens, mas pode alterar preços, ficando registado); API em PHP no cPanel; Flutter web + Android, iPhone pela versão web no Safari; luz a 0,21 €/kWh, A1 a 95 W; filamentos com preço normal e preço pago.
+- **Decisões técnicas:** código Dart em inglês (classes, variáveis, ficheiros, pastas), interface em português, BD em português (a ponte faz-se com `@JsonKey` ou na API); Material pelo pacote `material_ui` em vez de `package:flutter/material.dart`, com Flutter 3.47+.
 - **Forma de trabalhar:** o Rui escreve o código; o Claude explica, revê e ajuda. Plano por fatias no fim deste documento.
 
 ---
@@ -711,7 +712,7 @@ lucro    = recebido − custos
 
 ### Fatia 0 — tarefas
 
-- [ ] `flutter create cubico_backoffice --platforms=web,android,ios`
+- [x] `flutter create app --project-name cubico_backoffice --org pt.cubicodesign3d --platforms=web,android,ios` (dentro da raiz `cubico_backoffice/`)
   - iPhone: até haver Mac, usa-se a versão web no Safari ("Adicionar ao ecrã principal"); a app iOS nativa só se compila num Mac com Xcode
 - [ ] Pacotes com `flutter pub add` (versões mais recentes): `flutter_riverpod`, `go_router`, `freezed_annotation`, `json_annotation`, `google_fonts`; dev: `build_runner`, `freezed`, `json_serializable`
 - [ ] Estrutura de pastas feature-first
