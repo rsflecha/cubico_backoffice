@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
-class OrdersScreen extends StatelessWidget {
-  const OrdersScreen({super.key});
+class CustomersScreen extends StatelessWidget {
+  const CustomersScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
