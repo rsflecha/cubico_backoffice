@@ -8,10 +8,13 @@ class OrdersScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Orders"),
+        title: const Text("Orders"),
         centerTitle: true,
         actions: [
-          context.go("/orders")
+          TextButton(
+            onPressed: () => context.go('/dashboard'),
+            child: const Text('Dashboard'),
+          ),
         ],
       ),
     );
