@@ -17,7 +17,7 @@
 - **Validados (9):** Login, Dashboard, Lista de encomendas, Detalhe da encomenda, Criar encomenda, Produtos e categorias, Produto e custos, Custos e preços, Produção.
 - **Por desenhar:** Clientes; Definições (com gestão de utilizadores); versões do colaborador (sobretudo o dashboard operacional); Produção e Produtos no telemóvel.
 - **Decisões em aberto:** estados das encomendas e da produção estão completos?; falta algum campo nas encomendas (embrulho, nota ao cliente…)?; versão do MySQL/MariaDB no cPanel; preço de compra real da Bambu Lab A1 (para o desgaste).
-- **Decisões-chave:** Etsy entra sozinha; Instagram, Facebook e Pessoalmente registam-se em "Criar encomenda" (sem ficha de cliente obrigatória); dois papéis (administrador e colaborador — o colaborador nunca vê custos, lucros nem margens, mas pode alterar preços, ficando registado); API em PHP no cPanel; Flutter web + Android, iPhone pela versão web no Safari; luz a 0,21 €/kWh, A1 a 95 W; filamentos com preço normal e preço pago.
+- **Decisões-chave:** Etsy entra sozinha; Instagram, Facebook e Pessoalmente registam-se em "Criar encomenda" (sem ficha de cliente obrigatória); dois papéis (administrador e colaborador — o colaborador nunca vê custos, lucros nem margens, mas pode alterar preços, ficando registado); API em PHP no cPanel; **app nativa Windows + Android + iOS, sem versão web** (decidido a 2026-10-26; substitui "Flutter web + iPhone pelo Safari"); luz a 0,21 €/kWh, A1 a 95 W; filamentos com preço normal e preço pago.
 - **Decisões técnicas:** código Dart em inglês (classes, variáveis, ficheiros, pastas), interface em português, BD em português (a ponte faz-se com `@JsonKey` ou na API); Material pelo pacote `material_ui` em vez de `package:flutter/material.dart`, com Flutter 3.47+.
 - **Forma de trabalhar:** o Rui escreve o código; o Claude explica, revê e ajuda. Plano por fatias no fim deste documento.
 
@@ -42,7 +42,7 @@ Backoffice para gerir toda a operação da CubicoDesign3D: catálogo, produção
 
 ```
 ┌──────────────────────────────┐
-│  Backoffice Flutter          │  Flutter web (PC) + Android
+│  Backoffice Flutter          │  Windows (PC) + Android + iOS — sem web
 │  Riverpod · GoRouter         │
 │  Dio · Freezed · fl_chart    │
 └──────────────┬───────────────┘
@@ -57,7 +57,7 @@ Backoffice para gerir toda a operação da CubicoDesign3D: catálogo, produção
 └──────────────────────────────┘
 ```
 
-**Decisão:** o alojamento é partilhado (cPanel, só PHP). Por isso a API é em **PHP 8 com Slim** em vez de Dart. A app Flutter web é alojada no mesmo cPanel (ficheiros estáticos) → **custo extra zero**.
+**Decisão:** o alojamento é partilhado (cPanel, só PHP). Por isso a API é em **PHP 8 com Slim** em vez de Dart. O cPanel aloja **só a API**: a app é nativa (Windows, Android, iOS) e não há versão web, por decisão de 2026-10-26.
 
 Regras:
 - A app **nunca** liga diretamente ao MySQL; só a API conhece as credenciais.
@@ -714,11 +714,47 @@ lucro    = recebido − custos
 
 - [x] `flutter create app --project-name cubico_backoffice --org pt.cubicodesign3d --platforms=web,android,ios` (dentro da raiz `cubico_backoffice/`)
   - iPhone: até haver Mac, usa-se a versão web no Safari ("Adicionar ao ecrã principal"); a app iOS nativa só se compila num Mac com Xcode
-- [ ] Pacotes com `flutter pub add` (versões mais recentes): `flutter_riverpod`, `go_router`, `freezed_annotation`, `json_annotation`, `google_fonts`; dev: `build_runner`, `freezed`, `json_serializable`
-- [ ] Estrutura de pastas feature-first
-- [ ] Tema com as cores (#18181B, #F4F3EF, #C2410C) e as letras (Manrope, Poppins, JetBrains Mono)
-- [ ] GoRouter com duas rotas de teste (`/dashboard`, `/encomendas`)
-- [ ] Repositório Git + primeiro commit
-- [ ] Testar no iPhone pela rede de casa: `flutter run -d web-server --web-hostname 0.0.0.0 --web-port 8080` e abrir `http://IP-do-PC:8080` no Safari (mesma rede Wi-Fi)
+- [x] Pacotes com `flutter pub add` (versões mais recentes): `flutter_riverpod`, `go_router`, `freezed_annotation`, `json_annotation`, `google_fonts`; dev: `build_runner`, `freezed`, `json_serializable`
+- [x] Estrutura de pastas feature-first
+- [x] Tema com as cores (#18181B, #F4F3EF, #C2410C) e as letras (Manrope, Poppins, JetBrains Mono)
+- [x] GoRouter com duas rotas de teste (`/dashboard`, `/encomendas`)
+- [x] Repositório Git + primeiro commit
+- [ ] ~~Testar no iPhone pela rede de casa com `flutter run -d web-server`~~ — abandonado: deixou de haver versão web (2026-10-26)
 
-**iPhone (versão web):** ícone da marca em `web/icons` e `web/manifest.json`, nome curto "Cubico", abrir em ecrã inteiro (`display: standalone`); testar cada fatia também no Safari do iPhone.
+**~~iPhone (versão web)~~** — substituído (2026-10-26). Plataformas passam a ser **Windows, Android e iOS, sem browsers**:
+
+- [x] Ativar o Modo de Programador do Windows (Definições → Sistema → Para programadores); sem ele o Flutter não compila para Windows — ligado a 2026-10-25
+- [x] Visual Studio com a carga "Desenvolvimento para desktop com C++" (não é o VS Code) — **Visual Studio Community 2026, 18.8.1**, confirmado pelo `flutter doctor` a 2026-10-27
+- [x] `flutter create --platforms=windows .` dentro de `app/` (só acrescenta a pasta `windows/`) — 2026-10-27
+- [x] Apagar `app/web/` e retirar `web` das plataformas — 2026-10-27; os ícones e o manifest web ficam recuperáveis no commit `f1a9c77`
+- [x] Primeiro build de Windows a funcionar: `flutter build windows --debug` → `build\windows\x64\runner\Debug\cubico_backoffice.exe` (52 s, 2026-10-27)
+- [x] Ícone da marca no Windows e no Android — 2026-10-27, com `flutter_launcher_icons` (ver nota abaixo). iOS fica para quando houver Mac.
+
+> **Ícones (2026-10-27).** As origens estão em `app/design/icons/`, **fora de
+> `assets/`**, para não irem dentro da app: `icone-master.png` (1024×1024,
+> ícone branco sobre `#18181B`) e `icone-adaptativo.png` (1024×1024,
+> transparente, ícone mais pequeno porque o Android corta até 66% do lado).
+> Foram compostos a partir de `assets/brand/icon-branco.png`, que tem apenas
+> 273×334 e não é quadrado — **se aparecer o logótipo em SVG, refazer**.
+> Configuração no fim do `pubspec.yaml`; gerar com `dart run flutter_launcher_icons`.
+>
+> **Janela maximizada no arranque (2026-10-27, confirmado pelo Rui no atalho
+> do ambiente de trabalho).** Está em
+> `windows/runner/win32_window.cpp`, no `Show()`: `SW_SHOWMAXIMIZED` em vez de
+> `SW_SHOWNORMAL`. Pôr "maximizado" nas propriedades do atalho do Windows
+> **não funciona** — esse pedido chega em `STARTUPINFO`, mas o `Show()` do
+> runner corre depois e impõe o tamanho normal por cima.
+>
+> **O `.ico` do pacote só traz uma imagem de 256 px** e o Windows encolhe-a
+> para os 16 e 32 px da barra de tarefas, o que se nota. O `app_icon.ico` em
+> uso foi montado à mão com 7 tamanhos (16, 24, 32, 48, 64, 128, 256), com o
+> ícone a ocupar mais área nos tamanhos pequenos. **Correr o
+> `flutter_launcher_icons` outra vez volta a escrever por cima dele.**
+- [ ] iOS: a pasta `ios/` **fica no projeto**, mas não se compila por agora. Exige macOS + Xcode; sem Mac, é build na nuvem (Codemagic ou GitHub Actions com macOS) e instalação pelo TestFlight, com conta Apple Developer (99 €/ano). **Adiado por decisão do Rui (2026-10-27): só quando houver intenção de publicar.**
+
+> **Armadilha apanhada a 2026-10-27:** o `flutter create --platforms=windows .`
+> reescreve o `.metadata` e deixa lá **só** `root` e `windows` — as entradas
+> `android` e `ios` desaparecem, apesar das pastas continuarem lá. Foram
+> repostas à mão. Também cria um `test/widget_test.dart` do modelo "contador",
+> que chama uma classe `MyApp` que este projeto não tem: foi apagado, senão o
+> `flutter test` deixa de compilar.
