@@ -1,7 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'category.freezed.dart';   // o gerador cria estes dois ficheiros;
-part 'category.g.dart';         // enquanto nao os criar, o analyzer queixa-se — e normal
+part 'product_category.g.dart';         // enquanto nao os criar, o analyzer queixa-se — e normal
 
 @freezed
 abstract class Category with _$Category {

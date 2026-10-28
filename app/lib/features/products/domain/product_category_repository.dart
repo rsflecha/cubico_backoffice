@@ -1,4 +1,4 @@
-import 'category.dart';
+import 'product_category.dart';
 
 /// Contrato de acesso a categorias.
 ///

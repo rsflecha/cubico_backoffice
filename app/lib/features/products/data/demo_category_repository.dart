@@ -1,5 +1,5 @@
-import '../domain/category.dart';
-import '../domain/category_repository.dart';
+import '../domain/product_category.dart';
+import '../domain/product_category_repository.dart';
 
 /// Implementacao de demonstracao do contrato CategoryRepository.
 ///
@@ -26,18 +26,18 @@ class DemoCategoryRepository implements CategoryRepository {
   /// Parece inutil numa lista em memoria, mas obriga-nos a construir os ecras
   /// ja com estado de carregamento. Sem isto, tudo parece instantaneo ate ao
   /// dia em que ha API a serio — e aí a app pisca toda e ha que refazer ecras.
-  Future<void> _latencia() =>
+  Future<void> _latency() =>
       Future.delayed(const Duration(milliseconds: 300));
 
   @override
   Future<List<Category>> fetchAll() async {
-    await _latencia();
+    await _latency();
 
     // Copia primeiro, ordena depois: o .sort() altera a lista onde e chamado,
     // e ordenar _items diretamente era mexer no estado interno sem necessidade.
-    final copia = List<Category>.of(_items);
-    copia.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
-    return copia;
+    final copy = List<Category>.of(_items);
+    copy.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    return copy;
   }
 
   @override
@@ -46,39 +46,39 @@ class DemoCategoryRepository implements CategoryRepository {
     String color = '#A1A1AA',
     int sortOrder = 0,
   }) async {
-    await _latencia();
+    await _latency();
 
-    final nova = Category(
+    final created = Category(
       id: _nextId++,          // atribui e avanca, tal como faria o INSERT
       name: name,
       color: color,
       sortOrder: sortOrder,
     );
 
-    _items.add(nova);
-    return nova;              // devolve ja com id, como o contrato promete
+    _items.add(created);
+    return created;              // devolve ja com id, como o contrato promete
   }
 
   @override
   Future<Category> update(Category category) async {
-    await _latencia();
+    await _latency();
 
-    final posicao = _items.indexWhere((c) => c.id == category.id);
+    final index = _items.indexWhere((c) => c.id == category.id);
 
     // indexWhere devolve -1 quando nao encontra. Deixar passar em silencio
     // seria o pior: a app mostrava "guardado" e nada tinha sido gravado.
     // Na API isto corresponde a um 404.
-    if (posicao == -1) {
+    if (index == -1) {
       throw StateError('Nao existe categoria com id ${category.id}');
     }
 
-    _items[posicao] = category;
+    _items[index] = category;
     return category;
   }
 
   @override
   Future<void> delete(int id) async {
-    await _latencia();
+    await _latency();
     _items.removeWhere((c) => c.id == id);
   }
 }
