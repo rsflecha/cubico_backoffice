@@ -55,7 +55,7 @@ class AppShell extends StatelessWidget {
                       Row(
                         children: [
                           Image.asset('assets/brand/icon-branco.png', height: 36),
-                          SizedBox(height: 12),
+                          SizedBox(width: 12),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.max,

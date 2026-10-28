@@ -18,7 +18,7 @@
 - **Por desenhar:** Clientes; Definições (com gestão de utilizadores); versões do colaborador (sobretudo o dashboard operacional); Produção e Produtos no telemóvel.
 - **Decisões em aberto:** estados das encomendas e da produção estão completos?; falta algum campo nas encomendas (embrulho, nota ao cliente…)?; versão do MySQL/MariaDB no cPanel; preço de compra real da Bambu Lab A1 (para o desgaste).
 - **Decisões-chave:** Etsy entra sozinha; Instagram, Facebook e Pessoalmente registam-se em "Criar encomenda" (sem ficha de cliente obrigatória); dois papéis (administrador e colaborador — o colaborador nunca vê custos, lucros nem margens, mas pode alterar preços, ficando registado); API em PHP no cPanel; **app nativa Windows + Android + iOS, sem versão web** (decidido a 2026-10-26; substitui "Flutter web + iPhone pelo Safari"); luz a 0,21 €/kWh, A1 a 95 W; filamentos com preço normal e preço pago.
-- **Decisões técnicas:** código Dart em inglês (classes, variáveis, ficheiros, pastas), interface em português, BD em português (a ponte faz-se com `@JsonKey` ou na API); Material pelo pacote `material_ui` em vez de `package:flutter/material.dart`, com Flutter 3.47+.
+- **Decisões técnicas:** **tudo em inglês — código Dart e base de dados** (classes, variáveis, ficheiros, pastas, tabelas, colunas); **só a interface em português**. Decidido a 2026-10-28; substitui "BD em português com `@JsonKey`". Os nomes batem certo dos dois lados, por isso não é preciso `@JsonKey` — e deixa de haver o erro mudo de escrever o nome com gralha no `@JsonKey`, que compila e devolve `null`; Material pelo pacote `material_ui` em vez de `package:flutter/material.dart`, com Flutter 3.47+.
 - **Forma de trabalhar:** o Rui escreve o código; o Claude explica, revê e ajuda. Plano por fatias no fim deste documento.
 
 ---
@@ -285,398 +285,104 @@ Navegação: menu lateral no desktop (`NavigationRail` / `Drawer`), menu inferio
 - Dinheiro sempre em `DECIMAL(10,2)` — nunca `FLOAT`.
 - Pesos em gramas (`INT`), tempos em minutos (`INT`).
 - **Fotografia dos valores na venda:** cada linha de encomenda guarda o custo e a taxa **no momento da venda**. Se o preço do filamento mudar amanhã, o lucro das encomendas antigas não muda.
-- Chave única `(canal_id, ref_externa)` em `encomendas` → a sincronização nunca cria duplicados.
-- Nomes de tabelas e colunas em português, minúsculas, `snake_case`.
-- **Encomendas sem ficha de cliente:** `cliente_id` é opcional. Encomendas "de boca" guardam só `cliente_nome` (e `cliente_contacto` se houver). As que vêm da Etsy/loja ligam-se a uma ficha em `clientes`.
+- Chave única `(channel_id, external_ref)` em `orders` → a sincronização nunca cria duplicados.
+- **Nomes de tabelas e colunas em inglês**, minúsculas, `snake_case` — iguais aos campos dos modelos em Dart (decidido a 2026-10-28).
+- **Encomendas sem ficha de cliente:** `customer_id` é opcional. Encomendas "de boca" guardam só `customer_name` (e `customer_contact` se houver). As que vêm da Etsy/loja ligam-se a uma ficha em `customers`.
 
 ## 2. Mapa das tabelas
 
 ```mermaid
 erDiagram
-    clientes ||--o{ moradas : tem
-    clientes ||--o{ encomendas : faz
-    canais ||--o{ encomendas : origem
-    encomendas ||--|{ encomenda_linhas : contem
-    encomendas ||--o{ encomenda_historico : regista
-    variantes ||--o{ encomenda_linhas : vendida_em
-    produtos ||--|{ variantes : tem
-    categorias ||--o{ produtos : agrupa
-    variantes ||--o{ variante_filamentos : usa
-    filamentos ||--o{ variante_filamentos : usado_em
-    variantes ||--o{ variante_componentes : usa
-    componentes ||--o{ variante_componentes : usado_em
-    encomenda_linhas ||--o{ tarefas_producao : gera
-    tarefas_producao ||--o{ falhas_impressao : regista
-    filamentos ||--o{ rolos : stock
-    rolos ||--o{ movimentos_stock : movimenta
-    canais ||--o{ sincronizacoes : regista
+    customers ||--o{ addresses : tem
+    customers ||--o{ orders : faz
+    channels ||--o{ orders : origem
+    orders ||--|{ order_lines : contem
+    orders ||--o{ order_events : regista
+    variants ||--o{ order_lines : vendida_em
+    products ||--|{ variants : tem
+    categories ||--o{ products : agrupa
+    variants ||--o{ variant_filaments : usa
+    filaments ||--o{ variant_filaments : usado_em
+    variants ||--o{ variant_components : usa
+    components ||--o{ variant_components : usado_em
+    order_lines ||--o{ print_jobs : gera
+    print_jobs ||--o{ print_failures : regista
+    filaments ||--o{ spools : stock
+    spools ||--o{ stock_movements : movimenta
+    channels ||--o{ sync_runs : regista
 ```
 
 ## 3. Tabelas por área
 
 | Área | Tabelas | Versão |
 |------|---------|--------|
-| Acesso | `utilizadores` | v1 |
-| Configuração | `definicoes`, `canais`, `categorias`, `metodos_pagamento`, `custos_fixos` | v1 |
-| Materiais e produção | `filamentos`, `componentes`, `impressoras` | v1 |
-| Envios | `transportadoras`, `zonas_envio`, `tarifas_envio` | v1 |
-| Catálogo | `produtos`, `produto_fotos`, `variantes`, `variante_filamentos`, `variante_componentes` | v1 |
-| Clientes | `clientes`, `moradas` | v1 |
-| Encomendas | `encomendas`, `encomenda_linhas`, `encomenda_historico`, `sincronizacoes` | v1 |
-| Produção | `tarefas_producao`, `falhas_impressao` | v1 |
-| Stock | `rolos`, `movimentos_stock` | v2 (já preparado) |
-| Packs | `pack_itens` | v2 (já preparado) |
+| Acesso | `users` | v1 |
+| Configuração | `settings`, `channels`, `categories`, `payment_methods`, `fixed_costs` | v1 |
+| Materiais e produção | `filaments`, `components`, `printers` | v1 |
+| Envios | `carriers`, `shipping_zones`, `shipping_rates` | v1 |
+| Catálogo | `products`, `product_photos`, `variants`, `variant_filaments`, `variant_components` | v1 |
+| Clientes | `customers`, `addresses` | v1 |
+| Encomendas | `orders`, `order_lines`, `order_events`, `sync_runs` | v1 |
+| Produção | `print_jobs`, `print_failures` | v1 |
+| Stock | `spools`, `stock_movements` | v2 (já preparado) |
+| Packs | `pack_items` | v2 (já preparado) |
 
-## 4. SQL (`database/schema.sql`)
+## 4. SQL — `database/schema.sql`
 
-```sql
-SET NAMES utf8mb4;
+O SQL deixou de estar aqui dentro: vive em **`database/schema.sql`**, pronto a
+importar no phpMyAdmin. Duas cópias do mesmo esquema acabavam sempre por
+divergir, e a que estava no documento é que ia ficar para trás.
 
--- ───────────── Acesso ─────────────
-CREATE TABLE utilizadores (
-  id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  nome          VARCHAR(100) NOT NULL,
-  email         VARCHAR(190) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
-  papel         ENUM('admin','colaborador') NOT NULL DEFAULT 'colaborador',
-  ativo         BOOLEAN NOT NULL DEFAULT TRUE,   -- desativar sem apagar
-  ultimo_acesso DATETIME,
-  criado_em     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+São **28 tabelas**. Nomes em inglês desde 2026-10-28; antes estavam em
+português. Quem procurar pelos nomes antigos encontra-os aqui:
 
--- ───────────── Configuração ─────────────
-CREATE TABLE definicoes (
-  chave VARCHAR(60) PRIMARY KEY,           -- preco_kwh, margem_alvo, margem_minima, arredondamento, valor_hora, incluir_custos_fixos
-  valor VARCHAR(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+| Antes (pt) | Agora (en) | | Antes (pt) | Agora (en) |
+|---|---|---|---|---|
+| `utilizadores` | `users` | | `clientes` | `customers` |
+| `definicoes` | `settings` | | `moradas` | `addresses` |
+| `canais` | `channels` | | `encomendas` | `orders` |
+| `categorias` | `categories` | | `encomenda_linhas` | `order_lines` |
+| `filamentos` | `filaments` | | `encomenda_historico` | `order_events` |
+| `componentes` | `components` | | `sincronizacoes` | `sync_runs` |
+| `impressoras` | `printers` | | `tarefas_producao` | `print_jobs` |
+| `transportadoras` | `carriers` | | `falhas_impressao` | `print_failures` |
+| `zonas_envio` | `shipping_zones` | | `rolos` | `spools` |
+| `tarifas_envio` | `shipping_rates` | | `movimentos_stock` | `stock_movements` |
+| `metodos_pagamento` | `payment_methods` | | `produtos` | `products` |
+| `custos_fixos` | `fixed_costs` | | `produto_fotos` | `product_photos` |
+| `variantes` | `variants` | | `variante_filamentos` | `variant_filaments` |
+| `pack_itens` | `pack_items` | | `variante_componentes` | `variant_components` |
 
-CREATE TABLE canais (
-  id                TINYINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  codigo            VARCHAR(20) NOT NULL UNIQUE, -- etsy, instagram, facebook, pessoalmente (+ loja na v3)
-  nome              VARCHAR(60) NOT NULL,
-  taxa_transacao    DECIMAL(5,2) NOT NULL DEFAULT 0,  -- %
-  taxa_processamento DECIMAL(5,2) NOT NULL DEFAULT 0, -- %
-  taxa_fixa         DECIMAL(10,2) NOT NULL DEFAULT 0, -- € por venda
-  taxa_listagem     DECIMAL(10,2) NOT NULL DEFAULT 0, -- € por artigo vendido
-  automatico        BOOLEAN NOT NULL DEFAULT FALSE    -- TRUE = encomendas entram sozinhas
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+As colunas seguiram a mesma regra (`nome` → `name`, `criado_em` → `created_at`,
+`estado` → `status`, `preco_venda` → `sale_price`…) e **os valores dos `ENUM`
+também** (`pendente` → `pending`, `em_producao` → `in_production`,
+`por_imprimir` → `queued`…). Isto importa: os `ENUM` chegam ao Dart como texto
+e vão dar nomes às constantes dos modelos.
 
-CREATE TABLE categorias (
-  id    SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  nome  VARCHAR(60) NOT NULL UNIQUE,         -- Secretária, Chaveiros, Flexi, Packs…
-  cor   CHAR(7) NOT NULL DEFAULT '#A1A1AA',   -- cor da etiqueta na app
-  ordem SMALLINT UNSIGNED NOT NULL DEFAULT 0  -- ordem na lista (arrastar para ordenar)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- ───────────── Materiais ─────────────
-CREATE TABLE filamentos (
-  id            SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  tipo          VARCHAR(20) NOT NULL,           -- PLA, PLA Silk, PETG, TPU…
-  marca         VARCHAR(60),
-  cor           VARCHAR(60) NOT NULL,
-  cor_hex       CHAR(7),
-  peso_rolo_g   INT UNSIGNED NOT NULL DEFAULT 1000,
-  preco_normal  DECIMAL(10,2) NOT NULL,          -- preço de tabela (referência)
-  preco_pago    DECIMAL(10,2) NOT NULL,          -- o que pagaste, com desconto/promoção
-  portes_compra DECIMAL(10,2) NOT NULL DEFAULT 0,  -- total de portes dessa compra
-  rolos_compra  TINYINT UNSIGNED NOT NULL DEFAULT 1, -- portes repartidos por estes rolos
-  -- €/kg = (preco_pago + portes_compra / rolos_compra) / peso_rolo_g × 1000  (calculado pela API)
-  stock_min_g   INT UNSIGNED NOT NULL DEFAULT 250,
-  ativo         BOOLEAN NOT NULL DEFAULT TRUE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE componentes (
-  id            SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  nome          VARCHAR(100) NOT NULL,         -- saco zip, caixa, argola, íman…
-  tipo          ENUM('componente','embalagem') NOT NULL,
-  tamanho       VARCHAR(40),                   -- 8 × 12 cm, S, A5…
-  peso_g        SMALLINT UNSIGNED NOT NULL DEFAULT 0, -- conta para o escalão dos portes
-  preco_pack    DECIMAL(10,2) NOT NULL,
-  unidades_pack INT UNSIGNED NOT NULL DEFAULT 1,
-  -- custo/un. = preco_pack / unidades_pack  (calculado pela API)
-  stock_qtd     INT NOT NULL DEFAULT 0,
-  stock_min     INT NOT NULL DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE impressoras (
-  id                  TINYINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  nome                VARCHAR(60) NOT NULL,          -- Bambu Lab A1
-  consumo_w           SMALLINT UNSIGNED NOT NULL,    -- consumo médio a imprimir
-  preco_compra        DECIMAL(10,2) NOT NULL,
-  vida_util_h         INT UNSIGNED NOT NULL,
-  manutencao_ano      DECIMAL(10,2) NOT NULL DEFAULT 0,
-  horas_ano           INT UNSIGNED NOT NULL DEFAULT 1000,
-  principal           BOOLEAN NOT NULL DEFAULT FALSE
-  -- €/h = consumo_w/1000 × preco_kwh + preco_compra/vida_util_h + manutencao_ano/horas_ano
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE transportadoras (
-  id   TINYINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  nome VARCHAR(60) NOT NULL                          -- CTT · Correio Registado, CTT Expresso…
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE zonas_envio (
-  id     TINYINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  nome   VARCHAR(60) NOT NULL,                       -- Portugal Continental, Europa · Zona 1…
-  paises VARCHAR(500)                                -- códigos ISO, ex.: 'ES,FR,DE'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE tarifas_envio (
-  transportadora_id TINYINT UNSIGNED NOT NULL,
-  zona_id           TINYINT UNSIGNED NOT NULL,
-  peso_max_g        INT UNSIGNED NOT NULL,           -- escalão: até 20 g, 100 g, 500 g…
-  preco             DECIMAL(10,2) NOT NULL,
-  PRIMARY KEY (transportadora_id, zona_id, peso_max_g),
-  FOREIGN KEY (transportadora_id) REFERENCES transportadoras(id) ON DELETE CASCADE,
-  FOREIGN KEY (zona_id)           REFERENCES zonas_envio(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE metodos_pagamento (
-  id          TINYINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  nome        VARCHAR(40) NOT NULL,                  -- MB WAY, Transferência, Dinheiro
-  taxa_percent DECIMAL(5,2) NOT NULL DEFAULT 0,
-  taxa_fixa   DECIMAL(10,2) NOT NULL DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE custos_fixos (
-  id          SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  nome        VARCHAR(80) NOT NULL,                  -- Alojamento cPanel, Etsy Plus…
-  valor_mes   DECIMAL(10,2) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- ───────────── Catálogo ─────────────
-CREATE TABLE produtos (
-  id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  nome          VARCHAR(120) NOT NULL,
-  sku_base      VARCHAR(40) NOT NULL UNIQUE,
-  descricao     TEXT,
-  categoria_id  SMALLINT UNSIGNED,
-  estado        ENUM('ativo','rascunho','arquivado') NOT NULL DEFAULT 'rascunho',
-  personalizavel BOOLEAN NOT NULL DEFAULT FALSE,
-  e_pack        BOOLEAN NOT NULL DEFAULT FALSE,
-  criado_em     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE produto_fotos (
-  id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  produto_id INT UNSIGNED NOT NULL,
-  url        VARCHAR(255) NOT NULL,
-  ordem      TINYINT UNSIGNED NOT NULL DEFAULT 0,
-  FOREIGN KEY (produto_id) REFERENCES produtos(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE variantes (
-  id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  produto_id          INT UNSIGNED NOT NULL,
-  nome                VARCHAR(80) NOT NULL,   -- Preto mate, Laranja…
-  sku                 VARCHAR(50) NOT NULL UNIQUE,
-  preco_venda         DECIMAL(10,2) NOT NULL,
-  tempo_impressao_min INT UNSIGNED NOT NULL DEFAULT 0,
-  n_tabuleiros        TINYINT UNSIGNED NOT NULL DEFAULT 1,
-  peso_g              SMALLINT UNSIGNED NOT NULL DEFAULT 0, -- peso da peça, para os portes
-  impressora_id       TINYINT UNSIGNED,                     -- NULL = impressora principal
-  ficheiro_3mf        VARCHAR(255),
-  etsy_listing_id     VARCHAR(30),             -- para ligar a encomenda Etsy à variante
-  ativo               BOOLEAN NOT NULL DEFAULT TRUE,
-  FOREIGN KEY (produto_id) REFERENCES produtos(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE variante_filamentos (
-  variante_id  INT UNSIGNED NOT NULL,
-  filamento_id SMALLINT UNSIGNED NOT NULL,
-  gramas       INT UNSIGNED NOT NULL,
-  PRIMARY KEY (variante_id, filamento_id),
-  FOREIGN KEY (variante_id)  REFERENCES variantes(id) ON DELETE CASCADE,
-  FOREIGN KEY (filamento_id) REFERENCES filamentos(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE variante_componentes (
-  variante_id    INT UNSIGNED NOT NULL,
-  componente_id  SMALLINT UNSIGNED NOT NULL,
-  quantidade     SMALLINT UNSIGNED NOT NULL DEFAULT 1,
-  PRIMARY KEY (variante_id, componente_id),
-  FOREIGN KEY (variante_id)   REFERENCES variantes(id) ON DELETE CASCADE,
-  FOREIGN KEY (componente_id) REFERENCES componentes(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE pack_itens (                      -- v2
-  pack_variante_id INT UNSIGNED NOT NULL,
-  variante_id      INT UNSIGNED NOT NULL,
-  quantidade       SMALLINT UNSIGNED NOT NULL DEFAULT 1,
-  PRIMARY KEY (pack_variante_id, variante_id),
-  FOREIGN KEY (pack_variante_id) REFERENCES variantes(id) ON DELETE CASCADE,
-  FOREIGN KEY (variante_id)      REFERENCES variantes(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- ───────────── Clientes ─────────────
-CREATE TABLE clientes (
-  id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  nome       VARCHAR(120) NOT NULL,
-  email      VARCHAR(190),
-  telefone   VARCHAR(30),
-  instagram  VARCHAR(60),
-  notas      TEXT,
-  criado_em  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  INDEX (email)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE moradas (
-  id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  cliente_id    INT UNSIGNED NOT NULL,
-  linha1        VARCHAR(150) NOT NULL,
-  linha2        VARCHAR(150),
-  codigo_postal VARCHAR(12) NOT NULL,
-  localidade    VARCHAR(80) NOT NULL,
-  pais          CHAR(2) NOT NULL DEFAULT 'PT',
-  FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- ───────────── Encomendas ─────────────
-CREATE TABLE encomendas (
-  id                INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  numero            INT UNSIGNED NOT NULL UNIQUE,      -- #1042
-  canal_id          TINYINT UNSIGNED NOT NULL,
-  ref_externa       VARCHAR(40),                       -- nº da encomenda na Etsy
-  cliente_id        INT UNSIGNED,                      -- NULL = encomenda "de boca", sem ficha
-  cliente_nome      VARCHAR(120) NOT NULL,             -- nome ou referência ("D. Lurdes — vizinha")
-  cliente_contacto  VARCHAR(60),                       -- telemóvel ou @instagram, opcional
-  morada_id         INT UNSIGNED,
-  estado            ENUM('pendente','em_producao','pronta','enviada','entregue','cancelada')
-                    NOT NULL DEFAULT 'pendente',
-  estado_pagamento  ENUM('por_pagar','pago','reembolsado') NOT NULL DEFAULT 'por_pagar',
-  metodo_pagamento  VARCHAR(30),                       -- Etsy Payments, MB WAY, dinheiro…
-  metodo_entrega    ENUM('ctt','mao','levantamento','outro')   -- 'mao' = entrega em mão NOT NULL DEFAULT 'ctt',
-  transportadora    VARCHAR(40),
-  codigo_seguimento VARCHAR(40),
-  portes_cobrados   DECIMAL(10,2) NOT NULL DEFAULT 0,
-  portes_pagos      DECIMAL(10,2) NOT NULL DEFAULT 0,
-  prazo_envio       DATE,
-  notas             TEXT,
-  criada_manual     BOOLEAN NOT NULL DEFAULT FALSE,
-  criada_por        INT UNSIGNED,                      -- utilizador que a criou (NULL = Etsy/sincronização)
-  vista             BOOLEAN NOT NULL DEFAULT FALSE,    -- "2 novas por ver"
-  criada_em         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  atualizada_em     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_origem (canal_id, ref_externa),        -- sem duplicados na sincronização
-  INDEX (estado),
-  INDEX (criada_em),
-  FOREIGN KEY (canal_id)   REFERENCES canais(id),
-  FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE SET NULL,
-  FOREIGN KEY (morada_id)  REFERENCES moradas(id) ON DELETE SET NULL,
-  FOREIGN KEY (criada_por) REFERENCES utilizadores(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE encomenda_linhas (
-  id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  encomenda_id    INT UNSIGNED NOT NULL,
-  variante_id     INT UNSIGNED NOT NULL,
-  quantidade      SMALLINT UNSIGNED NOT NULL DEFAULT 1,
-  preco_unit      DECIMAL(10,2) NOT NULL,
-  desconto        DECIMAL(10,2) NOT NULL DEFAULT 0,
-  personalizacao  VARCHAR(255),
-  custo_unit      DECIMAL(10,2) NOT NULL,   -- fotografia do custo no momento da venda
-  taxa_canal      DECIMAL(10,2) NOT NULL DEFAULT 0, -- fotografia da taxa desta linha
-  FOREIGN KEY (encomenda_id) REFERENCES encomendas(id) ON DELETE CASCADE,
-  FOREIGN KEY (variante_id)  REFERENCES variantes(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE encomenda_historico (
-  id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  encomenda_id  INT UNSIGNED NOT NULL,
-  descricao     VARCHAR(150) NOT NULL,      -- "Pagamento confirmado", "Enviada por CTT"…
-  estado_novo   VARCHAR(20),
-  origem        ENUM('sistema','utilizador','sincronizacao') NOT NULL,
-  utilizador_id INT UNSIGNED,
-  criado_em     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (encomenda_id)  REFERENCES encomendas(id) ON DELETE CASCADE,
-  FOREIGN KEY (utilizador_id) REFERENCES utilizadores(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE sincronizacoes (
-  id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  canal_id        TINYINT UNSIGNED NOT NULL,
-  iniciada_em     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  terminada_em    DATETIME,
-  estado          ENUM('a_correr','ok','erro') NOT NULL DEFAULT 'a_correr',
-  novas           SMALLINT UNSIGNED NOT NULL DEFAULT 0,
-  atualizadas     SMALLINT UNSIGNED NOT NULL DEFAULT 0,
-  erro            TEXT,
-  FOREIGN KEY (canal_id) REFERENCES canais(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- ───────────── Produção ─────────────
-CREATE TABLE tarefas_producao (
-  id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  encomenda_linha_id  INT UNSIGNED,          -- NULL = tarefa manual (stock, protótipo)
-  variante_id         INT UNSIGNED NOT NULL,
-  quantidade          SMALLINT UNSIGNED NOT NULL DEFAULT 1,
-  estado              ENUM('por_imprimir','a_imprimir','pos_processamento','concluida')
-                      NOT NULL DEFAULT 'por_imprimir',
-  tempo_estimado_min  INT UNSIGNED NOT NULL,
-  tabuleiro_atual     TINYINT UNSIGNED NOT NULL DEFAULT 0,
-  iniciada_em         DATETIME,             -- usado para calcular o progresso na v1
-  concluida_em        DATETIME,
-  ordem               INT NOT NULL DEFAULT 0, -- posição no quadro
-  notas               VARCHAR(255),
-  INDEX (estado),
-  FOREIGN KEY (encomenda_linha_id) REFERENCES encomenda_linhas(id) ON DELETE CASCADE,
-  FOREIGN KEY (variante_id)        REFERENCES variantes(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE falhas_impressao (
-  id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  tarefa_id        INT UNSIGNED NOT NULL,
-  filamento_id     SMALLINT UNSIGNED NOT NULL,
-  gramas_perdidas  INT UNSIGNED NOT NULL,
-  minutos_perdidos INT UNSIGNED NOT NULL,
-  motivo           VARCHAR(150),
-  criado_em        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (tarefa_id)    REFERENCES tarefas_producao(id) ON DELETE CASCADE,
-  FOREIGN KEY (filamento_id) REFERENCES filamentos(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- ───────────── Stock (v2, já preparado) ─────────────
-CREATE TABLE rolos (
-  id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  filamento_id    SMALLINT UNSIGNED NOT NULL,
-  peso_inicial_g  INT UNSIGNED NOT NULL DEFAULT 1000,
-  peso_restante_g INT NOT NULL,
-  estado          ENUM('fechado','em_uso','acabado') NOT NULL DEFAULT 'fechado',
-  comprado_em     DATE,
-  FOREIGN KEY (filamento_id) REFERENCES filamentos(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE movimentos_stock (
-  id        INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  rolo_id   INT UNSIGNED NOT NULL,
-  gramas    INT NOT NULL,                   -- negativo = consumo, positivo = acerto
-  tipo      ENUM('producao','falha','acerto') NOT NULL,
-  tarefa_id INT UNSIGNED,
-  criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (rolo_id)   REFERENCES rolos(id) ON DELETE CASCADE,
-  FOREIGN KEY (tarefa_id) REFERENCES tarefas_producao(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-```
+> **Erro que estava no SQL antigo e foi corrigido.** A coluna `metodo_entrega`
+> tinha a cláusula engolida por um comentário:
+> `ENUM(...) -- 'mao' = entrega em mão NOT NULL DEFAULT 'ctt',`
+> O `--` come o resto da linha, por isso o `NOT NULL DEFAULT` e a vírgula
+> desapareciam e a tabela seguinte colava-se a esta. O ficheiro nunca teria
+> importado. Está escrito como `delivery_method ENUM('carrier','hand','pickup','other') NOT NULL DEFAULT 'carrier',`.
 
 ## 5. Como as tabelas servem cada ecrã
 
 | Ecrã | Tabelas principais |
 |------|-------------------|
-| Dashboard | `encomendas` + `encomenda_linhas` (vendas, lucro), `canais`, `tarefas_producao`, `filamentos` |
-| Lista de encomendas | `encomendas`, `clientes`, `canais` |
-| Detalhe da encomenda | `encomendas`, `encomenda_linhas`, `variantes`, `clientes`, `moradas`, `encomenda_historico` |
-| Criar manualmente | `clientes`, `variantes`, `canais` → grava em `encomendas` + `encomenda_linhas` |
-| Produto e custos | `produtos`, `variantes`, `variante_filamentos`, `filamentos`, `variante_componentes`, `componentes`, `definicoes`, `canais` |
-| Produção | `tarefas_producao`, `variantes`, `encomenda_linhas`, `filamentos` |
-| Estado da sincronização | `sincronizacoes` |
+| Dashboard | `orders` + `order_lines` (vendas, lucro), `channels`, `print_jobs`, `filaments` |
+| Lista de encomendas | `orders`, `customers`, `channels` |
+| Detalhe da encomenda | `orders`, `order_lines`, `variants`, `customers`, `addresses`, `order_events` |
+| Criar manualmente | `customers`, `variants`, `channels` → grava em `orders` + `order_lines` |
+| Produto e custos | `products`, `variants`, `variant_filaments`, `filaments`, `variant_components`, `components`, `settings`, `channels` |
+| Produção | `print_jobs`, `variants`, `order_lines`, `filaments` |
+| Estado da sincronização | `sync_runs` |
 
 **Lucro de uma encomenda** (calculado pela API):
 
 ```
-recebido = Σ(preco_unit × quantidade − desconto) + portes_cobrados
-custos   = Σ(custo_unit × quantidade) + Σ taxa_canal + portes_pagos
+recebido = Σ(unit_price × quantity − discount) + shipping_charged
+custos   = Σ(unit_cost × quantity) + Σ channel_fee + shipping_paid
 lucro    = recebido − custos
 ```
 
