@@ -386,11 +386,35 @@ custos   = Σ(unit_cost × quantity) + Σ channel_fee + shipping_paid
 lucro    = recebido − custos
 ```
 
+> **Base criada a 2026-10-28.** Base de dados, utilizador e palavra-passe
+> criados no cPanel pelo Rui; `database/schema.sql` importado pelo phpMyAdmin.
+> As credenciais **nunca entram no git** — vão para o ficheiro de configuração
+> da API, que fica fora do repositório.
+>
+> **Servidor: MariaDB 10.6.27**, via socket UNIX. Chega e sobra (o esquema
+> pede 10.4+).
+>
+> ⚠️ **O conjunto de caracteres do servidor é `latin1` (cp1252).** As tabelas
+> declaram `utf8mb4` uma a uma, por isso estão bem — mas **a ligação** não.
+> A API tem de abrir a ligação em `utf8mb4` explicitamente:
+> `new PDO('mysql:host=localhost;dbname=...;charset=utf8mb4', ...)`.
+> Sem isso, os acentos e os emojis entram trocados (`JoÃ£o`) sem erro nenhum
+> — e só se descobre quando o cliente vê o nome mal escrito. Qualquer script
+> SQL importado à mão deve começar por `SET NAMES utf8mb4;`, como o
+> `seed.sql` faz.
+>
+> **Dados de arranque:** `database/seed.sql`, importar depois do esquema.
+> Preço da A1 confirmado pelo Rui: **381,40 €** → custo de impressão
+> ≈ 0,123 €/h (luz + desgaste + manutenção).
+
 ## 6. Por validar
 
 - [ ] Os estados das encomendas e das tarefas estão completos?
 - [ ] Falta algum campo que uses hoje nas encomendas (ex.: oferta, embrulho)?
-- [ ] Confirmar a versão do MySQL/MariaDB no cPanel (aparece no phpMyAdmin).
+- [x] Confirmar a versão do MySQL/MariaDB no cPanel — **MariaDB 10.6.27**, 2026-10-28.
+- [ ] Preços dos CTT por escalão de peso, para preencher `shipping_rates`.
+- [ ] Confirmar as taxas da Etsy no painel da conta (estão no `seed.sql` por estimativa).
+- [ ] Confirmar margem alvo, margem mínima e arredondamento dos preços sugeridos.
 
 
 ---
