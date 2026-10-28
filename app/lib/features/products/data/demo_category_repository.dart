@@ -7,13 +7,13 @@ import '../domain/product_category_repository.dart';
 /// construir e testar os ecras antes de a API existir. Na fatia 11 nasce uma
 /// ApiCategoryRepository ao lado desta, com os mesmos metodos, e troca-se uma
 /// pela outra num sitio so — os ecras nem dao por isso.
-class DemoCategoryRepository implements CategoryRepository {
+class DemoCategoryRepository implements ProductCategoryRepository {
   /// As quatro categorias do seed.sql, para a demo comecar com conteudo real.
-  final List<Category> _items = [
-    const Category(id: 1, name: 'Secretária', color: '#C2410C', sortOrder: 1),
-    const Category(id: 2, name: 'Chaveiros', color: '#0D7698', sortOrder: 2),
-    const Category(id: 3, name: 'Flexi', color: '#7C3AED', sortOrder: 3),
-    const Category(id: 4, name: 'Packs', color: '#15803D', sortOrder: 4),
+  final List<ProductCategory> _items = [
+    const ProductCategory(id: 1, name: 'Secretária', color: '#C2410C', sortOrder: 1),
+    const ProductCategory(id: 2, name: 'Chaveiros', color: '#0D7698', sortOrder: 2),
+    const ProductCategory(id: 3, name: 'Flexi', color: '#7C3AED', sortOrder: 3),
+    const ProductCategory(id: 4, name: 'Packs', color: '#15803D', sortOrder: 4),
   ];
 
   /// Faz o papel do AUTO_INCREMENT da base de dados: comeca a seguir ao
@@ -30,25 +30,25 @@ class DemoCategoryRepository implements CategoryRepository {
       Future.delayed(const Duration(milliseconds: 300));
 
   @override
-  Future<List<Category>> fetchAll() async {
+  Future<List<ProductCategory>> fetchAll() async {
     await _latency();
 
     // Copia primeiro, ordena depois: o .sort() altera a lista onde e chamado,
     // e ordenar _items diretamente era mexer no estado interno sem necessidade.
-    final copy = List<Category>.of(_items);
+    final copy = List<ProductCategory>.of(_items);
     copy.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
     return copy;
   }
 
   @override
-  Future<Category> create({
+  Future<ProductCategory> create({
     required String name,
     String color = '#A1A1AA',
     int sortOrder = 0,
   }) async {
     await _latency();
 
-    final created = Category(
+    final created = ProductCategory(
       id: _nextId++,          // atribui e avanca, tal como faria o INSERT
       name: name,
       color: color,
@@ -60,7 +60,7 @@ class DemoCategoryRepository implements CategoryRepository {
   }
 
   @override
-  Future<Category> update(Category category) async {
+  Future<ProductCategory> update(ProductCategory category) async {
     await _latency();
 
     final index = _items.indexWhere((c) => c.id == category.id);

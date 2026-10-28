@@ -5,12 +5,12 @@ import 'product_category.dart';
 /// Os ecras dependem DESTA classe, nunca de uma implementacao concreta.
 /// Hoje por tras esta uma lista em memoria; na fatia 11 estara a API em PHP,
 /// e nenhum ecra tera de mudar — e esta a unica razao de existir esta classe.
-abstract interface class CategoryRepository {
+abstract interface class ProductCategoryRepository {
   /// Todas as categorias, ja pela ordem com que devem aparecer na lista.
   ///
   /// Future mesmo em modo demo: quando vier da rede tera de ser assincrono,
   /// e mudar isso mais tarde obrigaria a mexer em todos os sitios que chamam.
-  Future<List<Category>> fetchAll();
+  Future<List<ProductCategory>> fetchAll();
 
   /// Cria uma categoria e devolve-a ja com o id.
   ///
@@ -23,7 +23,7 @@ abstract interface class CategoryRepository {
   ///
   /// color e sortOrder tem valor por omissao igual ao DEFAULT da tabela:
   /// quem cria depressa nao e obrigado a escolher uma cor.
-  Future<Category> create({
+  Future<ProductCategory> create({
     required String name,
     String color = '#A1A1AA',
     int sortOrder = 0,
@@ -38,7 +38,7 @@ abstract interface class CategoryRepository {
   /// lhe foi enviado — o updated_at muda sozinho, e um dia pode haver
   /// validacoes que corrijam valores. Ficar com o objeto que enviaste e
   /// ficar com uma versao que pode ja nao ser verdade.
-  Future<Category> update(Category category);
+  Future<ProductCategory> update(ProductCategory category);
 
   /// Apaga a categoria com este id.
   ///
