@@ -6,16 +6,18 @@ part of 'product_category.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_Category _$CategoryFromJson(Map<String, dynamic> json) => _Category(
-  id: (json['id'] as num).toInt(),
-  name: json['name'] as String,
-  color: json['color'] as String? ?? '#A1A1AA',
-  sortOrder: (json['sort_order'] as num?)?.toInt() ?? 0,
-);
+_ProductCategory _$ProductCategoryFromJson(Map<String, dynamic> json) =>
+    _ProductCategory(
+      id: (json['id'] as num).toInt(),
+      name: json['name'] as String,
+      color: json['color'] as String? ?? '#A1A1AA',
+      sortOrder: (json['sort_order'] as num?)?.toInt() ?? 0,
+    );
 
-Map<String, dynamic> _$CategoryToJson(_Category instance) => <String, dynamic>{
-  'id': instance.id,
-  'name': instance.name,
-  'color': instance.color,
-  'sort_order': instance.sortOrder,
-};
+Map<String, dynamic> _$ProductCategoryToJson(_ProductCategory instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'color': instance.color,
+      'sort_order': instance.sortOrder,
+    };
