@@ -7,6 +7,7 @@ class ProductsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+
     // Olha para a placa e recebe a "caixa" com o estado da lista.
     final categories = ref.watch(productCategoriesProvider);
 
@@ -15,6 +16,7 @@ class ProductsScreen extends ConsumerWidget {
         title: const Text('Produtos'),
         centerTitle: true,
       ),
+
       // Um ecrã diferente para cada estado da caixa.
       body: categories.when(
         loading: () => const Center(child: CircularProgressIndicator()),
