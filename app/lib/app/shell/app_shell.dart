@@ -120,6 +120,26 @@ class AppShell extends StatelessWidget {
                         selected: navigationShell.currentIndex == 6,
                         onTap: () => navigationShell.goBranch(6),
                       ),
+                      const Spacer(),
+                      const Divider(color: Color(0xFF3F3F46)),
+                      SizedBox(),
+                      Row(
+                        children: [
+                          const CircleAvatar(
+                            radius: 18,
+                            backgroundColor: Color(0xFF3F3F46),
+                            child: Text("R", style: TextStyle(color: Colors.white)),
+                          ),
+                          SizedBox(),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("Rui", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                              Text("Administrador", style: TextStyle(color: Color(0xFFA1A1AA), fontSize: 12)),
+                            ],
+                          ),
+                        ],
+                      )
                     ],
                   ),
                 ),

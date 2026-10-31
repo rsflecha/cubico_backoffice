@@ -1,13 +1,7 @@
 import '../domain/product_category.dart';
 import '../domain/product_category_repository.dart';
 
-/// Implementacao de demonstracao do contrato CategoryRepository.
-///
-/// Os dados vivem em memoria e desaparecem quando a app fecha. Serve para
-/// construir e testar os ecras antes de a API existir. Na fatia 11 nasce uma
-/// ApiCategoryRepository ao lado desta, com os mesmos metodos, e troca-se uma
-/// pela outra num sitio so — os ecras nem dao por isso.
-class DemoCategoryRepository implements ProductCategoryRepository {
+class DemoProductCategoryRepository implements ProductCategoryRepository {
   /// As quatro categorias do seed.sql, para a demo comecar com conteudo real.
   final List<ProductCategory> _items = [
     const ProductCategory(id: 1, name: 'Secretária', color: '#C2410C', sortOrder: 1),
@@ -16,16 +10,8 @@ class DemoCategoryRepository implements ProductCategoryRepository {
     const ProductCategory(id: 4, name: 'Packs', color: '#15803D', sortOrder: 4),
   ];
 
-  /// Faz o papel do AUTO_INCREMENT da base de dados: comeca a seguir ao
-  /// ultimo id da lista acima. Sem isto, duas categorias criadas seguidas
-  /// ficavam com o mesmo id e a app passava a editar a errada.
   int _nextId = 5;
 
-  /// Finge a demora da rede.
-  ///
-  /// Parece inutil numa lista em memoria, mas obriga-nos a construir os ecras
-  /// ja com estado de carregamento. Sem isto, tudo parece instantaneo ate ao
-  /// dia em que ha API a serio — e aí a app pisca toda e ha que refazer ecras.
   Future<void> _latency() =>
       Future.delayed(const Duration(milliseconds: 300));
 
