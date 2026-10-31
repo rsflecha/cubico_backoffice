@@ -5,7 +5,7 @@ class DemoProductCategoryRepository implements ProductCategoryRepository {
   /// As quatro categorias do seed.sql, para a demo comecar com conteudo real.
   final List<ProductCategory> _items = [
     const ProductCategory(id: 1, name: 'Secretária', color: '#C2410C', sortOrder: 1),
-    const ProductCategory(id: 2, name: 'Chaveiros', color: '#0D7698', sortOrder: 2),
+    const ProductCategory(id: 2, name: 'Brindes', color: '#0D7698', sortOrder: 2),
     const ProductCategory(id: 3, name: 'Flexi', color: '#7C3AED', sortOrder: 3),
     const ProductCategory(id: 4, name: 'Packs', color: '#15803D', sortOrder: 4),
   ];

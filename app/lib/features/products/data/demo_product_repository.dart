@@ -14,7 +14,7 @@ class DemoProductRepository implements ProductRepository {
     ),
     Product(
       id: 2,
-      name: 'Arvore de Natal',
+      name: 'Árvore de Natal',
       baseSku: 'CD3-ADN-01',
       categoryId: 2,
       status: ProductStatus.active,

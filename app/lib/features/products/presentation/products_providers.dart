@@ -30,3 +30,17 @@ final productsProvider = FutureProvider<List<Product>>((ref) {
   final repository = ref.watch(productRepositoryProvider);
   return repository.fetchAll();
 });
+
+/// Guarda a categoria escolhida no filtro. null = "Todas".
+class SelectedCategoryNotifier extends Notifier<int?> {
+  @override
+  int? build() => null; // valor inicial: nenhuma escolhida (Todas)
+
+  void select(int? categoryId) {
+    state = categoryId;
+  }
+}
+
+/// Placa 5: a categoria escolhida no filtro.
+final selectedCategoryProvider =
+NotifierProvider<SelectedCategoryNotifier, int?>(SelectedCategoryNotifier.new);
