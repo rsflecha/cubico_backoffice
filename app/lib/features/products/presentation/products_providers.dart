@@ -15,3 +15,16 @@ final productCategoriesProvider = FutureProvider<List<ProductCategory>>((ref) {
   final repository = ref.watch(productCategoryRepositoryProvider);
   return repository.fetchAll();
 });
+
+/// Placa 1: qual é o repositório das categorias.
+/// Na Fatia 11 troca-se aqui o Demo pelo Api, e mais nada muda.
+final productRepositoryProvider = Provider<DemoProductRepository>((ref) {
+  return DemoProductCategoryRepository();
+});
+
+/// Placa 2: a lista de categorias, vinda do repositório.
+/// É FutureProvider porque o fetchAll() demora (devolve um Future).
+final productsProvider = FutureProvider<List<ProductCategory>>((ref) {
+  final repository = ref.watch(productCategoryRepositoryProvider);
+  return repository.fetchAll();
+});

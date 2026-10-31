@@ -1,3 +1,4 @@
+import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
@@ -9,7 +10,7 @@ class ProductsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
 
     // Olha para a placa e recebe a "caixa" com o estado da lista.
-    final categories = ref.watch(productCategoriesProvider);
+    final categories = ref.watch(productsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -27,7 +28,8 @@ class ProductsScreen extends ConsumerWidget {
             final category = list[index];
             return ListTile(
               leading: const Icon(Icons.folder_outlined),
-              title: Text(category.name),
+              title: Text(product.name),
+              subtitle: Text(product.baseSku, style: AppTextStyles.mono),
             );
           },
         ),
