@@ -122,7 +122,7 @@ class AppShell extends StatelessWidget {
                       ),
                       const Spacer(),
                       const Divider(color: Color(0xFF3F3F46)),
-                      SizedBox(),
+                      const SizedBox(height: 12),
                       Row(
                         children: [
                           const CircleAvatar(
@@ -130,7 +130,7 @@ class AppShell extends StatelessWidget {
                             backgroundColor: Color(0xFF3F3F46),
                             child: Text("R", style: TextStyle(color: Colors.white)),
                           ),
-                          SizedBox(),
+                          const SizedBox(width: 12),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
