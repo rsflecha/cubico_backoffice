@@ -10,7 +10,7 @@ class ProductsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
 
     // Olha para a placa e recebe a "caixa" com o estado da lista.
-    final categories = ref.watch(productsProvider);
+    final products = ref.watch(productsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -19,13 +19,13 @@ class ProductsScreen extends ConsumerWidget {
       ),
 
       // Um ecrã diferente para cada estado da caixa.
-      body: categories.when(
+      body: products.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text('Erro: $error')),
         data: (list) => ListView.builder(
           itemCount: list.length,
           itemBuilder: (context, index) {
-            final category = list[index];
+            final product = list[index];
             return ListTile(
               leading: const Icon(Icons.folder_outlined),
               title: Text(product.name),
