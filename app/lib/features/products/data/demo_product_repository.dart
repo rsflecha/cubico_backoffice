@@ -69,4 +69,10 @@ class DemoProductRepository implements ProductRepository {
     _items[index] = product;
     return product;
   }
+
+  @override
+  Future<void> delete(int id) async {
+    await _latency();
+    _items.removeWhere((p) => p.id == id);
+  }
 }

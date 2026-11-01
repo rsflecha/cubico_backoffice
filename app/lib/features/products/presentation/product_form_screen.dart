@@ -75,12 +75,49 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     context.pop();
   }
 
+  Future<void> _delete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Apagar produto?'),
+        content: Text('O produto "${_original!.name}" vai ser apagado.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Apagar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    await ref.read(productRepositoryProvider).delete(_original!.id);
+    ref.invalidate(productsProvider);
+
+    if (!mounted) return;
+    context.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final categories = ref.watch(productCategoriesProvider).value ?? [];
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.productId == null ? 'Novo produto' : 'Editar produto'),),
+      appBar: AppBar(
+        title: Text(widget.productId == null ? 'Novo produto' : 'Editar produto'),
+        actions: [
+          if (_original != null)
+            IconButton(
+              onPressed: _delete,
+              icon: const Icon(Icons.delete_outline),
+              tooltip: 'Apagar produto',
+            ),
+        ],
+      ),
       body: Form(
         key: _formKey,
         autovalidateMode: _submitted

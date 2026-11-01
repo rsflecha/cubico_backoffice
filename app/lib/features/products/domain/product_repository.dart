@@ -10,4 +10,6 @@ abstract interface class ProductRepository {
   });
 
   Future<Product> update(Product product);
+
+  Future<void> delete(int id);
 }
