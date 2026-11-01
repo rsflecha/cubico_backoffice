@@ -26,21 +26,11 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   }
 
   Future<void> _save() async {
-
-    FilledButton(
-      onPressed: _saving ? null : _save,
-      child: _saving
-          ? const SizedBox(
-        width: 20,
-        height: 20,
-        child: CircularProgressIndicator(strokeWidth: 2),
-      )
-          : const Text('Guardar'),
-    );
-
     setState(() => _submitted = true);
     final isValid = _formKey.currentState!.validate();
     if (!isValid) return;
+
+    setState(() => _saving = true);
 
     await ref.read(productRepositoryProvider).create(
       name: _nameController.text.trim(),
@@ -110,8 +100,14 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             ),
             const SizedBox(height: 24),
             FilledButton(
-              onPressed: _save,
-              child: const Text('Guardar'),
+              onPressed: _saving ? null : _save,
+              child: _saving
+                  ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+                  : const Text('Guardar'),
             ),
           ],
         ),
