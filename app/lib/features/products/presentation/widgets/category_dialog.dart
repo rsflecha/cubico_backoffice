@@ -39,7 +39,7 @@ class _CategoryDialogState extends State<CategoryDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context), // fecha sem devolver nada
-          child: Text(widget.title),
+          child: const Text("Cancelar"),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, _controller.text), // fecha e devolve o nome

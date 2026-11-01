@@ -76,7 +76,7 @@ class ProductsScreen extends ConsumerWidget {
                       final name = await showDialog<String>(
                         context: context,
                         builder: (context) => CategoryDialog(
-                          title: 'Cancelar',
+                          title: 'Editar categoria',
                           confirmLabel: 'Guardar',
                           initialName: category.name,
                         ),
