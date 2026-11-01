@@ -1,18 +1,20 @@
+import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
-class ProductFormScreen extends StatefulWidget {
+class ProductFormScreen extends ConsumerStatefulWidget {
   const ProductFormScreen({super.key});
 
   @override
-  State<ProductFormScreen> createState() => _ProductFormScreenState();
+  ConsumerState<ProductFormScreen> createState() => _ProductFormScreenState();
 }
 
-class _ProductFormScreenState extends State<ProductFormScreen> {
+class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   final _formKey = GlobalKey<FormState>(); // o "comando" do formulário
   final _nameController = TextEditingController();
   final _skuController = TextEditingController();
-
+  int? _categoryId;
   var _submitted = false;
 
   @override
@@ -22,17 +24,26 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     super.dispose();
   }
 
-  void _save() {
-    // pede ao formulário para verificar todos os campos
+  Future<void> _save() async {
+    setState(() => _submitted = true);
     final isValid = _formKey.currentState!.validate();
-    if (!isValid) return; // há erros: ficam a vermelho e não sai daqui
+    if (!isValid) return;
 
-    // Passo B: aqui vamos gravar no repositório
-    context.pop(); // volta à lista
+    await ref.read(productRepositoryProvider).create(
+      name: _nameController.text.trim(),
+      baseSku: _skuController.text.trim().toUpperCase(),
+      categoryId: _categoryId!,
+    );
+    ref.invalidate(productsProvider);
+
+    if (!mounted) return;
+    context.pop();
   }
 
   @override
   Widget build(BuildContext context) {
+    final categories = ref.watch(productCategoriesProvider).value ?? [];
+
     return Scaffold(
       appBar: AppBar(title: const Text('Novo produto')),
       body: Form(
@@ -40,7 +51,6 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         autovalidateMode: _submitted
             ? AutovalidateMode.onUserInteraction
             : AutovalidateMode.disabled,
-
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
@@ -56,6 +66,17 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 }
                 return null; // está tudo bem
               },
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<int>(
+              initialValue: _categoryId,
+              decoration: const InputDecoration(labelText: 'Categoria'),
+              items: [
+                for (final category in categories)
+                  DropdownMenuItem(value: category.id, child: Text(category.name)),
+              ],
+              onChanged: (value) => setState(() => _categoryId = value),
+              validator: (value) => value == null ? 'Escolhe uma categoria.' : null,
             ),
             const SizedBox(height: 16),
             TextFormField(

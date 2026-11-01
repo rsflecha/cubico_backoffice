@@ -2,6 +2,7 @@ import '../domain/product.dart';
 import '../domain/product_repository.dart';
 
 class DemoProductRepository implements ProductRepository {
+  int _nextId = 4;
   final List<Product> _items = [
     Product(
       id: 1,
@@ -38,5 +39,25 @@ class DemoProductRepository implements ProductRepository {
   Future<List<Product>> fetchAll() async {
     await _latency();
     return List<Product>.of(_items);
+  }
+
+  @override
+  Future<Product> create({
+    required String name,
+    required String baseSku,
+    required int categoryId,
+  }) async {
+    await _latency();
+    final now = DateTime.now();
+    final created = Product(
+      id: _nextId++,
+      name: name,
+      baseSku: baseSku,
+      categoryId: categoryId,
+      createdAt: now,
+      updatedAt: now,
+    );
+    _items.add(created);
+    return created;
   }
 }
