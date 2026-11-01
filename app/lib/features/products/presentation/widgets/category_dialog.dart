@@ -29,7 +29,7 @@ class _CategoryDialogState extends State<CategoryDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Nova categoria'),
+      title: Text(widget.title),
       content: TextField(
         controller: _controller,
         autofocus: true, // o cursor já aparece no campo
