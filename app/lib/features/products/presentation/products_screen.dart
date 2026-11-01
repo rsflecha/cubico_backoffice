@@ -1,5 +1,6 @@
 import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
+import 'package:cubico_backoffice/features/products/presentation/widgets/new_category_dialog.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -42,6 +43,27 @@ class ProductsScreen extends ConsumerWidget {
                         ref.read(selectedCategoryProvider.notifier).select(category.id),
                   ),
                 ],
+                const SizedBox(width: 8),
+                ActionChip(
+                  avatar: const Icon(Icons.add, size: 18),
+                  label: const Text('Nova'),
+                  onPressed: () async {
+                    // 1. abre a janela e espera pela resposta
+                    final name = await showDialog<String>(
+                      context: context,
+                      builder: (context) => const NewCategoryDialog(),
+                    );
+
+                    // 2. se cancelou ou deixou vazio, não faz nada
+                    if (name == null || name.trim().isEmpty) return;
+
+                    // 3. pede ao balcão para criar
+                    await ref.read(productCategoryRepositoryProvider).create(name: name.trim());
+
+                    // 4. diz ao Riverpod que a lista mudou, para a ir buscar outra vez
+                    ref.invalidate(productCategoriesProvider);
+                  },
+                ),
               ],
             ),
           ),
