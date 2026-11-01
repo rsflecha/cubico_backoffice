@@ -53,6 +53,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                     path: 'new', // fica /products/new
                     builder: (context, state) => const ProductFormScreen(),
                   ),
+                  GoRoute(
+                    path: ':id', // fica /products/3, /products/7...
+                    builder: (context, state) {
+                      final id = int.parse(state.pathParameters['id']!);
+                      return ProductFormScreen(productId: id);
+                    },
+                  ),
                 ],
               ),
             ],

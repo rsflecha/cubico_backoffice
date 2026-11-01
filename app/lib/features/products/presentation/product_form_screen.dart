@@ -3,8 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../domain/product.dart';
+
 class ProductFormScreen extends ConsumerStatefulWidget {
-  const ProductFormScreen({super.key});
+  const ProductFormScreen({super.key, this.productId});
+
+  final int? productId; // null = produto novo
 
   @override
   ConsumerState<ProductFormScreen> createState() => _ProductFormScreenState();
@@ -17,12 +21,29 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   int? _categoryId;
   var _submitted = false;
   var _saving = false;
+  Product? _original; // o produto tal como estava, quando se edita
 
   @override
   void dispose() {
     _nameController.dispose();
     _skuController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final id = widget.productId;
+    if (id == null) return; // produto novo: campos vazios
+
+    final products = ref.read(productsProvider).value ?? [];
+    _original = products.where((p) => p.id == id).firstOrNull;
+
+    if (_original != null) {
+      _nameController.text = _original!.name;
+      _skuController.text = _original!.baseSku;
+      _categoryId = _original!.categoryId;
+    }
   }
 
   Future<void> _save() async {
@@ -32,11 +53,22 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
     setState(() => _saving = true);
 
-    await ref.read(productRepositoryProvider).create(
-      name: _nameController.text.trim(),
-      baseSku: _skuController.text.trim().toUpperCase(),
-      categoryId: _categoryId!,
-    );
+    final repository = ref.read(productRepositoryProvider);
+    final name = _nameController.text.trim();
+    final sku = _skuController.text.trim().toUpperCase();
+
+    if (_original == null) {
+      await repository.create(name: name, baseSku: sku, categoryId: _categoryId!);
+    } else {
+      await repository.update(
+        _original!.copyWith(
+          name: name,
+          baseSku: sku,
+          categoryId: _categoryId,
+          updatedAt: DateTime.now(),
+        ),
+      );
+    }
     ref.invalidate(productsProvider);
 
     if (!mounted) return;
@@ -48,7 +80,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     final categories = ref.watch(productCategoriesProvider).value ?? [];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Novo produto')),
+      appBar: AppBar(title: Text(widget.productId == null ? 'Novo produto' : 'Editar produto'),),
       body: Form(
         key: _formKey,
         autovalidateMode: _submitted

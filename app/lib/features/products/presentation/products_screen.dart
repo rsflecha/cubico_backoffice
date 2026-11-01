@@ -174,6 +174,7 @@ class ProductsScreen extends ConsumerWidget {
                       leading: const Icon(Icons.folder_outlined),
                       title: Text(product.name),
                       subtitle: Text(product.baseSku, style: AppTextStyles.mono),
+                      onTap: () => context.push('/products/${product.id}'),
                     );
                   },
                 );

@@ -8,4 +8,6 @@ abstract interface class ProductRepository {
     required String baseSku,
     required int categoryId,
   });
+
+  Future<Product> update(Product product);
 }

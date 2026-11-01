@@ -60,4 +60,13 @@ class DemoProductRepository implements ProductRepository {
     _items.add(created);
     return created;
   }
+
+  @override
+  Future<Product> update(Product product) async {
+    await _latency();
+    final index = _items.indexWhere((p) => p.id == product.id);
+    if (index == -1) throw StateError('Produto ${product.id} não existe.');
+    _items[index] = product;
+    return product;
+  }
 }
