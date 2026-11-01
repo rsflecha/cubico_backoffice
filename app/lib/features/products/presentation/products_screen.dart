@@ -1,6 +1,6 @@
 import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
-import 'package:cubico_backoffice/features/products/presentation/widgets/new_category_dialog.dart';
+import 'package:cubico_backoffice/features/products/presentation/widgets/category_dialog.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -51,7 +51,7 @@ class ProductsScreen extends ConsumerWidget {
                     // 1. abre a janela e espera pela resposta
                     final name = await showDialog<String>(
                       context: context,
-                      builder: (context) => const NewCategoryDialog(),
+                      builder: (context) => const CategoryDialog(),
                     );
 
                     // 2. se cancelou ou deixou vazio, não faz nada
@@ -64,6 +64,80 @@ class ProductsScreen extends ConsumerWidget {
                     ref.invalidate(productCategoriesProvider);
                   },
                 ),
+                if (selected != null) ...[
+                  const SizedBox(width: 8),
+                  ActionChip(
+                    avatar: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text('Editar'),
+                    onPressed: () async {
+                      // a categoria escolhida, completa
+                      final category = categories.firstWhere((c) => c.id == selected);
+
+                      final name = await showDialog<String>(
+                        context: context,
+                        builder: (context) => CategoryDialog(
+                          title: 'Cancelar',
+                          confirmLabel: 'Guardar',
+                          initialName: category.name,
+                        ),
+                      );
+                      if (name == null || name.trim().isEmpty) return;
+
+                      await ref
+                          .read(productCategoryRepositoryProvider)
+                          .update(category.copyWith(name: name.trim()));
+                      ref.invalidate(productCategoriesProvider);
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  ActionChip(
+                    avatar: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('Apagar'),
+                    onPressed: () async {
+                      final category = categories.firstWhere((c) => c.id == selected);
+
+                      // quantos produtos tem esta categoria?
+                      final allProducts = ref.read(productsProvider).value ?? [];
+                      final count = allProducts.where((p) => p.categoryId == selected).length;
+
+                      if (count > 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              '"${category.name}" tem $count produto(s). '
+                                  'Muda-os de categoria antes de a apagar.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+
+                      // pedir confirmação
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Apagar categoria?'),
+                          content: Text('A categoria "${category.name}" vai ser apagada.'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Cancelar'),
+                            ),
+                            FilledButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text('Apagar'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed != true) return;
+
+                      await ref.read(productCategoryRepositoryProvider).delete(category.id);
+                      ref.read(selectedCategoryProvider.notifier).select(null); // volta a "Todas"
+                      ref.invalidate(productCategoriesProvider);
+                    },
+                  ),
+                ],
               ],
             ),
           ),

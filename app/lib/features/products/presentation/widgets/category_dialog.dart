@@ -1,15 +1,24 @@
 import 'package:material_ui/material_ui.dart';
 
-class NewCategoryDialog extends StatefulWidget {
-  const NewCategoryDialog({super.key});
+class CategoryDialog extends StatefulWidget {
+  const CategoryDialog({
+    super.key,
+    this.title = 'Nova categoria',
+    this.confirmLabel = 'Adicionar',
+    this.initialName = '',
+  });
+
+  final String title;
+  final String confirmLabel;
+  final String initialName;
 
   @override
-  State<NewCategoryDialog> createState() => _NewCategoryDialogState();
+  State<CategoryDialog> createState() => _CategoryDialogState();
 }
 
-class _NewCategoryDialogState extends State<NewCategoryDialog> {
+class _CategoryDialogState extends State<CategoryDialog> {
   // O ajudante que guarda o que está escrito no campo.
-  final _controller = TextEditingController();
+  late final _controller = TextEditingController(text: widget.initialName);
 
   @override
   void dispose() {
@@ -25,17 +34,19 @@ class _NewCategoryDialogState extends State<NewCategoryDialog> {
         controller: _controller,
         autofocus: true, // o cursor já aparece no campo
         decoration: const InputDecoration(hintText: 'Ex.: Decoração'),
+        onSubmitted: (value) => Navigator.pop(context, value),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context), // fecha sem devolver nada
-          child: const Text('Cancelar'),
+          child: Text(widget.title),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, _controller.text), // fecha e devolve o nome
-          child: const Text('Adicionar'),
+          child: Text(widget.confirmLabel),
         ),
       ],
     );
   }
 }
+
