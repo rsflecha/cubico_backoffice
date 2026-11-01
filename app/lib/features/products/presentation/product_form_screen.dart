@@ -16,6 +16,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   final _skuController = TextEditingController();
   int? _categoryId;
   var _submitted = false;
+  var _saving = false;
 
   @override
   void dispose() {
@@ -25,6 +26,18 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   }
 
   Future<void> _save() async {
+
+    FilledButton(
+      onPressed: _saving ? null : _save,
+      child: _saving
+          ? const SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      )
+          : const Text('Guardar'),
+    );
+
     setState(() => _submitted = true);
     final isValid = _formKey.currentState!.validate();
     if (!isValid) return;
