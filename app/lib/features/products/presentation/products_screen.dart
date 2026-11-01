@@ -2,6 +2,7 @@ import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
 import 'package:cubico_backoffice/features/products/presentation/widgets/category_dialog.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 class ProductsScreen extends ConsumerWidget {
@@ -19,6 +20,16 @@ class ProductsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Produtos'),
         centerTitle: true,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: FilledButton.icon(
+              onPressed: () => context.push('/products/new'),
+              icon: const Icon(Icons.add),
+              label: const Text('Novo produto'),
+            ),
+          ),
+        ],
       ),
 
       body: Column(

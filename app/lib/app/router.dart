@@ -9,6 +9,8 @@ import 'package:cubico_backoffice/features/settings/presentation/settings_screen
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/products/presentation/product_form_screen.dart';
+
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: "/dashboard",
@@ -46,6 +48,12 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/products',
                 builder: (context, state) => const ProductsScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'new', // fica /products/new
+                    builder: (context, state) => const ProductFormScreen(),
+                  ),
+                ],
               ),
             ],
           ),
