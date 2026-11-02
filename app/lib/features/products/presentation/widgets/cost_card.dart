@@ -1,0 +1,136 @@
+import 'package:cubico_backoffice/app/theme.dart';
+import 'package:cubico_backoffice/features/costs/domain/cost_calculator.dart';
+import 'package:cubico_backoffice/features/costs/domain/filament.dart';
+import 'package:material_ui/material_ui.dart';
+
+class CostCard extends StatefulWidget {
+  const CostCard({super.key});
+
+  @override
+  State<CostCard> createState() => _CostCardState();
+}
+
+class _CostCardState extends State<CostCard> {
+  static const _calc = CostCalculator();
+
+  // Valores fixos, só por agora: vão passar a vir de "Custos e preços".
+  static const _filament = Filament(
+    id: 1,
+    material: "PLA",
+    colorName: "Preto mate",
+    listPrice: 16.99,
+    paidPrice: 13.99,
+    shippingCost: 0,
+    spoolsInOrder: 1,
+  );
+
+  final _gramsController = TextEditingController(text: "180");
+  final _minutesController = TextEditingController(text: "540");
+  final _priceController = TextEditingController(text: "29");
+
+  @override
+  void dispose() {
+    _gramsController.dispose();
+    _minutesController.dispose();
+    _priceController.dispose();
+    super.dispose();
+  }
+
+  /// Lê um número de um campo. Aceita vírgula ("29,90") e devolve 0 se estiver vazio.
+  double _read(TextEditingController controller) {
+    return double.tryParse(controller.text.replaceAll(",", ".")) ?? 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // 1. ler o que está escrito
+    final grams = _read(_gramsController);
+    final minutes = _read(_minutesController);
+    final price = _read(_priceController);
+
+    // 2. fazer as contas (sempre de novo, a cada desenho)
+    final filamentCost = _calc.filamentCost(grams: grams, filament: _filament);
+    final perHour = _calc.printerCostPerHour(
+      powerW: 95,
+      kwhPrice: 0.21,
+      purchasePrice: 381.40,
+      lifespanHours: 5000,
+      yearlyMaintenance: 40,
+      yearlyHours: 1500,
+    );
+    final printing = _calc.printingCost(minutes: minutes, costPerHour: perHour);
+    final production = filamentCost + printing;
+    final fees = _calc.channelFees(
+      price: price,
+      transactionPct: 6.5,
+      processingPct: 4,
+      flatFee: 0.30,
+      listingFee: 0.20,
+    );
+    final margin = _calc.marginPct(price: price, productionCost: production, fees: fees);
+    final suggested = _calc.suggestedPrice(
+      productionCost: production,
+      targetMarginPct: 60,
+      transactionPct: 6.5,
+      processingPct: 4,
+      flatFee: 0.30,
+      listingFee: 0.20,
+    );
+
+    // 3. mostrar
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text("Custo e margem", style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _gramsController,
+              decoration: const InputDecoration(labelText: "Filamento (g)"),
+              keyboardType: TextInputType.number,
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _minutesController,
+              decoration: const InputDecoration(labelText: "Impressão (minutos)"),
+              keyboardType: TextInputType.number,
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 16),
+            _row("Filamento", filamentCost),
+            _row("Impressão", printing),
+            _row("Taxas Etsy", fees),
+            const Divider(),
+            _row("Custo total", production + fees),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _priceController,
+              decoration: const InputDecoration(labelText: "Preço de venda (€)"),
+              keyboardType: TextInputType.number,
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 16),
+            Text("Margem: ${margin.toStringAsFixed(0)}%"),
+            Text("Preço sugerido (60%): ${suggested.toStringAsFixed(2)} €"),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Uma linha com o nome à esquerda e o valor em € à direita.
+  Widget _row(String label, double value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(child: Text(label)),
+          Text("${value.toStringAsFixed(2)} €", style: AppTextStyles.mono),
+        ],
+      ),
+    );
+  }
+}

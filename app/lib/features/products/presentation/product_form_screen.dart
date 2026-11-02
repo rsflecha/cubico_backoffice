@@ -1,4 +1,5 @@
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
+import 'package:cubico_backoffice/features/products/presentation/widgets/cost_card.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -167,6 +168,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                 return null;
               },
             ),
+            const SizedBox(height: 24),
+            const CostCard(),
             const SizedBox(height: 24),
             FilledButton(
               onPressed: _saving ? null : _save,
