@@ -60,5 +60,39 @@ void main() {
       );
       expect(etsy, closeTo(2.60, 0.001));
     });
+
+    test("sem taxas (Instagram, Facebook, Pessoalmente)", () {
+      final fees = calc.channelFees(
+        price: 20,
+        transactionPct: 0,
+        processingPct: 0,
+        flatFee: 0,
+        listingFee: 0,
+      );
+      expect(fees, closeTo(0, 0.001));
+    });
+
+    test("margem a 20 € com 6 € de produção na Etsy", () {
+      // lucro = 20 − 6 − 2,60 = 11,40 → 11,40 ÷ 20 = 57%
+      final margin = calc.marginPct(
+        price: 20,
+        productionCost: 6,
+        fees: 2.60,
+      );
+      expect(margin, closeTo(57, 0.001));
+    });
+
+    test("preço sugerido para 60% de margem na Etsy", () {
+      // (6 + 0,30 + 0,20) ÷ (1 − 0,105 − 0,60) = 22,03 → arredonda para cima a 0,50 = 22,50
+      final price = calc.suggestedPrice(
+        productionCost: 6,
+        targetMarginPct: 60,
+        transactionPct: 6.5,
+        processingPct: 4,
+        flatFee: 0.30,
+        listingFee: 0.20,
+      );
+      expect(price, closeTo(22.50, 0.001));
+    });
   });
 }
