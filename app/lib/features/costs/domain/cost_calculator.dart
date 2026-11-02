@@ -35,4 +35,43 @@ class CostCalculator {
   double printingCost({required double minutes, required double costPerHour}) {
     return minutes / 60 * costPerHour;
   }
+
+  /// Taxas que o canal cobra numa venda: percentagens sobre o preço + fixos.
+  double channelFees({
+    required double price,
+    required double transactionPct,
+    required double processingPct,
+    required double flatFee,
+    required double listingFee,
+  }) {
+    final percentPart = price * (transactionPct + processingPct) / 100;
+    return percentPart + flatFee + listingFee;
+  }
+
+  /// Margem de uma venda, em %: lucro a dividir pelo preço.
+  double marginPct({
+    required double price,
+    required double productionCost,
+    required double fees,
+  }) {
+    if (price <= 0) return 0;
+    final profit = price - productionCost - fees;
+    return profit / price * 100;
+  }
+
+  /// Preço que dá a margem alvo, já arredondado para cima.
+  double suggestedPrice({
+    required double productionCost,
+    required double targetMarginPct,
+    required double transactionPct,
+    required double processingPct,
+    required double flatFee,
+    required double listingFee,
+    double rounding = 0.50,
+  }) {
+    final keptPerEuro = 1 - (transactionPct + processingPct) / 100 - targetMarginPct / 100;
+    if (keptPerEuro <= 0) return 0; // margem impossível com estas taxas
+    final rawPrice = (productionCost + flatFee + listingFee) / keptPerEuro;
+    return (rawPrice / rounding).ceil() * rounding;
+  }
 }
