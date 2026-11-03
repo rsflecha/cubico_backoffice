@@ -4,6 +4,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../costs/domain/component.dart';
+
 class CostCard extends ConsumerStatefulWidget {
   const CostCard({super.key});
 
@@ -18,6 +20,10 @@ class _CostCardState extends ConsumerState<CostCard> {
   int? _filamentId;
   // Canal escolhido (null = usa o primeiro, a Etsy).
   int? _channelId;
+  // Quantidade de cada componente: id do componente → quantidade.
+  final Map<int, int> _componentQty = {};
+  // Embalagens escolhidas: os ids das que estão incluídas.
+  final Set<int> _packagingIds = {};
 
   final _gramsController = TextEditingController(text: "180");
   final _minutesController = TextEditingController(text: "540");
@@ -64,7 +70,21 @@ class _CostCardState extends ConsumerState<CostCard> {
       yearlyHours: 1500,
     );
     final printing = _calc.printingCost(minutes: minutes, costPerHour: perHour);
-    final production = filamentCost + printing;
+    // componentes: quantidade × custo por unidade, somado para todos
+    var componentsCost = 0.0;
+    for (final c in components) {
+      final qty = _componentQty[c.id] ?? 0;
+      componentsCost += qty * _calc.componentUnitCost(c);
+    }
+
+// embalagem: soma o custo das que estão escolhidas
+    var packagingCost = 0.0;
+    for (final p in packaging) {
+      if (_packagingIds.contains(p.id)) {
+        packagingCost += _calc.componentUnitCost(p);
+      }
+    }
+    final production = filamentCost + printing + componentsCost + packagingCost;
     final fees = _calc.channelFees(
       price: price,
       transactionPct: channel?.transactionFee ?? 0,
@@ -81,6 +101,11 @@ class _CostCardState extends ConsumerState<CostCard> {
       flatFee: channel?.flatFee ?? 0,
       listingFee: channel?.listingFee ?? 0,
     );
+    final allComponents = ref.watch(componentsProvider).value ?? [];
+    final components =
+    allComponents.where((c) => c.kind == ComponentKind.component).toList();
+    final packaging =
+    allComponents.where((c) => c.kind == ComponentKind.packaging).toList();
 
     // 3. mostrar
     return Card(
@@ -136,6 +161,33 @@ class _CostCardState extends ConsumerState<CostCard> {
             const SizedBox(height: 12),
             _row("Filamento", filamentCost),
             _row("Impressão", printing),
+            const SizedBox(height: 12),
+            Text("Componentes", style: Theme.of(context).textTheme.labelLarge),
+            for (final c in components) _componentRow(c),
+            _row("Componentes", componentsCost),
+
+            const SizedBox(height: 12),
+            Text("Embalagem", style: Theme.of(context).textTheme.labelLarge),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final p in packaging)
+                  FilterChip(
+                    label: Text("${p.name} · ${_calc.componentUnitCost(p).toStringAsFixed(2)} €"),
+                    selected: _packagingIds.contains(p.id),
+                    onSelected: (selected) => setState(() {
+                      if (selected) {
+                        _packagingIds.add(p.id);
+                      } else {
+                        _packagingIds.remove(p.id);
+                      }
+                    }),
+                  ),
+              ],
+            ),
+            _row("Embalagem", packagingCost),
             _row("Taxas ${channel?.name ?? ""}", fees),
             const Divider(),
             _row("Custo total", production + fees),
@@ -165,6 +217,27 @@ class _CostCardState extends ConsumerState<CostCard> {
           Text("${value.toStringAsFixed(2)} €", style: AppTextStyles.mono),
         ],
       ),
+    );
+  }
+
+  /// Uma linha de componente: nome e custo por unidade, botões − e + e a quantidade.
+  Widget _componentRow(Component c) {
+    final qty = _componentQty[c.id] ?? 0;
+    return Row(
+      children: [
+        Expanded(
+          child: Text("${c.name} · ${_calc.componentUnitCost(c).toStringAsFixed(3)} €/un."),
+        ),
+        IconButton(
+          icon: const Icon(Icons.remove),
+          onPressed: qty == 0 ? null : () => setState(() => _componentQty[c.id] = qty - 1),
+        ),
+        Text("$qty", style: AppTextStyles.mono),
+        IconButton(
+          icon: const Icon(Icons.add),
+          onPressed: () => setState(() => _componentQty[c.id] = qty + 1),
+        ),
+      ],
     );
   }
 }

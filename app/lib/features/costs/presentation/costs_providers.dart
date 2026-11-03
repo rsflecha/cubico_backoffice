@@ -37,6 +37,7 @@ final componentRepositoryProvider = Provider<ComponentRepository>((ref) {
   return DemoComponentRepository();
 });
 
+/// Placa 6: a lista de componentes e embalagens.
 final componentsProvider = FutureProvider<List<Component>>((ref) {
   final repository = ref.watch(componentRepositoryProvider);
   return repository.fetchAll();
