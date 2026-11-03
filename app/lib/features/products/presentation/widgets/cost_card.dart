@@ -1,6 +1,5 @@
 import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/features/costs/domain/cost_calculator.dart';
-import 'package:cubico_backoffice/features/costs/domain/filament.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,7 +14,7 @@ class CostCard extends ConsumerStatefulWidget {
 class _CostCardState extends ConsumerState<CostCard> {
   static const _calc = CostCalculator();
 
-  // Valores fixos, só por agora: vão passar a vir de "Custos e preços".
+  // Filamento escolhido na lista (null = usa o primeiro).
   int? _filamentId;
 
   final _gramsController = TextEditingController(text: "180");

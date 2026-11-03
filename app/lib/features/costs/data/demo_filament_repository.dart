@@ -13,7 +13,7 @@ class DemoFilamentRepository implements FilamentRepository {
     ),
     Filament(
       id: 2,
-      material: "PTEG",
+      material: "PETG",
       brand: "Bambu Lab",
       colorName: "Translucent",
       listPrice: 23.76,
