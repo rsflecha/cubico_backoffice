@@ -2,27 +2,21 @@ import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/features/costs/domain/cost_calculator.dart';
 import 'package:cubico_backoffice/features/costs/domain/filament.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class CostCard extends StatefulWidget {
+class CostCard extends ConsumerStatefulWidget {
   const CostCard({super.key});
 
   @override
-  State<CostCard> createState() => _CostCardState();
+  ConsumerState<CostCard> createState() => _CostCardState();
 }
 
-class _CostCardState extends State<CostCard> {
+class _CostCardState extends ConsumerState<CostCard> {
   static const _calc = CostCalculator();
 
   // Valores fixos, só por agora: vão passar a vir de "Custos e preços".
-  static const _filament = Filament(
-    id: 1,
-    material: "PLA",
-    colorName: "Preto mate",
-    listPrice: 16.99,
-    paidPrice: 13.99,
-    shippingCost: 0,
-    spoolsInOrder: 1,
-  );
+  int? _filamentId;
 
   final _gramsController = TextEditingController(text: "180");
   final _minutesController = TextEditingController(text: "540");
@@ -43,13 +37,20 @@ class _CostCardState extends State<CostCard> {
 
   @override
   Widget build(BuildContext context) {
+
+    final filaments = ref.watch(filamentsProvider).value ?? [];
+    final filament = filaments.where((f) => f.id == _filamentId).firstOrNull
+        ?? filaments.firstOrNull;
+
     // 1. ler o que está escrito
     final grams = _read(_gramsController);
     final minutes = _read(_minutesController);
     final price = _read(_priceController);
 
     // 2. fazer as contas (sempre de novo, a cada desenho)
-    final filamentCost = _calc.filamentCost(grams: grams, filament: _filament);
+    final filamentCost = filament == null
+        ? 0.0
+        : _calc.filamentCost(grams: grams, filament: filament);
     final perHour = _calc.printerCostPerHour(
       powerW: 95,
       kwhPrice: 0.21,
@@ -86,6 +87,23 @@ class _CostCardState extends State<CostCard> {
           children: [
             Text("Custo e margem", style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 16),
+            DropdownButton<int>(
+              value: filament?.id,
+              isExpanded: true,
+              hint: const Text("A carregar filamentos…"),
+              items: [
+                for (final f in filaments)
+                  DropdownMenuItem(
+                    value: f.id,
+                    child: Text(
+                      "${f.material} · ${f.colorName} — "
+                          "${_calc.filamentPricePerKg(f).toStringAsFixed(2)} €/kg",
+                    ),
+                  ),
+              ],
+              onChanged: (id) => setState(() => _filamentId = id),
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: _gramsController,
               decoration: const InputDecoration(labelText: "Filamento (g)"),
