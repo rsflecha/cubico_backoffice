@@ -1,3 +1,4 @@
+import 'component.dart';
 import 'filament.dart';
 
 /// Contas de custo. Dart puro, sem Flutter, para se poder testar sozinho.
@@ -73,5 +74,10 @@ class CostCalculator {
     if (keptPerEuro <= 0) return 0; // margem impossível com estas taxas
     final rawPrice = (productionCost + flatFee + listingFee) / keptPerEuro;
     return (rawPrice / rounding).ceil() * rounding;
+  }
+
+  /// Custo de uma unidade de um componente ou embalagem: preço do pack ÷ unidades.
+  double componentUnitCost(Component component) {
+    return component.packPrice / component.unitsPerPack;
   }
 }

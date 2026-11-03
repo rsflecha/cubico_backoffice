@@ -1,4 +1,7 @@
+import 'package:cubico_backoffice/features/costs/data/demo_component_repository.dart';
 import 'package:cubico_backoffice/features/costs/data/demo_filament_repository.dart';
+import 'package:cubico_backoffice/features/costs/domain/component.dart';
+import 'package:cubico_backoffice/features/costs/domain/component_repository.dart';
 import 'package:cubico_backoffice/features/costs/domain/filament.dart';
 import 'package:cubico_backoffice/features/costs/domain/filament_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,5 +29,14 @@ final salesChannelRepositoryProvider = Provider<SalesChannelRepository>((ref) {
 /// Placa 4: a lista de canais de venda.
 final salesChannelsProvider = FutureProvider<List<SalesChannel>>((ref) {
   final repository = ref.watch(salesChannelRepositoryProvider);
+  return repository.fetchAll();
+});
+
+final componentRepositoryProvider = Provider<ComponentRepository>((ref) {
+  return DemoComponentRepository();
+});
+
+final componentsProvider = FutureProvider<List<Component>>((ref) {
+  final repository = ref.watch(componentRepositoryProvider);
   return repository.fetchAll();
 });

@@ -95,4 +95,18 @@ void main() {
       expect(price, closeTo(22.50, 0.001));
     });
   });
+
+  group("Componentes", () {
+    test("custo por unidade de um íman vendido em pack de 100", () {
+      // 7,50 € ÷ 100 = 0,075 €
+      const magnet = Component(
+        id: 1,
+        name: "Íman de neodímio",
+        kind: ComponentKind.component,
+        packPrice: 7.50,
+        unitsPerPack: 100,
+      );
+      expect(calc.componentUnitCost(magnet), closeTo(0.075, 0.0001));
+    });
+  });
 }
