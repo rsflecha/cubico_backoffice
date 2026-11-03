@@ -32,6 +32,7 @@ final salesChannelsProvider = FutureProvider<List<SalesChannel>>((ref) {
   return repository.fetchAll();
 });
 
+/// Placa 5: qual é o repositório dos componentes e embalagens.
 final componentRepositoryProvider = Provider<ComponentRepository>((ref) {
   return DemoComponentRepository();
 });

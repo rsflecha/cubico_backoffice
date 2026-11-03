@@ -1,5 +1,5 @@
-import 'component.dart';
+import '../domain/component.dart';
 
 abstract interface class ComponentRepository {
-  Future<List<ComponentRepository>> fetchAll();
+  Future<List<Component>> fetchAll();
 }
