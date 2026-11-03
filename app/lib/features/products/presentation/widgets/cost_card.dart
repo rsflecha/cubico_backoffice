@@ -16,6 +16,8 @@ class _CostCardState extends ConsumerState<CostCard> {
 
   // Filamento escolhido na lista (null = usa o primeiro).
   int? _filamentId;
+  // Canal escolhido (null = usa o primeiro, a Etsy).
+  int? _channelId;
 
   final _gramsController = TextEditingController(text: "180");
   final _minutesController = TextEditingController(text: "540");
@@ -40,6 +42,9 @@ class _CostCardState extends ConsumerState<CostCard> {
     final filaments = ref.watch(filamentsProvider).value ?? [];
     final filament = filaments.where((f) => f.id == _filamentId).firstOrNull
         ?? filaments.firstOrNull;
+    final channels = ref.watch(salesChannelsProvider).value ?? [];
+    final channel = channels.where((c) => c.id == _channelId).firstOrNull
+        ?? channels.firstOrNull;
 
     // 1. ler o que está escrito
     final grams = _read(_gramsController);
@@ -62,19 +67,19 @@ class _CostCardState extends ConsumerState<CostCard> {
     final production = filamentCost + printing;
     final fees = _calc.channelFees(
       price: price,
-      transactionPct: 6.5,
-      processingPct: 4,
-      flatFee: 0.30,
-      listingFee: 0.20,
+      transactionPct: channel?.transactionFee ?? 0,
+      processingPct: channel?.processingFee ?? 0,
+      flatFee: channel?.flatFee ?? 0,
+      listingFee: channel?.listingFee ?? 0,
     );
     final margin = _calc.marginPct(price: price, productionCost: production, fees: fees);
     final suggested = _calc.suggestedPrice(
       productionCost: production,
       targetMarginPct: 60,
-      transactionPct: 6.5,
-      processingPct: 4,
-      flatFee: 0.30,
-      listingFee: 0.20,
+      transactionPct: channel?.transactionFee ?? 0,
+      processingPct: channel?.processingFee ?? 0,
+      flatFee: channel?.flatFee ?? 0,
+      listingFee: channel?.listingFee ?? 0,
     );
 
     // 3. mostrar
@@ -117,9 +122,21 @@ class _CostCardState extends ConsumerState<CostCard> {
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final c in channels)
+                  ChoiceChip(
+                    label: Text(c.name),
+                    selected: c.id == channel?.id,
+                    onSelected: (_) => setState(() => _channelId = c.id),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
             _row("Filamento", filamentCost),
             _row("Impressão", printing),
-            _row("Taxas Etsy", fees),
+            _row("Taxas ${channel?.name ?? ""}", fees),
             const Divider(),
             _row("Custo total", production + fees),
             const SizedBox(height: 16),
