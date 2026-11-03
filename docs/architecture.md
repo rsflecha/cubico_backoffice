@@ -3,7 +3,7 @@
 Mapa da app: como está organizada, por onde passam os dados e em que ponto está cada parte.
 Atualiza-se no fim de cada fatia. As decisões e o plano completo estão em [`cubico-backoffice.md`](cubico-backoffice.md).
 
-**Última atualização:** 01/11/2026 — Fatia 3 em curso
+**Última atualização:** 01/11/2026 — Fatia 4 em curso
 
 ---
 
@@ -71,6 +71,12 @@ features/products/
         └── category_dialog.dart                            → janela de criar/editar categoria
 ```
 
+### As contas e os testes
+
+As contas de custo vivem em `features/costs/domain/cost_calculator.dart`: **Dart puro**, sem Flutter, para se poderem testar sozinhas. Os testes estão em `app/test/`, numa árvore igual à de `lib/` (`test/features/costs/cost_calculator_test.dart`), e correm com `flutter test`.
+
+Na app, a `CostCalculator` serve para a **pré-visualização em tempo real** (a calculadora reage enquanto se escreve). Quando houver API, é ela que refaz as contas e grava os valores **oficiais**.
+
 Os ficheiros `*.freezed.dart` e `*.g.dart` são **gerados** pelo `build_runner` a partir dos modelos. Nunca se editam à mão: se um modelo mudar, corre-se `dart run build_runner build`.
 
 ## 3. O caminho dos dados
@@ -116,7 +122,7 @@ flowchart LR
 | 1 | Esqueleto: menus e ecrãs vazios | ✅ |
 | 2 | Modelos e dados demo | ✅ modelos; dados demo de categorias e produtos |
 | 3 | Produtos e categorias (criar, editar, apagar, filtrar) | ⏳ categorias completas; lista de produtos com filtro |
-| 4 | Ficha do produto + calculadora de custo | ⬜ |
+| 4 | Ficha do produto + calculadora de custo | ⏳ contas de filamento e impressão com testes |
 | 5 | Custos e preços | ⬜ |
 | 6 | Encomendas: lista e detalhe | ⬜ |
 | 7 | Criar encomenda | ⬜ |
@@ -130,4 +136,5 @@ flowchart LR
 - **Tudo o que é técnico em inglês** (código, ficheiros, pastas, tabelas, colunas); **a interface em português**.
 - Material pelo pacote **`material_ui`** (`import 'package:material_ui/material_ui.dart';`), nunca `package:flutter/material.dart`.
 - Nomes de ficheiros em `snake_case`, nomes de classes em `PascalCase`, e os dois dizem o mesmo (`products_screen.dart` → `ProductsScreen`).
-- Antes de cada commit: `flutter analyze` sem problemas.
+- Texto entre **aspas** (`"Guardar"`); **plicas só nos imports** (`import 'package:...';`).
+- Antes de cada commit: `flutter analyze` sem problemas e `flutter test` a passar.
