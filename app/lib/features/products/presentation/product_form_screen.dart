@@ -106,6 +106,62 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   @override
   Widget build(BuildContext context) {
     final categories = ref.watch(productCategoriesProvider).value ?? [];
+    final isWide = MediaQuery.sizeOf(context).width >= 1100;
+
+    final formFields = <Widget>[
+      TextFormField(
+        controller: _nameController,
+        decoration: const InputDecoration(
+          labelText: "Nome",
+          hintText: "Ex.: Suporte de auscultadores",
+        ),
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return "O nome é obrigatório.";
+          }
+          return null; // está tudo bem
+        },
+      ),
+      const SizedBox(height: 16),
+      DropdownButtonFormField<int>(
+        initialValue: _categoryId,
+        decoration: const InputDecoration(labelText: "Categoria"),
+        items: [
+          for (final category in categories)
+            DropdownMenuItem(value: category.id, child: Text(category.name)),
+        ],
+        onChanged: (value) => setState(() => _categoryId = value),
+        validator: (value) => value == null ? "Escolhe uma categoria." : null,
+      ),
+      const SizedBox(height: 16),
+      TextFormField(
+        controller: _skuController,
+        decoration: const InputDecoration(
+          labelText: "SKU base",
+          hintText: "Ex.: CD3-SDA-01",
+        ),
+        validator: (value) {
+          if (value == null || value.trim().isEmpty) {
+            return "O SKU é obrigatório.";
+          }
+          if (value.contains(" ")) {
+            return "O SKU não pode ter espaços.";
+          }
+          return null;
+        },
+      ),
+      const SizedBox(height: 24),
+      FilledButton(
+        onPressed: _saving ? null : _save,
+        child: _saving
+            ? const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        )
+            : const Text("Guardar"),
+      ),
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -119,68 +175,40 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             ),
         ],
       ),
+
       body: Form(
         key: _formKey,
         autovalidateMode: _submitted
             ? AutovalidateMode.onUserInteraction
             : AutovalidateMode.disabled,
-        child: ListView(
+        child: isWide
+        // PC: formulário à esquerda, cartão à direita
+            ? Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
+              child: ListView(
+                padding: const EdgeInsets.all(24),
+                children: formFields,
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(0, 24, 24, 24),
+                child: const CostCard(),
+              ),
+            ),
+          ],
+        )
+        // telemóvel: tudo empilhado
+            : ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Nome',
-                hintText: 'Ex.: Suporte de auscultadores',
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'O nome é obrigatório.';
-                }
-                return null; // está tudo bem
-              },
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<int>(
-              initialValue: _categoryId,
-              decoration: const InputDecoration(labelText: 'Categoria'),
-              items: [
-                for (final category in categories)
-                  DropdownMenuItem(value: category.id, child: Text(category.name)),
-              ],
-              onChanged: (value) => setState(() => _categoryId = value),
-              validator: (value) => value == null ? 'Escolhe uma categoria.' : null,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _skuController,
-              decoration: const InputDecoration(
-                labelText: 'SKU base',
-                hintText: 'Ex.: CD3-SDA-01',
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'O SKU é obrigatório.';
-                }
-                if (value.contains(' ')) {
-                  return 'O SKU não pode ter espaços.';
-                }
-                return null;
-              },
-            ),
+            ...formFields,
             const SizedBox(height: 24),
             const CostCard(),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _saving ? null : _save,
-              child: _saving
-                  ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-                  : const Text('Guardar'),
-            ),
           ],
         ),
       ),
