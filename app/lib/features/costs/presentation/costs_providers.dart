@@ -7,6 +7,7 @@ import 'package:cubico_backoffice/features/costs/domain/filament_repository.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/demo_sales_channel_repository.dart';
+import '../domain/cost_calculator.dart';
 import '../domain/sales_channel.dart';
 import '../domain/sales_channel_repository.dart';
 
@@ -41,4 +42,17 @@ final componentRepositoryProvider = Provider<ComponentRepository>((ref) {
 final componentsProvider = FutureProvider<List<Component>>((ref) {
   final repository = ref.watch(componentRepositoryProvider);
   return repository.fetchAll();
+});
+
+/// Placa 7: custo por hora da impressora principal.
+/// Valores fixos por agora; vão passar a vir de "Custos e preços".
+final printerCostPerHourProvider = Provider<double>((ref) {
+  return const CostCalculator().printerCostPerHour(
+    powerW: 95,
+    kwhPrice: 0.21,
+    purchasePrice: 381.40,
+    lifespanHours: 5000,
+    yearlyMaintenance: 40,
+    yearlyHours: 1500,
+  );
 });

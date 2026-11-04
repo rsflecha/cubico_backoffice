@@ -66,14 +66,7 @@ class _CostCardState extends ConsumerState<CostCard> {
     final filamentCost = filament == null
         ? 0.0
         : _calc.filamentCost(grams: grams, filament: filament);
-    final perHour = _calc.printerCostPerHour(
-      powerW: 95,
-      kwhPrice: 0.21,
-      purchasePrice: 381.40,
-      lifespanHours: 5000,
-      yearlyMaintenance: 40,
-      yearlyHours: 1500,
-    );
+    final perHour = ref.watch(printerCostPerHourProvider);
     final printing = _calc.printingCost(minutes: minutes, costPerHour: perHour);
     // componentes: quantidade × custo por unidade, somado para todos
     var componentsCost = 0.0;

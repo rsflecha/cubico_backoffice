@@ -1,5 +1,6 @@
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
 import 'package:cubico_backoffice/features/products/presentation/widgets/cost_card.dart';
+import 'package:cubico_backoffice/features/products/presentation/widgets/variants_section.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -161,6 +162,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         )
             : const Text("Guardar"),
       ),
+      if (_original != null) ...[
+        const SizedBox(height: 24),
+        VariantsSection(productId: _original!.id),
+      ],
     ];
 
     return Scaffold(

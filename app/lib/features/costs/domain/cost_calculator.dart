@@ -1,3 +1,4 @@
+import '../../products/domain/variant.dart';
 import 'component.dart';
 import 'filament.dart';
 
@@ -79,5 +80,37 @@ class CostCalculator {
   /// Custo de uma unidade de um componente ou embalagem: preço do pack ÷ unidades.
   double componentUnitCost(Component component) {
     return component.packPrice / component.unitsPerPack;
+  }
+
+  /// Custo de produção de uma variante: filamentos + impressão + componentes e embalagem.
+  /// (Sem taxas do canal nem portes.)
+  double variantProductionCost({
+    required Variant variant,
+    required List<Filament> filaments,
+    required List<Component> components,
+    required double costPerHour,
+  }) {
+    var total = 0.0;
+
+    // filamentos: cada linha da receita
+    for (final line in variant.filaments) {
+      final filament = filaments.where((f) => f.id == line.filamentId).firstOrNull;
+      if (filament != null) {
+        total += filamentCost(grams: line.grams.toDouble(), filament: filament);
+      }
+    }
+
+    // impressão
+    total += printingCost(minutes: variant.printTimeMin.toDouble(), costPerHour: costPerHour);
+
+    // componentes e embalagem: quantidade × custo por unidade
+    for (final line in variant.components) {
+      final component = components.where((c) => c.id == line.componentId).firstOrNull;
+      if (component != null) {
+        total += line.quantity * componentUnitCost(component);
+      }
+    }
+
+    return total;
   }
 }
