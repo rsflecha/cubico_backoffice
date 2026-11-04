@@ -98,6 +98,7 @@ class _CostCardState extends ConsumerState<CostCard> {
       listingFee: channel?.listingFee ?? 0,
     );
     final margin = _calc.marginPct(price: price, productionCost: production, fees: fees);
+    final profit = price - production - fees;
     final suggested = _calc.suggestedPrice(
       productionCost: production,
       targetMarginPct: 60,
@@ -199,8 +200,9 @@ class _CostCardState extends ConsumerState<CostCard> {
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 16),
-            Text("Margem: ${margin.toStringAsFixed(0)}%"),
-            Text("Preço sugerido (60%): ${suggested.toStringAsFixed(2)} €"),
+            _marginBox(profit, margin),
+            const SizedBox(height: 12),
+            _row("Preço sugerido (margem 60%)", suggested),
           ],
         ),
       ),
@@ -238,6 +240,56 @@ class _CostCardState extends ConsumerState<CostCard> {
           onPressed: () => setState(() => _componentQty[c.id] = qty + 1),
         ),
       ],
+    );
+  }
+
+  /// A caixa da margem: lucro e %, barra e mensagem, com a cor da situação.
+  Widget _marginBox(double profit, double margin) {
+    // escolher a cor e a mensagem conforme a margem
+    final Color color;
+    final String message;
+    if (margin >= 60) {
+      color = const Color(0xFF15803D); // verde
+      message = "Margem saudável.";
+    } else if (margin >= 35) {
+      color = const Color(0xFFB45309); // laranja-escuro
+      message = "Abaixo da margem alvo (60%).";
+    } else {
+      color = const Color(0xFFB91C1C); // vermelho
+      message = "Margem baixa: revê o preço.";
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10), // a mesma cor, muito clara, no fundo
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("Margem"),
+          const SizedBox(height: 4),
+          Text(
+            "${profit.toStringAsFixed(2)} € · ${margin.toStringAsFixed(0)}%",
+            style: AppTextStyles.mono.copyWith(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: (margin / 100).clamp(0, 1),
+            color: color,
+            backgroundColor: color.withValues(alpha: 0.15),
+            minHeight: 6,
+            borderRadius: BorderRadius.circular(3),
+          ),
+          const SizedBox(height: 8),
+          Text(message, style: TextStyle(color: color)),
+        ],
+      ),
     );
   }
 }
