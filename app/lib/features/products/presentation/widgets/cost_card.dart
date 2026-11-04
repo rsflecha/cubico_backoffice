@@ -51,6 +51,11 @@ class _CostCardState extends ConsumerState<CostCard> {
     final channels = ref.watch(salesChannelsProvider).value ?? [];
     final channel = channels.where((c) => c.id == _channelId).firstOrNull
         ?? channels.firstOrNull;
+    final allComponents = ref.watch(componentsProvider).value ?? [];
+    final components =
+    allComponents.where((c) => c.kind == ComponentKind.component).toList();
+    final packaging =
+    allComponents.where((c) => c.kind == ComponentKind.packaging).toList();
 
     // 1. ler o que está escrito
     final grams = _read(_gramsController);
@@ -77,7 +82,7 @@ class _CostCardState extends ConsumerState<CostCard> {
       componentsCost += qty * _calc.componentUnitCost(c);
     }
 
-// embalagem: soma o custo das que estão escolhidas
+    // embalagem: soma o custo das que estão escolhidas
     var packagingCost = 0.0;
     for (final p in packaging) {
       if (_packagingIds.contains(p.id)) {
@@ -101,11 +106,6 @@ class _CostCardState extends ConsumerState<CostCard> {
       flatFee: channel?.flatFee ?? 0,
       listingFee: channel?.listingFee ?? 0,
     );
-    final allComponents = ref.watch(componentsProvider).value ?? [];
-    final components =
-    allComponents.where((c) => c.kind == ComponentKind.component).toList();
-    final packaging =
-    allComponents.where((c) => c.kind == ComponentKind.packaging).toList();
 
     // 3. mostrar
     return Card(
