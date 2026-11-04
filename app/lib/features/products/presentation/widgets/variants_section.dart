@@ -34,40 +34,47 @@ class VariantsSection extends ConsumerWidget {
                 if (list.isEmpty) {
                   return const Text("Este produto ainda não tem variantes.");
                 }
-                return SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: DataTable(
-                    columns: const [
-                      DataColumn(label: Text("Variante")),
-                      DataColumn(label: Text("SKU")),
-                      DataColumn(label: Text("Tempo")),
-                      DataColumn(label: Text("Custo*"), numeric: true),
-                      DataColumn(label: Text("Preço"), numeric: true),
-                    ],
-                    rows: [
-                      for (final v in list)
-                        DataRow(
-                          cells: [
-                            DataCell(Text(v.name)),
-                            DataCell(Text(v.sku, style: AppTextStyles.mono)),
-                            DataCell(Text("${(v.printTimeMin / 60).toStringAsFixed(1)} h")),
-                            DataCell(Text(
-                              "${calc.variantProductionCost(
-                                variant: v,
-                                filaments: filaments,
-                                components: components,
-                                costPerHour: perHour,
-                              ).toStringAsFixed(2)} €",
-                              style: AppTextStyles.mono,
-                            )),
-                            DataCell(Text(
-                              "${v.salePrice.toStringAsFixed(2)} €",
-                              style: AppTextStyles.mono,
-                            )),
-                          ],
+                return LayoutBuilder(
+                    builder: (context, constraints) => SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                          child: DataTable(
+                            columnSpacing: 32,      // espaço entre colunas (era 56)
+                            horizontalMargin: 16,    // espaço nas pontas (era 24)
+                            columns: const [
+                              DataColumn(label: Text("Variante")),
+                              DataColumn(label: Text("SKU")),
+                              DataColumn(label: Text("Tempo")),
+                              DataColumn(label: Text("Custo*"), numeric: true),
+                              DataColumn(label: Text("Preço"), numeric: true),
+                            ],
+                            rows: [
+                              for (final v in list)
+                                DataRow(
+                                  cells: [
+                                    DataCell(Text(v.name)),
+                                    DataCell(Text(v.sku, style: AppTextStyles.mono)),
+                                    DataCell(Text(_formatHours(v.printTimeMin))),
+                                    DataCell(Text(
+                                      "${calc.variantProductionCost(
+                                        variant: v,
+                                        filaments: filaments,
+                                        components: components,
+                                        costPerHour: perHour,
+                                      ).toStringAsFixed(2)} €",
+                                      style: AppTextStyles.mono,
+                                    )),
+                                    DataCell(Text(
+                                      "${v.salePrice.toStringAsFixed(2)} €",
+                                      style: AppTextStyles.mono,
+                                    )),
+                                  ],
+                                ),
+                            ],
+                          ),
                         ),
-                    ],
-                  ),
+                    ),
                 );
               },
             ),
@@ -82,4 +89,12 @@ class VariantsSection extends ConsumerWidget {
       ),
     );
   }
+
+  /// 300 min → "5 h"; 330 min → "5 h 30"
+  String _formatHours(int minutes) {
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    return m == 0 ? "$h h" : "$h h $m";
+  }
+
 }
