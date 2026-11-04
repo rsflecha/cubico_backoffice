@@ -136,18 +136,26 @@ class _CostCardState extends ConsumerState<CostCard> {
               onChanged: (id) => setState(() => _filamentId = id),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: _gramsController,
-              decoration: const InputDecoration(labelText: "Filamento (g)"),
-              keyboardType: TextInputType.number,
-              onChanged: (_) => setState(() {}),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _minutesController,
-              decoration: const InputDecoration(labelText: "Impressão (minutos)"),
-              keyboardType: TextInputType.number,
-              onChanged: (_) => setState(() {}),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _gramsController,
+                    decoration: const InputDecoration(labelText: "Filamento (g)"),
+                    keyboardType: TextInputType.number,
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _minutesController,
+                    decoration: const InputDecoration(labelText: "Impressão (minutos)"),
+                    keyboardType: TextInputType.number,
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             Wrap(
@@ -195,20 +203,29 @@ class _CostCardState extends ConsumerState<CostCard> {
             const Divider(),
             _row("Custo total", production + fees),
             const SizedBox(height: 16),
-            TextField(
-              controller: _priceController,
-              decoration: const InputDecoration(labelText: "Preço de venda (€)"),
-              keyboardType: TextInputType.number,
-              onChanged: (_) => setState(() {}),
-            ),
-            Slider(
-              value: price.clamp(0.0, sliderMax),
-              max: sliderMax,
-              divisions: (sliderMax / 0.5).round(),
-              label: "${price.toStringAsFixed(2)} €",
-              onChanged: (value) => setState(() {
-                _priceController.text = value.toStringAsFixed(2);
-              }),
+            Row(
+              children: [
+                SizedBox(
+                  width: 140,
+                  child: TextField(
+                    controller: _priceController,
+                    decoration: const InputDecoration(labelText: "Preço de venda (€)"),
+                    keyboardType: TextInputType.number,
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                Expanded(
+                  child: Slider(
+                    value: price.clamp(0.0, sliderMax),
+                    max: sliderMax,
+                    divisions: (sliderMax / 0.5).round(),
+                    label: "${price.toStringAsFixed(2)} €",
+                    onChanged: (value) => setState(() {
+                      _priceController.text = value.toStringAsFixed(2);
+                    }),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             _marginBox(profit, margin),
@@ -223,7 +240,7 @@ class _CostCardState extends ConsumerState<CostCard> {
   /// Uma linha com o nome à esquerda e o valor em € à direita.
   Widget _row(String label, double value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 2),   // era 4
       child: Row(
         children: [
           Expanded(child: Text(label)),
@@ -243,11 +260,15 @@ class _CostCardState extends ConsumerState<CostCard> {
         ),
         IconButton(
           icon: const Icon(Icons.remove),
+          iconSize: 18,
+          visualDensity: VisualDensity.compact,
           onPressed: qty == 0 ? null : () => setState(() => _componentQty[c.id] = qty - 1),
         ),
         Text("$qty", style: AppTextStyles.mono),
         IconButton(
           icon: const Icon(Icons.add),
+          iconSize: 18,
+          visualDensity: VisualDensity.compact,
           onPressed: () => setState(() => _componentQty[c.id] = qty + 1),
         ),
       ],

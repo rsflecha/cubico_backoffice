@@ -187,14 +187,14 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              flex: 3,
+              flex: 2,
               child: ListView(
                 padding: const EdgeInsets.all(24),
                 children: formFields,
               ),
             ),
             Expanded(
-              flex: 2,
+              flex: 3,
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(0, 24, 24, 24),
                 child: const CostCard(),
