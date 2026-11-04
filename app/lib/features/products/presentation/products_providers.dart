@@ -4,8 +4,11 @@ import 'package:cubico_backoffice/features/products/domain/product_category_repo
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/demo_product_repository.dart';
+import '../data/demo_variant_repository.dart';
 import '../domain/product.dart';
 import '../domain/product_repository.dart';
+import '../domain/variant.dart';
+import '../domain/variant_repository.dart';
 
 /// Placa 1: qual é o repositório das categorias.
 /// Na Fatia 11 troca-se aqui o Demo pelo Api, e mais nada muda.
@@ -44,3 +47,14 @@ class SelectedCategoryNotifier extends Notifier<int?> {
 /// Placa 5: a categoria escolhida no filtro.
 final selectedCategoryProvider =
 NotifierProvider<SelectedCategoryNotifier, int?>(SelectedCategoryNotifier.new);
+
+/// Placa 6: qual é o repositório das variantes.
+final variantRepositoryProvider = Provider<VariantRepository>((ref) {
+  return DemoVariantRepository();
+});
+
+/// Placa 7: as variantes de um produto (uma "gaveta" por produto).
+final variantsProvider = FutureProvider.family<List<Variant>, int>((ref, productId) {
+  final repository = ref.watch(variantRepositoryProvider);
+  return repository.fetchByProduct(productId);
+});
