@@ -107,6 +107,8 @@ class _CostCardState extends ConsumerState<CostCard> {
       flatFee: channel?.flatFee ?? 0,
       listingFee: channel?.listingFee ?? 0,
     );
+    // a barra vai de 0 até ao dobro do preço sugerido (no mínimo 10 €)
+    final sliderMax = (suggested * 2).clamp(10.0, 1000.0);
 
     // 3. mostrar
     return Card(
@@ -198,6 +200,15 @@ class _CostCardState extends ConsumerState<CostCard> {
               decoration: const InputDecoration(labelText: "Preço de venda (€)"),
               keyboardType: TextInputType.number,
               onChanged: (_) => setState(() {}),
+            ),
+            Slider(
+              value: price.clamp(0.0, sliderMax),
+              max: sliderMax,
+              divisions: (sliderMax / 0.5).round(),
+              label: "${price.toStringAsFixed(2)} €",
+              onChanged: (value) => setState(() {
+                _priceController.text = value.toStringAsFixed(2);
+              }),
             ),
             const SizedBox(height: 16),
             _marginBox(profit, margin),
