@@ -22,8 +22,8 @@ class _CostCardState extends ConsumerState<CostCard> {
   int? _channelId;
   // Quantidade de cada componente: id do componente → quantidade.
   final Map<int, int> _componentQty = {};
-  // Embalagens escolhidas: os ids das que estão incluídas.
-  final Set<int> _packagingIds = {};
+  // Quantidade de cada componente ou embalagem: id → quantidade.
+  final Map<int, int> _componentQty = {};
 
   final _gramsController = TextEditingController(text: "180");
   final _minutesController = TextEditingController(text: "540");
@@ -78,10 +78,10 @@ class _CostCardState extends ConsumerState<CostCard> {
     // embalagem: soma o custo das que estão escolhidas
     var packagingCost = 0.0;
     for (final p in packaging) {
-      if (_packagingIds.contains(p.id)) {
-        packagingCost += _calc.componentUnitCost(p);
-      }
+      final qty = _componentQty[p.id] ?? 0;
+      packagingCost += qty * _calc.componentUnitCost(p);
     }
+
     final production = filamentCost + printing + componentsCost + packagingCost;
     final fees = _calc.channelFees(
       price: price,
@@ -180,12 +180,12 @@ class _CostCardState extends ConsumerState<CostCard> {
                 for (final p in packaging)
                   FilterChip(
                     label: Text("${p.name} · ${_calc.componentUnitCost(p).toStringAsFixed(2)} €"),
-                    selected: _packagingIds.contains(p.id),
+                    selected: (_componentQty[p.id] ?? 0) > 0,
                     onSelected: (selected) => setState(() {
                       if (selected) {
-                        _packagingIds.add(p.id);
+                        _componentQty[p.id] = 1;
                       } else {
-                        _packagingIds.remove(p.id);
+                        _componentQty.remove(p.id);
                       }
                     }),
                   ),
