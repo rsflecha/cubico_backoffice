@@ -31,6 +31,10 @@ class _CostCardState extends ConsumerState<CostCard> {
   // Quantidade de cada componente: id do componente → quantidade.
   final Map<int, int> _componentQty = {};
   var _savingVariant = false; // desliga o botão enquanto grava
+  final settings = ref.watch(costSettingsProvider).value;
+  final target = settings?.targetMarginPct ?? 60;
+  final minimum = settings?.minMarginPct ?? 35;
+  final rounding = settings?.rounding ?? 0.50;
 
   final _gramsController = TextEditingController(text: "180");
   final _minutesController = TextEditingController(text: "540");
@@ -154,7 +158,8 @@ class _CostCardState extends ConsumerState<CostCard> {
     final profit = price - production - fees;
     final suggested = _calc.suggestedPrice(
       productionCost: production,
-      targetMarginPct: 60,
+      targetMarginPct: target,
+      rounding: rounding,
       transactionPct: channel?.transactionFee ?? 0,
       processingPct: channel?.processingFee ?? 0,
       flatFee: channel?.flatFee ?? 0,
@@ -286,9 +291,9 @@ class _CostCardState extends ConsumerState<CostCard> {
               ],
             ),
             const SizedBox(height: 16),
-            _marginBox(profit, margin),
+            _marginBox(profit, margin, target, minimum),
             const SizedBox(height: 12),
-            _row("Preço sugerido (margem 60%)", suggested),
+            _row("Preço sugerido (margem ${target.toStringAsFixed(0)}%)", suggested),
             if (widget.variant != null) ...[
               const SizedBox(height: 12),
               FilledButton(
@@ -346,19 +351,17 @@ class _CostCardState extends ConsumerState<CostCard> {
     );
   }
 
-  /// A caixa da margem: lucro e %, barra e mensagem, com a cor da situação.
-  Widget _marginBox(double profit, double margin) {
-    // escolher a cor e a mensagem conforme a margem
+  Widget _marginBox(double profit, double margin, double target, double minimum) {
     final Color color;
     final String message;
-    if (margin >= 60) {
-      color = const Color(0xFF15803D); // verde
+    if (margin >= target) {
+      color = const Color(0xFF15803D);
       message = "Margem saudável.";
-    } else if (margin >= 35) {
-      color = const Color(0xFFB45309); // laranja-escuro
-      message = "Abaixo da margem alvo (60%).";
+    } else if (margin >= minimum) {
+      color = const Color(0xFFB45309);
+      message = "Abaixo da margem alvo (${target.toStringAsFixed(0)}%).";
     } else {
-      color = const Color(0xFFB91C1C); // vermelho
+      color = const Color(0xFFB91C1C);
       message = "Margem baixa: revê o preço.";
     }
 
