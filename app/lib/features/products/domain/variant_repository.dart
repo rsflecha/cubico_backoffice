@@ -6,4 +6,7 @@ abstract interface class VariantRepository {
 
   /// Grava as alterações de uma variante (preço, receita…).
   Future<Variant> update(Variant variant);
+
+  /// Todas as variantes da loja.
+  Future<List<Variant>> fetchAll();
 }

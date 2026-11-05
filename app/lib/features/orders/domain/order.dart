@@ -75,20 +75,25 @@ abstract class Order with _$Order {
   /// Quantas peças tem a encomenda.
   int get itemCount => lines.fold(0, (sum, l) => sum + l.quantity);
 
-  /// O que o cliente pagou: artigos (com desconto) + portes cobrados.
-  /// Uma encomenda cancelada conta 0.
+  /// Artigos: quantidade × preço, menos descontos.
+  double get itemsTotal =>
+      lines.fold(0.0, (sum, l) => sum + l.quantity * l.unitPrice - l.discount);
+
+  /// Produção: quantidade × custo de cada linha.
+  double get productionCost =>
+      lines.fold(0.0, (sum, l) => sum + l.quantity * l.unitCost);
+
+  /// Taxas do canal, somadas.
+  double get channelFees => lines.fold(0.0, (sum, l) => sum + l.channelFee);
+
   double get total {
     if (status == OrderStatus.cancelled) return 0;
-    return lines.fold(0.0, (sum, l) => sum + l.quantity * l.unitPrice - l.discount) +
-        shippingCharged;
+    return itemsTotal + shippingCharged;
   }
 
-  /// O que a encomenda custou: produção + taxas do canal + portes reais.
-  /// Uma encomenda cancelada conta 0.
   double get cost {
     if (status == OrderStatus.cancelled) return 0;
-    return lines.fold(0.0, (sum, l) => sum + l.quantity * l.unitCost + l.channelFee) +
-        shippingPaid;
+    return productionCost + channelFees + shippingPaid;
   }
 
   /// O que sobrou.

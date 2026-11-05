@@ -64,4 +64,10 @@ class DemoVariantRepository implements VariantRepository {
     _items[index] = variant;
     return variant;
   }
+
+  @override
+  Future<List<Variant>> fetchAll() async {
+    await _latency();
+    return List<Variant>.of(_items);
+  }
 }

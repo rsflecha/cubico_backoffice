@@ -9,6 +9,7 @@ import 'package:cubico_backoffice/features/settings/presentation/settings_screen
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/orders/presentation/order_detail_screen.dart';
 import '../features/products/presentation/product_form_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -32,6 +33,15 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/orders',
                 builder: (context, state) => const OrdersScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':id', // fica /orders/1
+                    builder: (context, state) {
+                      final id = int.parse(state.pathParameters['id']!);
+                      return OrderDetailScreen(orderId: id);
+                    },
+                  ),
+                ],
               ),
             ],
           ),

@@ -58,3 +58,9 @@ final variantsProvider = FutureProvider.family<List<Variant>, int>((ref, product
   final repository = ref.watch(variantRepositoryProvider);
   return repository.fetchByProduct(productId);
 });
+
+/// Placa 8: todas as variantes da loja (para mostrar nomes nas encomendas).
+final allVariantsProvider = FutureProvider<List<Variant>>((ref) {
+  final repository = ref.watch(variantRepositoryProvider);
+  return repository.fetchAll();
+});

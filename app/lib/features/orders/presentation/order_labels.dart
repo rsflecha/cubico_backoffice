@@ -54,3 +54,9 @@ String shortDate(DateTime date) {
     "jul", "ago", "set", "out", "nov", "dez"];
   return "${date.day} ${months[date.month - 1]}";
 }
+
+/// Cor do lucro: verde se ganhou, vermelho se perdeu, cinzento se foi cancelada.
+Color profitColor(Order o) {
+  if (o.status == OrderStatus.cancelled) return const Color(0xFF71717A);
+  return o.profit >= 0 ? const Color(0xFF15803D) : const Color(0xFFB91C1C);
+}
