@@ -13,3 +13,18 @@ final ordersProvider = FutureProvider<List<Order>>((ref) {
   final repository = ref.watch(orderRepositoryProvider);
   return repository.fetchAll();
 });
+
+/// Guarda o estado escolhido nos separadores. null = "Todas".
+class SelectedOrderStatusNotifier extends Notifier<OrderStatus?> {
+  @override
+  OrderStatus? build() => null;
+
+  void select(OrderStatus? status) {
+    state = status;
+  }
+}
+
+/// Placa 3: o estado escolhido nos separadores.
+final selectedOrderStatusProvider =
+NotifierProvider<SelectedOrderStatusNotifier, OrderStatus?>(
+    SelectedOrderStatusNotifier.new);

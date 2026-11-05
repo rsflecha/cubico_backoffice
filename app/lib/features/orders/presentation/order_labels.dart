@@ -12,6 +12,16 @@ extension OrderStatusLabels on OrderStatus {
     OrderStatus.cancelled => "Cancelada",
   };
 
+  /// O nome no plural, para os separadores.
+  String get pluralLabel => switch (this) {
+    OrderStatus.pending => "Pendentes",
+    OrderStatus.inProduction => "Em produção",
+    OrderStatus.ready => "Prontas",
+    OrderStatus.shipped => "Enviadas",
+    OrderStatus.delivered => "Entregues",
+    OrderStatus.cancelled => "Canceladas",
+  };
+
   /// A cor do texto da etiqueta.
   Color get color => switch (this) {
     OrderStatus.pending => const Color(0xFF92400E),
