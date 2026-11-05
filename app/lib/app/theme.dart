@@ -25,6 +25,15 @@ ThemeData buildTheme() {
   final base = ThemeData(
     colorScheme: scheme,
     scaffoldBackgroundColor: AppColors.background,
+    inputDecorationTheme: const InputDecorationTheme(
+      // a etiqueta fica sempre por cima, esteja o campo vazio ou não
+      floatingLabelBehavior: FloatingLabelBehavior.always,
+      // caixas com cantos arredondados, como nos desenhos
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+      ),
+      isDense: true,
+    ),
   );
 
   final manrope = GoogleFonts.manropeTextTheme(base.textTheme);

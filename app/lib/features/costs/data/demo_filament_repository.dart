@@ -32,6 +32,25 @@ class DemoFilamentRepository implements FilamentRepository {
     ),
   ];
 
+  int _nextId = 4;
+
+  @override
+  Future<Filament> create(Filament draft) async {
+    await _latency();
+    final created = draft.copyWith(id: _nextId++);
+    _items.add(created);
+    return created;
+  }
+
+  @override
+  Future<Filament> update(Filament filament) async {
+    await _latency();
+    final index = _items.indexWhere((f) => f.id == filament.id);
+    if (index == -1) throw StateError("Filamento ${filament.id} não existe.");
+    _items[index] = filament;
+    return filament;
+  }
+
   Future<void> _latency() => Future.delayed(const Duration(milliseconds: 300));
 
   @override
@@ -39,4 +58,5 @@ class DemoFilamentRepository implements FilamentRepository {
     await _latency();
     return List<Filament>.of(_items);
   }
+
 }
