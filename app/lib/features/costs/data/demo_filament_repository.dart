@@ -8,6 +8,7 @@ class DemoFilamentRepository implements FilamentRepository {
       material: "PLA",
       brand: "Bambu Lab",
       colorName: "Black Basic",
+      colorHex: "#1F2937",   // Black Basic
       listPrice: 26.86,
       paidPrice: 13.43,
     ),
@@ -16,6 +17,7 @@ class DemoFilamentRepository implements FilamentRepository {
       material: "PETG",
       brand: "Bambu Lab",
       colorName: "Translucent",
+      colorHex: "#E5E7EB",   // Translucent
       listPrice: 23.76,
       paidPrice: 11.88,
     ),
@@ -24,6 +26,7 @@ class DemoFilamentRepository implements FilamentRepository {
       material: "PLA",
       brand: "Bambu Lab",
       colorName: "Orange Basic",
+      colorHex: "#EA580C",   // Orange Basic
       listPrice: 23.76,
       paidPrice: 11.88,
     ),

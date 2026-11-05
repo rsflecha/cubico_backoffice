@@ -224,8 +224,8 @@ return $default(_that.id,_that.material,_that.brand,_that.colorName,_that.colorH
 /// @nodoc
 @JsonSerializable()
 
-class _Filament implements Filament {
-  const _Filament({required this.id, required this.material, this.brand, required this.colorName, this.colorHex, required this.listPrice, required this.paidPrice, this.spoolWeightG = 1000, this.shippingCost = 0, this.spoolsInOrder = 1, this.minStockG = 250, this.isActive = true});
+class _Filament extends Filament {
+  const _Filament({required this.id, required this.material, this.brand, required this.colorName, this.colorHex, required this.listPrice, required this.paidPrice, this.spoolWeightG = 1000, this.shippingCost = 0, this.spoolsInOrder = 1, this.minStockG = 250, this.isActive = true}): super._();
   factory _Filament.fromJson(Map<String, dynamic> json) => _$FilamentFromJson(json);
 
 @override final  int id;

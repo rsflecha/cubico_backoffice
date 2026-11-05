@@ -1,6 +1,5 @@
 import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/core/formatting.dart';
-import 'package:cubico_backoffice/features/costs/domain/cost_calculator.dart';
 import 'package:cubico_backoffice/features/costs/domain/cost_settings.dart';
 import 'package:cubico_backoffice/features/costs/domain/printer.dart';
 import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';

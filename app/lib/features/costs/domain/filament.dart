@@ -5,6 +5,7 @@ part 'filament.g.dart'; // enquanto nao os criar, o analyzer queixa-se — e nor
 
 @freezed
 abstract class Filament with _$Filament {
+  const Filament._();
   const factory Filament({
     required int id,
     required String material,
@@ -24,4 +25,10 @@ abstract class Filament with _$Filament {
 
   factory Filament.fromJson(Map<String, dynamic> json) =>
       _$FilamentFromJson(json);
+
+  /// Quanto se poupou em relação ao preço normal, em %. 0 se não houve desconto.
+  double get discountPct {
+    if (listPrice <= 0 || paidPrice >= listPrice) return 0;
+    return (listPrice - paidPrice) / listPrice * 100;
+  }
 }

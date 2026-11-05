@@ -1,4 +1,5 @@
 import 'package:cubico_backoffice/features/costs/presentation/tabs/energy_tab.dart';
+import 'package:cubico_backoffice/features/costs/presentation/tabs/filaments_tab.dart';
 import 'package:cubico_backoffice/features/costs/presentation/tabs/margins_tab.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -28,7 +29,7 @@ class CostsScreen extends StatelessWidget {
         body: const TabBarView(
           children: [
             EnergyTab(),
-            _Placeholder("Filamentos"),
+            FilamentsTab(),
             _Placeholder("Embalagens e componentes"),
             _Placeholder("Portes de envio"),
             _Placeholder("Taxas"),
