@@ -28,3 +28,32 @@ class SelectedOrderStatusNotifier extends Notifier<OrderStatus?> {
 final selectedOrderStatusProvider =
 NotifierProvider<SelectedOrderStatusNotifier, OrderStatus?>(
     SelectedOrderStatusNotifier.new);
+
+/// Guarda o texto da pesquisa. "" = sem pesquisa.
+class OrderSearchNotifier extends Notifier<String> {
+  @override
+  String build() => "";
+
+  void set(String text) {
+    state = text;
+  }
+}
+
+/// Placa 4: o texto da pesquisa.
+final orderSearchProvider =
+NotifierProvider<OrderSearchNotifier, String>(OrderSearchNotifier.new);
+
+/// Guarda o canal escolhido no filtro. null = todos.
+class OrderChannelFilterNotifier extends Notifier<int?> {
+  @override
+  int? build() => null;
+
+  void select(int? channelId) {
+    state = channelId;
+  }
+}
+
+/// Placa 5: o canal escolhido no filtro.
+final orderChannelFilterProvider =
+NotifierProvider<OrderChannelFilterNotifier, int?>(
+    OrderChannelFilterNotifier.new);

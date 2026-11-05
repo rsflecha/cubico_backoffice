@@ -14,6 +14,8 @@ class OrdersScreen extends ConsumerWidget {
     final orders = ref.watch(ordersProvider);
     final channels = ref.watch(salesChannelsProvider).value ?? [];
     final selected = ref.watch(selectedOrderStatusProvider);
+    final search = ref.watch(orderSearchProvider);
+    final channelFilter = ref.watch(orderChannelFilterProvider);
 
     // o nome do canal a partir do id: 1 → "Etsy"
     String channelName(int id) =>
@@ -25,6 +27,18 @@ class OrdersScreen extends ConsumerWidget {
       return o.profit >= 0 ? const Color(0xFF15803D) : const Color(0xFFB91C1C);
     }
 
+    // passa nos três filtros: estado, canal e pesquisa
+    bool matches(Order o) {
+      if (selected != null && o.status != selected) return false;
+      if (channelFilter != null && o.channelId != channelFilter) return false;
+
+      final text = search.trim().toLowerCase();
+      if (text.isEmpty) return true;
+      return "${o.orderNumber}".contains(text) ||
+          o.customerName.toLowerCase().contains(text) ||
+          (o.externalRef ?? "").contains(text);
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text("Encomendas")),
       body: orders.when(
@@ -32,9 +46,7 @@ class OrdersScreen extends ConsumerWidget {
         error: (error, stack) => Center(child: Text("Erro: $error")),
         data: (list) {
           // só as do estado escolhido (ou todas)
-          final visible = selected == null
-              ? list
-              : list.where((o) => o.status == selected).toList();
+          final visible = list.where(matches).toList();
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,10 +80,41 @@ class OrdersScreen extends ConsumerWidget {
                 ),
               ),
 
+              // pesquisa e filtro por canal
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: search,
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.search),
+                          hintText: "Nº, cliente ou referência Etsy",
+                        ),
+                        onChanged: (text) =>
+                            ref.read(orderSearchProvider.notifier).set(text),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    DropdownButton<int?>(
+                      value: channelFilter,
+                      items: [
+                        const DropdownMenuItem(value: null, child: Text("Canal: todos")),
+                        for (final c in channels)
+                          DropdownMenuItem(value: c.id, child: Text(c.name)),
+                      ],
+                      onChanged: (id) =>
+                          ref.read(orderChannelFilterProvider.notifier).select(id),
+                    ),
+                  ],
+                ),
+              ),
+
               // a tabela, ou uma mensagem se não houver nenhuma
               Expanded(
                 child: visible.isEmpty
-                    ? const Center(child: Text("Não há encomendas neste estado."))
+                    ? const Center(child: Text("Nenhuma encomenda corresponde aos filtros."))
                     : LayoutBuilder(
                   builder: (context, constraints) => SingleChildScrollView(
                     padding: const EdgeInsets.all(16),
