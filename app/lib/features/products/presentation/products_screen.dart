@@ -10,7 +10,6 @@ class ProductsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-
     // Olha para a placa e recebe a "caixa" com o estado da lista.
     final products = ref.watch(productsProvider);
     final categories = ref.watch(productCategoriesProvider).value ?? [];
@@ -18,15 +17,15 @@ class ProductsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Produtos'),
+        title: const Text("Produtos"),
         centerTitle: true,
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: FilledButton.icon(
-              onPressed: () => context.push('/products/new'),
+              onPressed: () => context.push("/products/new"),
               icon: const Icon(Icons.add),
-              label: const Text('Novo produto'),
+              label: const Text("Novo produto"),
             ),
           ),
         ],
@@ -41,23 +40,25 @@ class ProductsScreen extends ConsumerWidget {
             child: Row(
               children: [
                 ChoiceChip(
-                  label: const Text('Todas'),
+                  label: const Text("Todas"),
                   selected: selected == null,
-                  onSelected: (_) => ref.read(selectedCategoryProvider.notifier).select(null),
+                  onSelected: (_) =>
+                      ref.read(selectedCategoryProvider.notifier).select(null),
                 ),
                 for (final category in categories) ...[
                   const SizedBox(width: 8),
                   ChoiceChip(
                     label: Text(category.name),
                     selected: selected == category.id,
-                    onSelected: (_) =>
-                        ref.read(selectedCategoryProvider.notifier).select(category.id),
+                    onSelected: (_) => ref
+                        .read(selectedCategoryProvider.notifier)
+                        .select(category.id),
                   ),
                 ],
                 const SizedBox(width: 8),
                 ActionChip(
                   avatar: const Icon(Icons.add, size: 18),
-                  label: const Text('Nova'),
+                  label: const Text("Nova"),
                   onPressed: () async {
                     // 1. abre a janela e espera pela resposta
                     final name = await showDialog<String>(
@@ -69,7 +70,9 @@ class ProductsScreen extends ConsumerWidget {
                     if (name == null || name.trim().isEmpty) return;
 
                     // 3. pede ao balcão para criar
-                    await ref.read(productCategoryRepositoryProvider).create(name: name.trim());
+                    await ref
+                        .read(productCategoryRepositoryProvider)
+                        .create(name: name.trim());
 
                     // 4. diz ao Riverpod que a lista mudou, para a ir buscar outra vez
                     ref.invalidate(productCategoriesProvider);
@@ -79,16 +82,18 @@ class ProductsScreen extends ConsumerWidget {
                   const SizedBox(width: 8),
                   ActionChip(
                     avatar: const Icon(Icons.edit_outlined, size: 18),
-                    label: const Text('Editar'),
+                    label: const Text("Editar"),
                     onPressed: () async {
                       // a categoria escolhida, completa
-                      final category = categories.firstWhere((c) => c.id == selected);
+                      final category = categories.firstWhere(
+                        (c) => c.id == selected,
+                      );
 
                       final name = await showDialog<String>(
                         context: context,
                         builder: (context) => CategoryDialog(
-                          title: 'Editar categoria',
-                          confirmLabel: 'Guardar',
+                          title: "Editar categoria",
+                          confirmLabel: "Guardar",
                           initialName: category.name,
                         ),
                       );
@@ -103,20 +108,25 @@ class ProductsScreen extends ConsumerWidget {
                   const SizedBox(width: 8),
                   ActionChip(
                     avatar: const Icon(Icons.delete_outline, size: 18),
-                    label: const Text('Apagar'),
+                    label: const Text("Apagar"),
                     onPressed: () async {
-                      final category = categories.firstWhere((c) => c.id == selected);
+                      final category = categories.firstWhere(
+                        (c) => c.id == selected,
+                      );
 
                       // quantos produtos tem esta categoria?
-                      final allProducts = ref.read(productsProvider).value ?? [];
-                      final count = allProducts.where((p) => p.categoryId == selected).length;
+                      final allProducts =
+                          ref.read(productsProvider).value ?? [];
+                      final count = allProducts
+                          .where((p) => p.categoryId == selected)
+                          .length;
 
                       if (count > 0) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              '"${category.name}" tem $count produto(s). '
-                                  'Muda-os de categoria antes de a apagar.',
+                              "\"${category.name}\" tem $count produto(s). "
+                              "Muda-os de categoria antes de a apagar.",
                             ),
                           ),
                         );
@@ -127,24 +137,30 @@ class ProductsScreen extends ConsumerWidget {
                       final confirmed = await showDialog<bool>(
                         context: context,
                         builder: (context) => AlertDialog(
-                          title: const Text('Apagar categoria?'),
-                          content: Text('A categoria "${category.name}" vai ser apagada.'),
+                          title: const Text("Apagar categoria?"),
+                          content: Text(
+                            "A categoria \"${category.name}\" vai ser apagada.",
+                          ),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(context, false),
-                              child: const Text('Cancelar'),
+                              child: const Text("Cancelar"),
                             ),
                             FilledButton(
                               onPressed: () => Navigator.pop(context, true),
-                              child: const Text('Apagar'),
+                              child: const Text("Apagar"),
                             ),
                           ],
                         ),
                       );
                       if (confirmed != true) return;
 
-                      await ref.read(productCategoryRepositoryProvider).delete(category.id);
-                      ref.read(selectedCategoryProvider.notifier).select(null); // volta a "Todas"
+                      await ref
+                          .read(productCategoryRepositoryProvider)
+                          .delete(category.id);
+                      ref
+                          .read(selectedCategoryProvider.notifier)
+                          .select(null); // volta a "Todas"
                       ref.invalidate(productCategoriesProvider);
                     },
                   ),
@@ -156,14 +172,14 @@ class ProductsScreen extends ConsumerWidget {
           Expanded(
             child: products.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stack) => Center(child: Text('Erro: $error')),
+              error: (error, stack) => Center(child: Text("Erro: $error")),
               data: (list) {
                 final visible = selected == null
                     ? list
                     : list.where((p) => p.categoryId == selected).toList();
                 if (visible.isEmpty) {
                   return const Center(
-                    child: Text('Ainda não há produtos nesta categoria.'),
+                    child: Text("Ainda não há produtos nesta categoria."),
                   );
                 }
                 return ListView.builder(
@@ -173,8 +189,11 @@ class ProductsScreen extends ConsumerWidget {
                     return ListTile(
                       leading: const Icon(Icons.folder_outlined),
                       title: Text(product.name),
-                      subtitle: Text(product.baseSku, style: AppTextStyles.mono),
-                      onTap: () => context.push('/products/${product.id}'),
+                      subtitle: Text(
+                        product.baseSku,
+                        style: AppTextStyles.mono,
+                      ),
+                      onTap: () => context.push("/products/${product.id}"),
                     );
                   },
                 );

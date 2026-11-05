@@ -64,7 +64,7 @@ class OrdersScreen extends ConsumerWidget {
                       ChoiceChip(
                         label: Text(
                           "${status.pluralLabel} · "
-                              "${list.where((o) => o.status == status).length}",
+                          "${list.where((o) => o.status == status).length}",
                         ),
                         selected: selected == status,
                         onSelected: (_) => ref
@@ -95,12 +95,16 @@ class OrdersScreen extends ConsumerWidget {
                     DropdownButton<int?>(
                       value: channelFilter,
                       items: [
-                        const DropdownMenuItem(value: null, child: Text("Canal: todos")),
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text("Canal: todos"),
+                        ),
                         for (final c in channels)
                           DropdownMenuItem(value: c.id, child: Text(c.name)),
                       ],
-                      onChanged: (id) =>
-                          ref.read(orderChannelFilterProvider.notifier).select(id),
+                      onChanged: (id) => ref
+                          .read(orderChannelFilterProvider.notifier)
+                          .select(id),
                     ),
                   ],
                 ),
@@ -109,84 +113,112 @@ class OrdersScreen extends ConsumerWidget {
               // a tabela, ou uma mensagem se não houver nenhuma
               Expanded(
                 child: visible.isEmpty
-                    ? const Center(child: Text("Nenhuma encomenda corresponde aos filtros."))
-                    : LayoutBuilder(
-                  builder: (context, constraints) => SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minWidth: constraints.maxWidth - 32,
+                    ? const Center(
+                        child: Text(
+                          "Nenhuma encomenda corresponde aos filtros.",
                         ),
-                        child: DataTable(
-                          showCheckboxColumn: false,
-                          columnSpacing: 24,
-                          horizontalMargin: 12,
-                          columns: const [
-                            DataColumn(label: Text("Nº")),
-                            DataColumn(label: Text("Data")),
-                            DataColumn(label: Text("Cliente")),
-                            DataColumn(label: Text("Canal")),
-                            DataColumn(label: Text("Artigos"), numeric: true),
-                            DataColumn(label: Text("Estado")),
-                            DataColumn(label: Text("Pagamento")),
-                            DataColumn(label: Text("Prazo")),
-                            DataColumn(label: Text("Total"), numeric: true),
-                            DataColumn(label: Text("Lucro"), numeric: true),
-                          ],
-                          rows: [
-                            for (final o in visible)
-                              DataRow(
-                                onSelectChanged: (_) => context.push("/orders/${o.id}"),
-                                // as atrasadas ficam com o fundo avermelhado
-                                color: o.isOverdue
-                                    ? WidgetStatePropertyAll(
-                                  Colors.red.withValues(alpha: 0.06),
-                                )
-                                    : null,
-                                cells: [
-                                  DataCell(Text(
-                                    "#${o.orderNumber}",
-                                    style: AppTextStyles.mono.copyWith(
-                                      color: AppColors.orange,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  )),
-                                  DataCell(Text(shortDate(o.createdAt))),
-                                  DataCell(Text(o.customerName)),
-                                  DataCell(Text(channelName(o.channelId))),
-                                  DataCell(Text("${o.itemCount}")),
-                                  DataCell(_StatusBadge(o.status)),
-                                  DataCell(Text(
-                                    o.paymentStatus.label,
-                                    style: TextStyle(
-                                      color: o.paymentStatus.color,
-                                    ),
-                                  )),
-                                  DataCell(_deadline(o)),
-                                  DataCell(Text(
-                                    "${o.total.toStringAsFixed(2)} €",
-                                    style: AppTextStyles.mono.copyWith(
-                                      color: o.status == OrderStatus.cancelled
-                                          ? const Color(0xFF71717A)
+                      )
+                    : LayoutBuilder(
+                        builder: (context, constraints) => SingleChildScrollView(
+                          padding: const EdgeInsets.all(16),
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minWidth: constraints.maxWidth - 32,
+                              ),
+                              child: DataTable(
+                                showCheckboxColumn: false,
+                                columnSpacing: 24,
+                                horizontalMargin: 12,
+                                columns: const [
+                                  DataColumn(label: Text("Nº")),
+                                  DataColumn(label: Text("Data")),
+                                  DataColumn(label: Text("Cliente")),
+                                  DataColumn(label: Text("Canal")),
+                                  DataColumn(
+                                    label: Text("Artigos"),
+                                    numeric: true,
+                                  ),
+                                  DataColumn(label: Text("Estado")),
+                                  DataColumn(label: Text("Pagamento")),
+                                  DataColumn(label: Text("Prazo")),
+                                  DataColumn(
+                                    label: Text("Total"),
+                                    numeric: true,
+                                  ),
+                                  DataColumn(
+                                    label: Text("Lucro"),
+                                    numeric: true,
+                                  ),
+                                ],
+                                rows: [
+                                  for (final o in visible)
+                                    DataRow(
+                                      onSelectChanged: (_) =>
+                                          context.push("/orders/${o.id}"),
+                                      // as atrasadas ficam com o fundo avermelhado
+                                      color: o.isOverdue
+                                          ? WidgetStatePropertyAll(
+                                              Colors.red.withValues(
+                                                alpha: 0.06,
+                                              ),
+                                            )
                                           : null,
+                                      cells: [
+                                        DataCell(
+                                          Text(
+                                            "#${o.orderNumber}",
+                                            style: AppTextStyles.mono.copyWith(
+                                              color: AppColors.orange,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                        DataCell(Text(shortDate(o.createdAt))),
+                                        DataCell(Text(o.customerName)),
+                                        DataCell(
+                                          Text(channelName(o.channelId)),
+                                        ),
+                                        DataCell(Text("${o.itemCount}")),
+                                        DataCell(_StatusBadge(o.status)),
+                                        DataCell(
+                                          Text(
+                                            o.paymentStatus.label,
+                                            style: TextStyle(
+                                              color: o.paymentStatus.color,
+                                            ),
+                                          ),
+                                        ),
+                                        DataCell(_deadline(o)),
+                                        DataCell(
+                                          Text(
+                                            "${o.total.toStringAsFixed(2)} €",
+                                            style: AppTextStyles.mono.copyWith(
+                                              color:
+                                                  o.status ==
+                                                      OrderStatus.cancelled
+                                                  ? const Color(0xFF71717A)
+                                                  : null,
+                                            ),
+                                          ),
+                                        ),
+                                        DataCell(
+                                          Text(
+                                            "${o.profit.toStringAsFixed(2)} €",
+                                            style: AppTextStyles.mono.copyWith(
+                                              color: profitColor(o),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  )),
-                                  DataCell(Text(
-                                    "${o.profit.toStringAsFixed(2)} €",
-                                    style: AppTextStyles.mono.copyWith(
-                                      color: profitColor(o),
-                                    ),
-                                  )),
                                 ],
                               ),
-                          ],
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ),
               ),
             ],
           );

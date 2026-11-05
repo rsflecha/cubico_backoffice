@@ -32,14 +32,14 @@ class OrderDetailScreen extends ConsumerWidget {
 
     final isWide = MediaQuery.sizeOf(context).width >= 1100;
 
-// coluna da esquerda: o que se vendeu e as contas
+    // coluna da esquerda: o que se vendeu e as contas
     final leftCards = <Widget>[
       _itemsCard(context, order, variants),
       const SizedBox(height: 16),
       _moneyCard(context, order, channel?.name ?? "canal"),
     ];
 
-// coluna da direita: quem, como chega, como pagou
+    // coluna da direita: quem, como chega, como pagou
     final rightCards = <Widget>[
       _customerCard(context, order),
       const SizedBox(height: 16),
@@ -48,7 +48,7 @@ class OrderDetailScreen extends ConsumerWidget {
       _paymentCard(context, order),
     ];
 
-// a linha do topo: canal · referência · data
+    // a linha do topo: canal · referência · data
     final subtitle = Text(
       [
         channel?.name ?? "—",
@@ -76,9 +76,11 @@ class OrderDetailScreen extends ConsumerWidget {
               child: FilledButton(
                 onPressed: () async {
                   final next = order.nextStatus!;
-                  await ref.read(orderRepositoryProvider).update(
-                    order.copyWith(status: next, updatedAt: DateTime.now()),
-                  );
+                  await ref
+                      .read(orderRepositoryProvider)
+                      .update(
+                        order.copyWith(status: next, updatedAt: DateTime.now()),
+                      );
                   ref.invalidate(ordersProvider);
                 },
                 child: Text(order.nextStatus!.actionLabel),
@@ -95,35 +97,39 @@ class OrderDetailScreen extends ConsumerWidget {
           Expanded(
             child: isWide
                 ? Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: ListView(
-                    padding: const EdgeInsets.all(24),
-                    children: [subtitle, const SizedBox(height: 16), ...leftCards],
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(0, 24, 24, 24),
-                    children: [const SizedBox(height: 32), ...rightCards],
-                  ),
-                ),
-              ],
-            )
-            // a tua Row das duas colunas, igual
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: ListView(
+                          padding: const EdgeInsets.all(24),
+                          children: [
+                            subtitle,
+                            const SizedBox(height: 16),
+                            ...leftCards,
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: ListView(
+                          padding: const EdgeInsets.fromLTRB(0, 24, 24, 24),
+                          children: [const SizedBox(height: 32), ...rightCards],
+                        ),
+                      ),
+                    ],
+                  )
+                // a tua Row das duas colunas, igual
                 : ListView(
-              padding: const EdgeInsets.all(24),
-              children: [
-                subtitle,
-                const SizedBox(height: 16),
-                ...leftCards,
-                const SizedBox(height: 16),
-                ...rightCards,
-              ],
-            ),  // o teu ListView do telemóvel, igual
+                    padding: const EdgeInsets.all(24),
+                    children: [
+                      subtitle,
+                      const SizedBox(height: 16),
+                      ...leftCards,
+                      const SizedBox(height: 16),
+                      ...rightCards,
+                    ],
+                  ), // o teu ListView do telemóvel, igual
           ),
         ],
       ),
@@ -141,43 +147,50 @@ class OrderDetailScreen extends ConsumerWidget {
             Text("Artigos", style: Theme.of(context).textTheme.titleMedium),
             for (final line in order.lines) ...[
               const Divider(height: 24),
-              Builder(builder: (context) {
-                final variant =
-                    variants.where((v) => v.id == line.variantId).firstOrNull;
-                return Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            variant?.name ?? "Variante ${line.variantId}",
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          Text(
-                            "SKU ${variant?.sku ?? "—"}",
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                          if (line.customization != null)
+              Builder(
+                builder: (context) {
+                  final variant = variants
+                      .where((v) => v.id == line.variantId)
+                      .firstOrNull;
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              "Personalização: «${line.customization}»",
-                              style: TextStyle(color: AppColors.orange),
+                              variant?.name ?? "Variante ${line.variantId}",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                        ],
+                            Text(
+                              "SKU ${variant?.sku ?? "—"}",
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            if (line.customization != null)
+                              Text(
+                                "Personalização: «${line.customization}»",
+                                style: TextStyle(color: AppColors.orange),
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                    Text(
-                      "${line.quantity} × ${line.unitPrice.toStringAsFixed(2)} €",
-                      style: AppTextStyles.mono,
-                    ),
-                    const SizedBox(width: 24),
-                    Text(
-                      "${(line.quantity * line.unitPrice - line.discount).toStringAsFixed(2)} €",
-                      style: AppTextStyles.mono.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                  ],
-                );
-              }),
+                      Text(
+                        "${line.quantity} × ${line.unitPrice.toStringAsFixed(2)} €",
+                        style: AppTextStyles.mono,
+                      ),
+                      const SizedBox(width: 24),
+                      Text(
+                        "${(line.quantity * line.unitPrice - line.discount).toStringAsFixed(2)} €",
+                        style: AppTextStyles.mono.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ],
           ],
         ),
@@ -253,7 +266,9 @@ class OrderDetailScreen extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
-          Expanded(child: Text(label, style: TextStyle(fontWeight: weight))),
+          Expanded(
+            child: Text(label, style: TextStyle(fontWeight: weight)),
+          ),
           Text(
             "${value.toStringAsFixed(2)} €",
             style: AppTextStyles.mono.copyWith(fontWeight: weight),
@@ -300,7 +315,10 @@ class OrderDetailScreen extends ConsumerWidget {
                   backgroundColor: AppColors.orange.withValues(alpha: 0.12),
                   child: Text(
                     _initials(order.customerName),
-                    style: TextStyle(color: AppColors.orange, fontWeight: FontWeight.w700),
+                    style: TextStyle(
+                      color: AppColors.orange,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -308,9 +326,12 @@ class OrderDetailScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(order.customerName,
-                          style: const TextStyle(fontWeight: FontWeight.w600)),
-                      if (order.customerContact != null) Text(order.customerContact!),
+                      Text(
+                        order.customerName,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      if (order.customerContact != null)
+                        Text(order.customerContact!),
                     ],
                   ),
                 ),
@@ -404,7 +425,10 @@ class OrderDetailScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           child: Text(
             "Esta encomenda foi cancelada.",
-            style: TextStyle(color: order.status.color, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              color: order.status.color,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       );
@@ -418,26 +442,30 @@ class OrderDetailScreen extends ConsumerWidget {
         child: Row(
           children: [
             for (var i = 0; i < flow.length; i++) ...[
-              if (i > 0) const Expanded(child: Divider(indent: 8, endIndent: 8)),
+              if (i > 0)
+                const Expanded(child: Divider(indent: 8, endIndent: 8)),
               CircleAvatar(
                 radius: 13,
-                backgroundColor:
-                i <= current ? AppColors.orange : Colors.grey.withValues(alpha: 0.2),
+                backgroundColor: i <= current
+                    ? AppColors.orange
+                    : Colors.grey.withValues(alpha: 0.2),
                 child: i < current
                     ? const Icon(Icons.check, size: 14, color: Colors.white)
                     : Text(
-                  "${i + 1}",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: i <= current ? Colors.white : null,
-                  ),
-                ),
+                        "${i + 1}",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: i <= current ? Colors.white : null,
+                        ),
+                      ),
               ),
               const SizedBox(width: 6),
               Text(
                 flow[i].label,
                 style: TextStyle(
-                  fontWeight: i == current ? FontWeight.w700 : FontWeight.normal,
+                  fontWeight: i == current
+                      ? FontWeight.w700
+                      : FontWeight.normal,
                 ),
               ),
             ],

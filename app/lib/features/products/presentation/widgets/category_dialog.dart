@@ -3,9 +3,9 @@ import 'package:material_ui/material_ui.dart';
 class CategoryDialog extends StatefulWidget {
   const CategoryDialog({
     super.key,
-    this.title = 'Nova categoria',
-    this.confirmLabel = 'Adicionar',
-    this.initialName = '',
+    this.title = "Nova categoria",
+    this.confirmLabel = "Adicionar",
+    this.initialName = "",
   });
 
   final String title;
@@ -33,7 +33,7 @@ class _CategoryDialogState extends State<CategoryDialog> {
       content: TextField(
         controller: _controller,
         autofocus: true, // o cursor já aparece no campo
-        decoration: const InputDecoration(hintText: 'Ex.: Decoração'),
+        decoration: const InputDecoration(hintText: "Ex.: Decoração"),
         onSubmitted: (value) => Navigator.pop(context, value),
       ),
       actions: [
@@ -42,11 +42,13 @@ class _CategoryDialogState extends State<CategoryDialog> {
           child: const Text("Cancelar"),
         ),
         FilledButton(
-          onPressed: () => Navigator.pop(context, _controller.text), // fecha e devolve o nome
+          onPressed: () => Navigator.pop(
+            context,
+            _controller.text,
+          ), // fecha e devolve o nome
           child: Text(widget.confirmLabel),
         ),
       ],
     );
   }
 }
-

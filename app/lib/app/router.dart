@@ -9,8 +9,8 @@ import 'package:cubico_backoffice/features/settings/presentation/settings_screen
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../features/orders/presentation/order_detail_screen.dart';
-import '../features/products/presentation/product_form_screen.dart';
+import 'package:cubico_backoffice/features/orders/presentation/order_detail_screen.dart';
+import 'package:cubico_backoffice/features/products/presentation/product_form_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -23,7 +23,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/dashboard',
+                path: "/dashboard",
                 builder: (context, state) => const DashboardScreen(),
               ),
             ],
@@ -31,13 +31,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/orders',
+                path: "/orders",
                 builder: (context, state) => const OrdersScreen(),
                 routes: [
                   GoRoute(
-                    path: ':id', // fica /orders/1
+                    path: ":id", // fica /orders/1
                     builder: (context, state) {
-                      final id = int.parse(state.pathParameters['id']!);
+                      final id = int.parse(state.pathParameters["id"]!);
                       return OrderDetailScreen(orderId: id);
                     },
                   ),
@@ -48,7 +48,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/production',
+                path: "/production",
                 builder: (context, state) => const ProductionScreen(),
               ),
             ],
@@ -56,17 +56,17 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/products',
+                path: "/products",
                 builder: (context, state) => const ProductsScreen(),
                 routes: [
                   GoRoute(
-                    path: 'new', // fica /products/new
+                    path: "new", // fica /products/new
                     builder: (context, state) => const ProductFormScreen(),
                   ),
                   GoRoute(
-                    path: ':id', // fica /products/3, /products/7...
+                    path: ":id", // fica /products/3, /products/7...
                     builder: (context, state) {
-                      final id = int.parse(state.pathParameters['id']!);
+                      final id = int.parse(state.pathParameters["id"]!);
                       return ProductFormScreen(productId: id);
                     },
                   ),
@@ -77,7 +77,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/customers',
+                path: "/customers",
                 builder: (context, state) => const CustomersScreen(),
               ),
             ],
@@ -85,7 +85,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/costs',
+                path: "/costs",
                 builder: (context, state) => const CostsScreen(),
               ),
             ],
@@ -93,13 +93,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/settings',
+                path: "/settings",
                 builder: (context, state) => const SettingsScreen(),
               ),
             ],
           ),
         ],
       ),
-    ]
+    ],
   );
 });

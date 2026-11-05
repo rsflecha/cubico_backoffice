@@ -1,140 +1,154 @@
 # Arquitetura — CubicoDesign3D Backoffice
 
-Mapa da app: como está organizada, por onde passam os dados e em que ponto está cada parte.
-Atualiza-se no fim de cada fatia. As decisões e o plano completo estão em [`cubico-backoffice.md`](cubico-backoffice.md).
+Como a app está organizada, por onde passam os dados e onde fica cada coisa.
+O âmbito, as decisões e o plano completo estão em [`cubico-backoffice.md`](cubico-backoffice.md).
 
-**Última atualização:** 01/11/2026 — Fatia 4 em curso
+**Última atualização:** 05/11/2026 — Fatias 0 a 4 e 6 concluídas
 
 ---
 
-## 1. O repositório
-
-```
-cubico_backoffice/
-├── app/          → a app Flutter (Windows, Android, iOS)
-├── api/          → a API em PHP 8 / Slim (Fase 3, ainda vazia)
-├── database/     → schema.sql (tabelas) e seed.sql (dados de arranque)
-└── docs/         → documentação e ecrãs desenhados
-```
-
-## 2. A app por dentro (`app/lib/`)
-
-A app está organizada **por funcionalidade** (*feature-first*): tudo o que é de uma secção vive na mesma pasta.
-
-```
-lib/
-├── main.dart                 → arranca a app (ProviderScope + App)
-├── app/                      → o que é da app inteira
-│   ├── app.dart              → MaterialApp.router: junta tema e rotas
-│   ├── router.dart           → as rotas (GoRouter) e as 7 secções do menu
-│   ├── theme.dart            → cores, letras e estilos da marca
-│   └── shell/
-│       └── app_shell.dart    → a "moldura": menu lateral (PC) ou menu de baixo (telemóvel)
-├── core/                     → partilhado entre funcionalidades (ainda vazio)
-└── features/
-    ├── dashboard/            → Início / Dashboard
-    ├── orders/               → Encomendas
-    ├── production/           → Produção
-    ├── products/             → Produtos e categorias
-    ├── customers/            → Clientes
-    ├── costs/                → Custos e preços (filamentos, energia, portes…)
-    └── settings/             → Definições
-```
-
-### As três camadas de cada funcionalidade
-
-Cada pasta em `features/` divide-se em até três partes:
-
-| Pasta | O que tem | Analogia |
-|---|---|---|
-| `domain/` | Os **modelos** (Freezed) e os **contratos** dos repositórios | A lista do que se pode pedir ao balcão |
-| `data/` | Os **repositórios**: quem vai buscar os dados (demo em memória agora, API depois) | Quem está ao balcão a atender |
-| `presentation/` | Os **ecrãs**, os widgets e os **providers** do Riverpod | A placa na parede que diz onde está o balcão, e o cliente que pede |
-
-Regra: `presentation` nunca fala diretamente com `data`. Pede sempre através de um provider, que devolve o **contrato** do `domain`.
-
-Exemplo real, nos produtos:
-
-```
-features/products/
-├── domain/
-│   ├── product.dart, variant.dart, product_category.dart   → modelos Freezed
-│   ├── product_category_repository.dart                    → contrato
-│   └── product_repository.dart                             → contrato
-├── data/
-│   ├── demo_product_category_repository.dart               → dados demo em memória
-│   └── demo_product_repository.dart
-└── presentation/
-    ├── products_providers.dart                             → providers do Riverpod
-    ├── products_screen.dart                                → ecrã
-    └── widgets/
-        └── category_dialog.dart                            → janela de criar/editar categoria
-```
-
-### As contas e os testes
-
-As contas de custo vivem em `features/costs/domain/cost_calculator.dart`: **Dart puro**, sem Flutter, para se poderem testar sozinhas. Os testes estão em `app/test/`, numa árvore igual à de `lib/` (`test/features/costs/cost_calculator_test.dart`), e correm com `flutter test`.
-
-Na app, a `CostCalculator` serve para a **pré-visualização em tempo real** (a calculadora reage enquanto se escreve). Quando houver API, é ela que refaz as contas e grava os valores **oficiais**.
-
-Os ficheiros `*.freezed.dart` e `*.g.dart` são **gerados** pelo `build_runner` a partir dos modelos. Nunca se editam à mão: se um modelo mudar, corre-se `dart run build_runner build`.
-
-## 3. O caminho dos dados
+## 1. Visão geral
 
 ```mermaid
 flowchart LR
-    E[Ecrã<br/>ConsumerWidget] -- ref.watch --> P[Provider<br/>Riverpod]
-    P --> C{{Contrato<br/>domain}}
-    C -. agora .-> D[Repositório demo<br/>dados em memória]
-    C -. Fatia 11 .-> A[Repositório API<br/>Dio + JWT]
-    A --> S[API PHP<br/>cPanel]
-    S --> B[(MySQL)]
+    UI["Ecrã<br/>(presentation)"] -- ref.watch --> P["Provider<br/>(Riverpod)"]
+    P --> R{{"Contrato do repositório<br/>(domain)"}}
+    R -. hoje .-> D["Repositório demo<br/>(data, em memória)"]
+    R -. Fatia 11 .-> A["Repositório API<br/>(data, Dio + JWT)"]
+    A --> S["API PHP · cPanel"] --> B[("MySQL")]
 ```
 
-1. O **ecrã** pede os dados com `ref.watch(provider)` e recebe um `AsyncValue`: *a carregar*, *com dados* ou *com erro*.
-2. O **provider** pede ao **repositório**, conhecendo só o contrato.
-3. Hoje responde o **repositório demo**. Na Fatia 11, troca-se só a linha do provider para o **repositório da API**, e os ecrãs não mudam.
-4. A **API** é a única que conhece a base de dados e as credenciais, e é ela que faz as contas (custos, lucros, totais).
+Três regras resumem a arquitetura:
 
-## 4. Navegação
+1. **Organizada por funcionalidade.** Tudo o que é de uma secção (encomendas, produtos…) vive na mesma pasta.
+2. **Três camadas em cada funcionalidade**, e as dependências só vão num sentido: `presentation → domain ← data`.
+3. **Os ecrãs nunca sabem de onde vêm os dados.** Pedem a um provider, que devolve um contrato. Trocar os dados demo pela API muda uma linha por repositório.
 
-- **GoRouter** com `StatefulShellRoute.indexedStack`: cada secção do menu é uma "gaveta" que guarda o seu estado.
-- **PC** (largura ≥ 900 px): menu lateral preto, com logótipo, 7 secções e utilizador no fundo.
-- **Telemóvel**: menu de baixo com 4 secções (Início, Encomendas, Produção, Produtos).
+## 2. Pastas
 
-| Gaveta | Caminho | Secção |
-|---:|---|---|
-| 0 | `/dashboard` | Dashboard (Início no telemóvel) |
-| 1 | `/orders` | Encomendas |
-| 2 | `/production` | Produção |
-| 3 | `/products` | Produtos |
-| 4 | `/customers` | Clientes |
-| 5 | `/costs` | Custos e preços |
-| 6 | `/settings` | Definições |
+```
+cubico_backoffice/
+├── app/                  app Flutter (Windows, Android, iOS)
+│   ├── lib/
+│   │   ├── main.dart     arranque: ProviderScope + App
+│   │   ├── app/          o que é da app inteira
+│   │   │   ├── app.dart          MaterialApp.router (tema + rotas)
+│   │   │   ├── router.dart       todas as rotas
+│   │   │   ├── theme.dart        cores, letras e estilos da marca
+│   │   │   └── shell/app_shell.dart   menu lateral (PC) / menu de baixo (telemóvel)
+│   │   └── features/     uma pasta por secção do menu
+│   │       ├── dashboard/   orders/   production/   products/
+│   │       └── customers/   costs/    settings/
+│   └── test/             testes unitários, com a mesma árvore de lib/
+├── api/                  API PHP 8 / Slim (Fase 3, ainda vazia)
+├── database/             schema.sql (tabelas) e seed.sql (dados de arranque)
+└── docs/                 documentação e ecrãs desenhados
+```
 
-## 5. Mapa das funcionalidades
+## 3. As três camadas
 
-✅ feito · ⏳ em curso · ⬜ por fazer
+| Camada | O que tem | Pode depender de |
+|---|---|---|
+| `domain/` | Modelos (Freezed), contratos dos repositórios, regras de negócio | nada da app (só Dart e Freezed) |
+| `data/` | Implementações dos repositórios: `Demo…` agora, `Api…` na Fatia 11 | `domain` |
+| `presentation/` | Ecrãs, widgets, providers e estado de ecrã | `domain` (e `data` só no provider que escolhe o repositório) |
+
+**Onde fica cada tipo de código:**
+
+- **Regras de negócio** (o que conta como atrasada, o passo seguinte de uma encomenda, o lucro) → getters no modelo, em `domain`. Exemplo: `Order.isOverdue`, `Order.nextStatus`, `Order.profit`.
+- **Contas de custo** → `costs/domain/cost_calculator.dart`, Dart puro e testado.
+- **Textos e cores para o ecrã** (o "Pendente" laranja, o "Pago" verde) → extensões em `presentation`. Exemplo: `orders/presentation/order_labels.dart`.
+
+## 4. Funcionalidades feitas
+
+```
+features/
+├── products/
+│   ├── domain/        Product, ProductCategory, Variant (+ VariantFilament, VariantComponent)
+│   │                  e os contratos ProductRepository, ProductCategoryRepository, VariantRepository
+│   ├── data/          DemoProductRepository, DemoProductCategoryRepository, DemoVariantRepository
+│   └── presentation/  products_screen      lista com filtro por categoria
+│                      product_form_screen  criar / editar produto (duas colunas no PC)
+│                      products_providers
+│                      widgets/  category_dialog · cost_card · variants_section
+├── costs/
+│   ├── domain/        Filament, Component, SalesChannel, CostCalculator e os contratos
+│   ├── data/          DemoFilamentRepository, DemoComponentRepository, DemoSalesChannelRepository
+│   └── presentation/  costs_providers (e o ecrã "Custos e preços", ainda vazio)
+└── orders/
+    ├── domain/        Order, OrderLine (com total, custo, lucro, atrasada, passo seguinte)
+    ├── data/          DemoOrderRepository (datas relativas a hoje)
+    └── presentation/  orders_screen        lista com separadores, pesquisa e filtro por canal
+                       order_detail_screen  detalhe com artigos, contas, cliente, envio e estados
+                       order_labels         textos e cores dos estados
+                       orders_providers
+                       widgets/  status_badge
+```
+
+As restantes secções (`dashboard`, `production`, `customers`, `settings`) têm, por agora, só o ecrã vazio.
+
+## 5. Estado: Riverpod ou `setState`?
+
+| Situação | Ferramenta | Exemplo |
+|---|---|---|
+| Dados que vêm de um repositório | `FutureProvider` | `productsProvider`, `ordersProvider` |
+| Dados de um item concreto | `FutureProvider.family` | `variantsProvider(productId)` |
+| Uma escolha que tem de durar ao mudar de secção | `Notifier` | categoria escolhida, estado e pesquisa das encomendas |
+| Estado que só interessa a um ecrã ou cartão | `setState` | campos do formulário, canal escolhido na calculadora |
+
+Depois de gravar, o ecrã chama `ref.invalidate(...)` e a lista recarrega-se sozinha.
+
+## 6. Navegação
+
+GoRouter com `StatefulShellRoute.indexedStack`: cada secção do menu é uma "gaveta" que guarda o seu estado.
+
+| Caminho | Ecrã |
+|---|---|
+| `/dashboard` | Dashboard (Início no telemóvel) |
+| `/orders` · `/orders/:id` | Encomendas · detalhe da encomenda |
+| `/production` | Produção |
+| `/products` · `/products/new` · `/products/:id` | Produtos · novo produto · editar produto |
+| `/customers` | Clientes |
+| `/costs` | Custos e preços |
+| `/settings` | Definições |
+
+- **PC** (largura ≥ 900 px): menu lateral preto. Os ecrãs com muito conteúdo passam a duas colunas a partir de 1100 px.
+- **Telemóvel:** menu de baixo com 4 secções (Início, Encomendas, Produção, Produtos).
+
+## 7. Testes
+
+Correm com `flutter test`, dentro de `app/`.
+
+| Ficheiro | O que prova |
+|---|---|
+| `test/features/costs/cost_calculator_test.dart` | €/kg com portes, custo de filamento e de impressão, taxas por canal, margem, preço sugerido, custo de componentes |
+| `test/features/orders/order_test.dart` | total, custo e lucro; canceladas contam 0; fluxo de estados |
+
+## 8. Convenções
+
+- **Tudo o que é técnico em inglês** (código, ficheiros, pastas, tabelas, colunas); **a interface em português**.
+- Material pelo pacote **`material_ui`**, nunca `package:flutter/material.dart`.
+- Imports sempre com `package:cubico_backoffice/...`, nunca relativos.
+- Texto entre **aspas** (`"Guardar"`); **plicas só nos imports**.
+- Ficheiros em `snake_case`, classes em `PascalCase`, e os dois dizem o mesmo (`orders_screen.dart` → `OrdersScreen`).
+- Ficheiros `*.freezed.dart` e `*.g.dart` são gerados: nunca se editam à mão (`dart run build_runner build`).
+- Antes de cada commit: `flutter analyze` sem problemas e `flutter test` a passar.
+
+## 9. Estado das fatias
 
 | Fatia | O quê | Estado |
 |---:|---|:---:|
 | 0 | Projeto, pacotes, tema, Git | ✅ |
 | 1 | Esqueleto: menus e ecrãs vazios | ✅ |
-| 2 | Modelos e dados demo | ✅ modelos; dados demo de categorias e produtos |
-| 3 | Produtos e categorias (criar, editar, apagar, filtrar) | ⏳ categorias completas; lista de produtos com filtro |
-| 4 | Ficha do produto + calculadora de custo | ⏳ contas de filamento e impressão com testes |
+| 2 | Modelos e dados demo | ✅ |
+| 3 | Produtos e categorias | ✅ |
+| 4 | Ficha do produto, calculadora de custo e variantes | ✅ |
 | 5 | Custos e preços | ⬜ |
-| 6 | Encomendas: lista e detalhe | ⬜ |
+| 6 | Encomendas: lista e detalhe | ✅ |
 | 7 | Criar encomenda | ⬜ |
 | 8 | Produção (kanban) | ⬜ |
 | 9 | Dashboard com gráficos | ⬜ |
 | 10 | Login e papéis | ⬜ |
 | 11 | Ligar à API real | ⬜ |
 
-## 6. Convenções
-
-- **Tudo o que é técnico em inglês** (código, ficheiros, pastas, tabelas, colunas); **a interface em português**.
-- Material pelo pacote **`material_ui`** (`import 'package:material_ui/material_ui.dart';`), nunca `package:flutter/material.dart`.
-- Nomes de ficheiros em `snake_case`, nomes de classes em `PascalCase`, e os dois dizem o mesmo (`products_screen.dart` → `ProductsScreen`).
-- Texto entre **aspas** (`"Guardar"`); **plicas só nos imports** (`import 'package:...';`).
-- Antes de cada commit: `flutter analyze` sem problemas e `flutter test` a passar.
+**Limitações conhecidas:** um filamento por variante no cartão de custo; valores da impressora e margem alvo fixos até à Fatia 5; ainda não se criam nem apagam variantes.

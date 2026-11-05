@@ -103,7 +103,8 @@ abstract class Order with _$Order {
   bool get isOverdue {
     final deadline = shipByDate;
     if (deadline == null) return false;
-    final stillToShip = status == OrderStatus.pending ||
+    final stillToShip =
+        status == OrderStatus.pending ||
         status == OrderStatus.inProduction ||
         status == OrderStatus.ready;
     return stillToShip && deadline.isBefore(DateTime.now());

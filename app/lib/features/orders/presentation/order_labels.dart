@@ -60,8 +60,20 @@ extension PaymentStatusLabels on PaymentStatus {
 
 /// Data curta em português: "19 out".
 String shortDate(DateTime date) {
-  const months = ["jan", "fev", "mar", "abr", "mai", "jun",
-    "jul", "ago", "set", "out", "nov", "dez"];
+  const months = [
+    "jan",
+    "fev",
+    "mar",
+    "abr",
+    "mai",
+    "jun",
+    "jul",
+    "ago",
+    "set",
+    "out",
+    "nov",
+    "dez",
+  ];
   return "${date.day} ${months[date.month - 1]}";
 }
 

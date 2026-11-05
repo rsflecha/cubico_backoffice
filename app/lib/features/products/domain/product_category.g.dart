@@ -10,7 +10,7 @@ _ProductCategory _$ProductCategoryFromJson(Map<String, dynamic> json) =>
     _ProductCategory(
       id: (json['id'] as num).toInt(),
       name: json['name'] as String,
-      color: json['color'] as String? ?? '#A1A1AA',
+      color: json['color'] as String? ?? "#A1A1AA",
       sortOrder: (json['sort_order'] as num?)?.toInt() ?? 0,
     );
 

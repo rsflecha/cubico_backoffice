@@ -1,7 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-part 'variant.freezed.dart';   // o gerador cria estes dois ficheiros;
-part 'variant.g.dart';         // enquanto nao os criar, o analyzer queixa-se — e normal
+part 'variant.freezed.dart'; // o gerador cria estes dois ficheiros;
+part 'variant.g.dart'; // enquanto nao os criar, o analyzer queixa-se — e normal
 
 @freezed
 abstract class Variant with _$Variant {
@@ -15,29 +15,25 @@ abstract class Variant with _$Variant {
     String? modelFile,
     String? etsyListingId,
 
-
     // o valor por omissao vive aqui: o JSON pode nao trazer o campo
-    @Default(0) int printTimeMin,  // se nao vier, assume este valor
-    @Default(1) int plateCount,  // se nao vier, assume este valor
-    @Default(0) int weightG,  // se nao vier, assume este valor
+    @Default(0) int printTimeMin, // se nao vier, assume este valor
+    @Default(1) int plateCount, // se nao vier, assume este valor
+    @Default(0) int weightG, // se nao vier, assume este valor
     @Default(true) bool isActive,
-    @Default([]) List<VariantFilament> filaments,   // que filamentos e quantas gramas
+    @Default([])
+    List<VariantFilament> filaments, // que filamentos e quantas gramas
     @Default([]) List<VariantComponent> components, // componentes e embalagens
-
   }) = _Variant;
 
   factory Variant.fromJson(Map<String, dynamic> json) =>
       _$VariantFromJson(json);
-
 }
 
 /// Uma linha da receita: um filamento e quantas gramas leva.
 @freezed
 abstract class VariantFilament with _$VariantFilament {
-  const factory VariantFilament({
-    required int filamentId,
-    required int grams,
-  }) = _VariantFilament;
+  const factory VariantFilament({required int filamentId, required int grams}) =
+      _VariantFilament;
 
   factory VariantFilament.fromJson(Map<String, dynamic> json) =>
       _$VariantFilamentFromJson(json);

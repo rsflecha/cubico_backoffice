@@ -9,24 +9,33 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     final isWide = MediaQuery.sizeOf(context).width >= 900;
 
-    if(!isWide) {
+    if (!isWide) {
       return Scaffold(
         body: navigationShell,
         bottomNavigationBar: NavigationBar(
-          selectedIndex: navigationShell.currentIndex < 4 ? navigationShell.currentIndex : 0,
+          selectedIndex: navigationShell.currentIndex < 4
+              ? navigationShell.currentIndex
+              : 0,
           onDestinationSelected: (index) => navigationShell.goBranch(index),
           destinations: [
             NavigationDestination(
-                icon: Icon(Icons.grid_view_outlined), label: "Início"),
+              icon: Icon(Icons.grid_view_outlined),
+              label: "Início",
+            ),
             NavigationDestination(
-                icon: Icon(Icons.receipt_long_outlined), label: "Encomendas"),
+              icon: Icon(Icons.receipt_long_outlined),
+              label: "Encomendas",
+            ),
             NavigationDestination(
-                icon: Icon(Icons.print_outlined), label: "Produção"),
+              icon: Icon(Icons.print_outlined),
+              label: "Produção",
+            ),
             NavigationDestination(
-                icon: Icon(Icons.inventory_2_outlined), label: "Produtos")
+              icon: Icon(Icons.inventory_2_outlined),
+              label: "Produtos",
+            ),
           ],
         ),
       );
@@ -54,7 +63,10 @@ class AppShell extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Image.asset('assets/brand/icon-branco.png', height: 36),
+                          Image.asset(
+                            "assets/brand/icon-branco.png",
+                            height: 36,
+                          ),
                           SizedBox(width: 12),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,18 +75,16 @@ class AppShell extends StatelessWidget {
                               Text(
                                 "CubicoDesign3D",
                                 style: AppTextStyles.brand.copyWith(
-                                color: Colors.white,
-                                fontSize: 16,
+                                  color: Colors.white,
+                                  fontSize: 16,
                                 ),
                               ),
                               Text(
                                 "Backoffice",
-                                style: TextStyle(
-                                  color: Color(0xFFA1A1AA)
-                                ),
+                                style: TextStyle(color: Color(0xFFA1A1AA)),
                               ),
                             ],
-                          )
+                          ),
                         ],
                       ),
                       const SizedBox(height: 24),
@@ -128,18 +138,33 @@ class AppShell extends StatelessWidget {
                           const CircleAvatar(
                             radius: 18,
                             backgroundColor: Color(0xFF3F3F46),
-                            child: Text("R", style: TextStyle(color: Colors.white)),
+                            child: Text(
+                              "R",
+                              style: TextStyle(color: Colors.white),
+                            ),
                           ),
                           const SizedBox(width: 12),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text("Rui", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-                              Text("Administrador", style: TextStyle(color: Color(0xFFA1A1AA), fontSize: 12)),
+                              Text(
+                                "Rui",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                "Administrador",
+                                style: TextStyle(
+                                  color: Color(0xFFA1A1AA),
+                                  fontSize: 12,
+                                ),
+                              ),
                             ],
                           ),
                         ],
-                      )
+                      ),
                     ],
                   ),
                 ),

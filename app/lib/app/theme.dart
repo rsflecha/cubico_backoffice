@@ -12,7 +12,8 @@ abstract final class AppColors {
 abstract final class AppTextStyles {
   /// Valores, nº de encomenda e SKU.
   static TextStyle get mono => GoogleFonts.jetBrainsMono();
-  static TextStyle get brand => GoogleFonts.poppins(fontWeight: FontWeight.w600);
+  static TextStyle get brand =>
+      GoogleFonts.poppins(fontWeight: FontWeight.w600);
 }
 
 ThemeData buildTheme() {

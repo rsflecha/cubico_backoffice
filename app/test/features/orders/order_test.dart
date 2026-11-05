@@ -16,7 +16,14 @@ void main() {
       createdAt: DateTime(2026, 10, 19),
       updatedAt: DateTime(2026, 10, 19),
       lines: const [
-        OrderLine(id: 1, variantId: 1, quantity: 2, unitPrice: 15, unitCost: 4, channelFee: 3.55),
+        OrderLine(
+          id: 1,
+          variantId: 1,
+          quantity: 2,
+          unitPrice: 15,
+          unitCost: 4,
+          channelFee: 3.55,
+        ),
       ],
     );
 
@@ -56,7 +63,10 @@ void main() {
       updatedAt: DateTime(2026, 11, 1),
     );
 
-    expect(withStatus(OrderStatus.pending).nextStatus, OrderStatus.inProduction);
+    expect(
+      withStatus(OrderStatus.pending).nextStatus,
+      OrderStatus.inProduction,
+    );
     expect(withStatus(OrderStatus.shipped).nextStatus, OrderStatus.delivered);
     expect(withStatus(OrderStatus.delivered).nextStatus, isNull);
     expect(withStatus(OrderStatus.cancelled).nextStatus, isNull);

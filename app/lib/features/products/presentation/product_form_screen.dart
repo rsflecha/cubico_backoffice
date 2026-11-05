@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../domain/product.dart';
-import '../domain/variant.dart';
+import 'package:cubico_backoffice/features/products/domain/product.dart';
+import 'package:cubico_backoffice/features/products/domain/variant.dart';
 
 class ProductFormScreen extends ConsumerStatefulWidget {
   const ProductFormScreen({super.key, this.productId});
@@ -62,7 +62,11 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     final sku = _skuController.text.trim().toUpperCase();
 
     if (_original == null) {
-      await repository.create(name: name, baseSku: sku, categoryId: _categoryId!);
+      await repository.create(
+        name: name,
+        baseSku: sku,
+        categoryId: _categoryId!,
+      );
     } else {
       await repository.update(
         _original!.copyWith(
@@ -83,16 +87,16 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Apagar produto?'),
-        content: Text('O produto "${_original!.name}" vai ser apagado.'),
+        title: const Text("Apagar produto?"),
+        content: Text("O produto \"${_original!.name}\" vai ser apagado."),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
+            child: const Text("Cancelar"),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Apagar'),
+            child: const Text("Apagar"),
           ),
         ],
       ),
@@ -115,10 +119,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     final variants = _original == null
         ? <Variant>[]
         : ref.watch(variantsProvider(_original!.id)).value ?? <Variant>[];
-// a escolhida, ou a primeira se ainda não escolheste nenhuma
+    // a escolhida, ou a primeira se ainda não escolheste nenhuma
     final selectedVariant =
         variants.where((v) => v.id == _selectedVariantId).firstOrNull ??
-            variants.firstOrNull;
+        variants.firstOrNull;
 
     final costCard = CostCard(
       key: ValueKey(selectedVariant?.id),
@@ -172,10 +176,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         onPressed: _saving ? null : _save,
         child: _saving
             ? const SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        )
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
             : const Text("Guardar"),
       ),
       if (_original != null) ...[
@@ -190,13 +194,15 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.productId == null ? 'Novo produto' : 'Editar produto'),
+        title: Text(
+          widget.productId == null ? "Novo produto" : "Editar produto",
+        ),
         actions: [
           if (_original != null)
             IconButton(
               onPressed: _delete,
               icon: const Icon(Icons.delete_outline),
-              tooltip: 'Apagar produto',
+              tooltip: "Apagar produto",
             ),
         ],
       ),
@@ -207,35 +213,31 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             ? AutovalidateMode.onUserInteraction
             : AutovalidateMode.disabled,
         child: isWide
-        // PC: formulário à esquerda, cartão à direita
+            // PC: formulário à esquerda, cartão à direita
             ? Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 2,
-              child: ListView(
-                padding: const EdgeInsets.all(24),
-                children: formFields,
-              ),
-            ),
-            Expanded(
-              flex: 3,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(0, 24, 24, 24),
-                child: costCard,
-              ),
-            ),
-          ],
-        )
-        // telemóvel: tudo empilhado
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: ListView(
+                      padding: const EdgeInsets.all(24),
+                      children: formFields,
+                    ),
+                  ),
+                  Expanded(
+                    flex: 3,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(0, 24, 24, 24),
+                      child: costCard,
+                    ),
+                  ),
+                ],
+              )
+            // telemóvel: tudo empilhado
             : ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            ...formFields,
-            const SizedBox(height: 24),
-            costCard,
-          ],
-        ),
+                padding: const EdgeInsets.all(24),
+                children: [...formFields, const SizedBox(height: 24), costCard],
+              ),
       ),
     );
   }

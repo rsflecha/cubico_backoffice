@@ -213,7 +213,7 @@ return $default(_that.id,_that.name,_that.color,_that.sortOrder);case _:
 @JsonSerializable()
 
 class _ProductCategory implements ProductCategory {
-  const _ProductCategory({required this.id, required this.name, this.color = '#A1A1AA', this.sortOrder = 0});
+  const _ProductCategory({required this.id, required this.name, this.color = "#A1A1AA", this.sortOrder = 0});
   factory _ProductCategory.fromJson(Map<String, dynamic> json) => _$ProductCategoryFromJson(json);
 
 @override final  int id;

@@ -1,5 +1,5 @@
-import '../domain/filament.dart';
-import '../domain/filament_repository.dart';
+import 'package:cubico_backoffice/features/costs/domain/filament.dart';
+import 'package:cubico_backoffice/features/costs/domain/filament_repository.dart';
 
 class DemoFilamentRepository implements FilamentRepository {
   final List<Filament> _items = [

@@ -14,8 +14,8 @@ class DemoVariantRepository implements VariantRepository {
       filaments: [VariantFilament(filamentId: 1, grams: 120)],
       components: [
         VariantComponent(componentId: 3, quantity: 2), // 2 parafusos
-        VariantComponent(componentId: 4),              // caixa
-        VariantComponent(componentId: 7),              // autocolante
+        VariantComponent(componentId: 4), // caixa
+        VariantComponent(componentId: 7), // autocolante
       ],
     ),
     Variant(

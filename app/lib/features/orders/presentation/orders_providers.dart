@@ -3,12 +3,12 @@ import 'package:cubico_backoffice/features/orders/domain/order.dart';
 import 'package:cubico_backoffice/features/orders/domain/order_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Placa 1: qual é o repositório das encomendas.
+/// Qual é o repositório das encomendas.
 final orderRepositoryProvider = Provider<OrderRepository>((ref) {
   return DemoOrderRepository();
 });
 
-/// Placa 2: a lista de encomendas.
+/// A lista de encomendas.
 final ordersProvider = FutureProvider<List<Order>>((ref) {
   final repository = ref.watch(orderRepositoryProvider);
   return repository.fetchAll();
@@ -24,10 +24,11 @@ class SelectedOrderStatusNotifier extends Notifier<OrderStatus?> {
   }
 }
 
-/// Placa 3: o estado escolhido nos separadores.
+/// O estado escolhido nos separadores.
 final selectedOrderStatusProvider =
-NotifierProvider<SelectedOrderStatusNotifier, OrderStatus?>(
-    SelectedOrderStatusNotifier.new);
+    NotifierProvider<SelectedOrderStatusNotifier, OrderStatus?>(
+      SelectedOrderStatusNotifier.new,
+    );
 
 /// Guarda o texto da pesquisa. "" = sem pesquisa.
 class OrderSearchNotifier extends Notifier<String> {
@@ -39,9 +40,10 @@ class OrderSearchNotifier extends Notifier<String> {
   }
 }
 
-/// Placa 4: o texto da pesquisa.
-final orderSearchProvider =
-NotifierProvider<OrderSearchNotifier, String>(OrderSearchNotifier.new);
+/// O texto da pesquisa.
+final orderSearchProvider = NotifierProvider<OrderSearchNotifier, String>(
+  OrderSearchNotifier.new,
+);
 
 /// Guarda o canal escolhido no filtro. null = todos.
 class OrderChannelFilterNotifier extends Notifier<int?> {
@@ -53,7 +55,8 @@ class OrderChannelFilterNotifier extends Notifier<int?> {
   }
 }
 
-/// Placa 5: o canal escolhido no filtro.
+/// O canal escolhido no filtro.
 final orderChannelFilterProvider =
-NotifierProvider<OrderChannelFilterNotifier, int?>(
-    OrderChannelFilterNotifier.new);
+    NotifierProvider<OrderChannelFilterNotifier, int?>(
+      OrderChannelFilterNotifier.new,
+    );

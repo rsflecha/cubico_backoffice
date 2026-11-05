@@ -1,13 +1,13 @@
-import '../domain/product.dart';
-import '../domain/product_repository.dart';
+import 'package:cubico_backoffice/features/products/domain/product.dart';
+import 'package:cubico_backoffice/features/products/domain/product_repository.dart';
 
 class DemoProductRepository implements ProductRepository {
   int _nextId = 4;
   final List<Product> _items = [
     Product(
       id: 1,
-      name: 'Suporte de auscultadores',
-      baseSku: 'CD3-SDA-01',
+      name: "Suporte de auscultadores",
+      baseSku: "CD3-SDA-01",
       categoryId: 1,
       status: ProductStatus.active,
       createdAt: DateTime(2026, 10, 1),
@@ -15,8 +15,8 @@ class DemoProductRepository implements ProductRepository {
     ),
     Product(
       id: 2,
-      name: 'Árvore de Natal',
-      baseSku: 'CD3-ADN-01',
+      name: "Árvore de Natal",
+      baseSku: "CD3-ADN-01",
       categoryId: 2,
       status: ProductStatus.active,
       createdAt: DateTime(2026, 09, 15),
@@ -24,8 +24,8 @@ class DemoProductRepository implements ProductRepository {
     ),
     Product(
       id: 3,
-      name: 'Bolas de Natal',
-      baseSku: 'CD3-BDN-01',
+      name: "Bolas de Natal",
+      baseSku: "CD3-BDN-01",
       categoryId: 2,
       status: ProductStatus.active,
       createdAt: DateTime(2026, 09, 25),
@@ -65,7 +65,7 @@ class DemoProductRepository implements ProductRepository {
   Future<Product> update(Product product) async {
     await _latency();
     final index = _items.indexWhere((p) => p.id == product.id);
-    if (index == -1) throw StateError('Produto ${product.id} não existe.');
+    if (index == -1) throw StateError("Produto ${product.id} não existe.");
     _items[index] = product;
     return product;
   }

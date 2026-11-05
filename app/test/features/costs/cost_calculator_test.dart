@@ -24,7 +24,10 @@ void main() {
 
     test("custo de 50 g", () {
       // 50 g × 22,50 €/kg = 1,125 €
-      expect(calc.filamentCost(grams: 50, filament: pla), closeTo(1.125, 0.001));
+      expect(
+        calc.filamentCost(grams: 50, filament: pla),
+        closeTo(1.125, 0.001),
+      );
     });
   });
 
@@ -75,11 +78,7 @@ void main() {
 
     test("margem a 20 € com 6 € de produção na Etsy", () {
       // lucro = 20 − 6 − 2,60 = 11,40 → 11,40 ÷ 20 = 57%
-      final margin = calc.marginPct(
-        price: 20,
-        productionCost: 6,
-        fees: 2.60,
-      );
+      final margin = calc.marginPct(price: 20, productionCost: 6, fees: 2.60);
       expect(margin, closeTo(57, 0.001));
     });
 

@@ -1,4 +1,4 @@
-import '../../products/domain/variant.dart';
+import 'package:cubico_backoffice/features/products/domain/variant.dart';
 import 'component.dart';
 import 'filament.dart';
 
@@ -25,8 +25,8 @@ class CostCalculator {
     required double purchasePrice,
     required double lifespanHours,
     required double yearlyMaintenance,
-    required double yearlyHours
-  }){
+    required double yearlyHours,
+  }) {
     final electricity = powerW / 1000 * kwhPrice;
     final wear = purchasePrice / lifespanHours;
     final maintenance = yearlyMaintenance / yearlyHours;
@@ -71,7 +71,8 @@ class CostCalculator {
     required double listingFee,
     double rounding = 0.50,
   }) {
-    final keptPerEuro = 1 - (transactionPct + processingPct) / 100 - targetMarginPct / 100;
+    final keptPerEuro =
+        1 - (transactionPct + processingPct) / 100 - targetMarginPct / 100;
     if (keptPerEuro <= 0) return 0; // margem impossível com estas taxas
     final rawPrice = (productionCost + flatFee + listingFee) / keptPerEuro;
     return (rawPrice / rounding).ceil() * rounding;
@@ -94,18 +95,25 @@ class CostCalculator {
 
     // filamentos: cada linha da receita
     for (final line in variant.filaments) {
-      final filament = filaments.where((f) => f.id == line.filamentId).firstOrNull;
+      final filament = filaments
+          .where((f) => f.id == line.filamentId)
+          .firstOrNull;
       if (filament != null) {
         total += filamentCost(grams: line.grams.toDouble(), filament: filament);
       }
     }
 
     // impressão
-    total += printingCost(minutes: variant.printTimeMin.toDouble(), costPerHour: costPerHour);
+    total += printingCost(
+      minutes: variant.printTimeMin.toDouble(),
+      costPerHour: costPerHour,
+    );
 
     // componentes e embalagem: quantidade × custo por unidade
     for (final line in variant.components) {
-      final component = components.where((c) => c.id == line.componentId).firstOrNull;
+      final component = components
+          .where((c) => c.id == line.componentId)
+          .firstOrNull;
       if (component != null) {
         total += line.quantity * componentUnitCost(component);
       }
