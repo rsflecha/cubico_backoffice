@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../costs/domain/component.dart';
 import '../../domain/variant.dart';
+import '../products_providers.dart';
 
 class CostCard extends ConsumerStatefulWidget {
   const CostCard({super.key, this.variant});
@@ -26,6 +27,7 @@ class _CostCardState extends ConsumerState<CostCard> {
   int? _channelId;
   // Quantidade de cada componente: id do componente → quantidade.
   final Map<int, int> _componentQty = {};
+  var _savingVariant = false; // desliga o botão enquanto grava
 
   final _gramsController = TextEditingController(text: "180");
   final _minutesController = TextEditingController(text: "540");
@@ -57,6 +59,39 @@ class _CostCardState extends ConsumerState<CostCard> {
     for (final line in v.components) {
       _componentQty[line.componentId] = line.quantity;
     }
+  }
+
+  /// Junta o que está no cartão numa variante e grava-a.
+  Future<void> _saveVariant(int? filamentId) async {
+    final v = widget.variant!;
+    setState(() => _savingVariant = true);
+
+    final updated = v.copyWith(
+      salePrice: _read(_priceController),
+      printTimeMin: _read(_minutesController).round(),
+      filaments: filamentId == null
+          ? []
+          : [
+        VariantFilament(
+          filamentId: filamentId,
+          grams: _read(_gramsController).round(),
+        ),
+      ],
+      components: [
+        for (final entry in _componentQty.entries)
+          if (entry.value > 0)
+            VariantComponent(componentId: entry.key, quantity: entry.value),
+      ],
+    );
+
+    await ref.read(variantRepositoryProvider).update(updated);
+    ref.invalidate(variantsProvider(v.productId));
+
+    if (!mounted) return;
+    setState(() => _savingVariant = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Variante \"${v.name}\" guardada.")),
+    );
   }
 
   /// Lê um número de um campo. Aceita vírgula ("29,90") e devolve 0 se estiver vazio.
@@ -251,6 +286,19 @@ class _CostCardState extends ConsumerState<CostCard> {
             _marginBox(profit, margin),
             const SizedBox(height: 12),
             _row("Preço sugerido (margem 60%)", suggested),
+            if (widget.variant != null) ...[
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: _savingVariant ? null : () => _saveVariant(filament?.id),
+                child: _savingVariant
+                    ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+                    : const Text("Guardar variante"),
+              ),
+            ],
           ],
         ),
       ),
