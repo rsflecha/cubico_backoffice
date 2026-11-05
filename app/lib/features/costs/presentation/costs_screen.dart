@@ -1,3 +1,4 @@
+import 'package:cubico_backoffice/features/costs/presentation/tabs/energy_tab.dart';
 import 'package:material_ui/material_ui.dart';
 
 class CostsScreen extends StatelessWidget {
@@ -25,7 +26,7 @@ class CostsScreen extends StatelessWidget {
         ),
         body: const TabBarView(
           children: [
-            _Placeholder("Energia e impressoras"),
+            EnergyTab(),
             _Placeholder("Filamentos"),
             _Placeholder("Embalagens e componentes"),
             _Placeholder("Portes de envio"),

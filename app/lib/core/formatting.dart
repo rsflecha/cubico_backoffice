@@ -16,3 +16,8 @@ String euroPer(double value, String unit, {int decimals = 2}) {
 String decimalField(double value) {
   return value.toStringAsFixed(2).replaceAll(".", ",");
 }
+
+/// Lê um número escrito pelo utilizador: aceita vírgula ("0,21") e devolve 0 se estiver vazio.
+double parseDecimal(String text) {
+  return double.tryParse(text.trim().replaceAll(",", ".")) ?? 0;
+}
