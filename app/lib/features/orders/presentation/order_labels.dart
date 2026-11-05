@@ -55,6 +55,16 @@ String shortDate(DateTime date) {
   return "${date.day} ${months[date.month - 1]}";
 }
 
+/// Texto de cada forma de entrega.
+extension DeliveryMethodLabels on DeliveryMethod {
+  String get label => switch (this) {
+    DeliveryMethod.carrier => "Transportadora",
+    DeliveryMethod.hand => "Entrega em mão",
+    DeliveryMethod.pickup => "Levantamento",
+    DeliveryMethod.other => "Outro",
+  };
+}
+
 /// Cor do lucro: verde se ganhou, vermelho se perdeu, cinzento se foi cancelada.
 Color profitColor(Order o) {
   if (o.status == OrderStatus.cancelled) return const Color(0xFF71717A);
