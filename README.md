@@ -8,7 +8,9 @@ Feito em **Flutter** para **Windows** e Android. É um projeto real, para a minh
 
 ![Ficha do produto com a calculadora de custo](docs/screenshots/produto-custos.png)
 
-<!-- Vídeo de demonstração: arrastar o ficheiro .mp4 para aqui no editor do GitHub -->
+![Demonstração da app](docs/media/demo.gif)
+
+[▶ Ver o vídeo completo](docs/media/demo.mp4)
 
 ## O que faz
 
