@@ -25,4 +25,23 @@ void main() {
     expect(order.cost, closeTo(15.45, 0.001));
     expect(order.profit, closeTo(18.55, 0.001));
   });
+
+  test("uma encomenda cancelada conta 0 recebido, 0 custo e 0 lucro", () {
+    final order = Order(
+      id: 7,
+      orderNumber: 1035,
+      channelId: 3,
+      customerName: "Rita Fonseca",
+      status: OrderStatus.cancelled,
+      createdAt: DateTime(2026, 10, 8),
+      updatedAt: DateTime(2026, 10, 8),
+      lines: const [
+        OrderLine(id: 8, variantId: 3, unitPrice: 12, unitCost: 1.80),
+      ],
+    );
+
+    expect(order.total, 0);
+    expect(order.cost, 0);
+    expect(order.profit, 0);
+  });
 }

@@ -76,17 +76,33 @@ abstract class Order with _$Order {
   int get itemCount => lines.fold(0, (sum, l) => sum + l.quantity);
 
   /// O que o cliente pagou: artigos (com desconto) + portes cobrados.
-  double get total =>
-      lines.fold(0.0, (sum, l) => sum + l.quantity * l.unitPrice - l.discount) +
-          shippingCharged;
+  /// Uma encomenda cancelada conta 0.
+  double get total {
+    if (status == OrderStatus.cancelled) return 0;
+    return lines.fold(0.0, (sum, l) => sum + l.quantity * l.unitPrice - l.discount) +
+        shippingCharged;
+  }
 
   /// O que a encomenda custou: produção + taxas do canal + portes reais.
-  double get cost =>
-      lines.fold(0.0, (sum, l) => sum + l.quantity * l.unitCost + l.channelFee) +
-          shippingPaid;
+  /// Uma encomenda cancelada conta 0.
+  double get cost {
+    if (status == OrderStatus.cancelled) return 0;
+    return lines.fold(0.0, (sum, l) => sum + l.quantity * l.unitCost + l.channelFee) +
+        shippingPaid;
+  }
 
   /// O que sobrou.
   double get profit => total - cost;
+
+  /// Atrasada: o prazo de envio já passou e ainda não foi enviada.
+  bool get isOverdue {
+    final deadline = shipByDate;
+    if (deadline == null) return false;
+    final stillToShip = status == OrderStatus.pending ||
+        status == OrderStatus.inProduction ||
+        status == OrderStatus.ready;
+    return stillToShip && deadline.isBefore(DateTime.now());
+  }
 }
 
 /// Uma linha da encomenda: uma variante, quantas, e as "fotografias" de preço e custo.
