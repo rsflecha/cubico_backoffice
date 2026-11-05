@@ -5,9 +5,13 @@ import 'package:cubico_backoffice/features/costs/presentation/costs_providers.da
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../costs/domain/component.dart';
+import '../../domain/variant.dart';
 
 class CostCard extends ConsumerStatefulWidget {
-  const CostCard({super.key});
+  const CostCard({super.key, this.variant});
+
+  /// A variante a editar. null = calculadora livre (produto novo).
+  final Variant? variant;
 
   @override
   ConsumerState<CostCard> createState() => _CostCardState();
@@ -22,8 +26,6 @@ class _CostCardState extends ConsumerState<CostCard> {
   int? _channelId;
   // Quantidade de cada componente: id do componente → quantidade.
   final Map<int, int> _componentQty = {};
-  // Quantidade de cada componente ou embalagem: id → quantidade.
-  final Map<int, int> _componentQty = {};
 
   final _gramsController = TextEditingController(text: "180");
   final _minutesController = TextEditingController(text: "540");
@@ -35,6 +37,26 @@ class _CostCardState extends ConsumerState<CostCard> {
     _minutesController.dispose();
     _priceController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final v = widget.variant;
+    if (v == null) return; // sem variante: ficam os valores de exemplo
+
+    _minutesController.text = "${v.printTimeMin}";
+    _priceController.text = v.salePrice.toStringAsFixed(2);
+
+    final firstFilament = v.filaments.firstOrNull;
+    if (firstFilament != null) {
+      _filamentId = firstFilament.filamentId;
+      _gramsController.text = "${firstFilament.grams}";
+    }
+
+    for (final line in v.components) {
+      _componentQty[line.componentId] = line.quantity;
+    }
   }
 
   /// Lê um número de um campo. Aceita vírgula ("29,90") e devolve 0 se estiver vazio.
@@ -110,7 +132,12 @@ class _CostCardState extends ConsumerState<CostCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text("Custo e margem", style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              widget.variant == null
+                  ? "Custo e margem"
+                  : "Custo e margem · ${widget.variant!.name}",
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 16),
             DropdownButton<int>(
               value: filament?.id,

@@ -5,11 +5,20 @@ import 'package:cubico_backoffice/features/products/presentation/products_provid
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../domain/variant.dart';
+
 /// A tabela "Variantes" de um produto, com o custo de produção de cada uma.
 class VariantsSection extends ConsumerWidget {
-  const VariantsSection({super.key, required this.productId});
+  const VariantsSection({
+    super.key,
+    required this.productId,
+    this.selectedVariantId,
+    this.onSelect,
+  });
 
   final int productId;
+  final int? selectedVariantId;          // qual está escolhida (para a pintar)
+  final ValueChanged<Variant>? onSelect; // chamada quando se toca numa linha
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -40,6 +49,7 @@ class VariantsSection extends ConsumerWidget {
                         child: ConstrainedBox(
                           constraints: BoxConstraints(minWidth: constraints.maxWidth),
                           child: DataTable(
+                            showCheckboxColumn: false,
                             columnSpacing: 32,      // espaço entre colunas (era 56)
                             horizontalMargin: 16,    // espaço nas pontas (era 24)
                             columns: const [
@@ -52,6 +62,8 @@ class VariantsSection extends ConsumerWidget {
                             rows: [
                               for (final v in list)
                                 DataRow(
+                                  selected: v.id == selectedVariantId,
+                                  onSelectChanged: (_) => onSelect?.call(v),
                                   cells: [
                                     DataCell(Text(v.name)),
                                     DataCell(Text(v.sku, style: AppTextStyles.mono)),

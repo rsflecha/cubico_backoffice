@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../domain/product.dart';
+import '../domain/variant.dart';
 
 class ProductFormScreen extends ConsumerStatefulWidget {
   const ProductFormScreen({super.key, this.productId});
@@ -24,6 +25,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   var _submitted = false;
   var _saving = false;
   Product? _original; // o produto tal como estava, quando se edita
+  int? _selectedVariantId; // a variante escolhida na tabela
 
   @override
   void dispose() {
@@ -109,6 +111,20 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     final categories = ref.watch(productCategoriesProvider).value ?? [];
     final isWide = MediaQuery.sizeOf(context).width >= 1100;
 
+    // as variantes deste produto (só quando se edita)
+    final variants = _original == null
+        ? <Variant>[]
+        : ref.watch(variantsProvider(_original!.id)).value ?? <Variant>[];
+// a escolhida, ou a primeira se ainda não escolheste nenhuma
+    final selectedVariant =
+        variants.where((v) => v.id == _selectedVariantId).firstOrNull ??
+            variants.firstOrNull;
+
+    final costCard = CostCard(
+      key: ValueKey(selectedVariant?.id),
+      variant: selectedVariant,
+    );
+
     final formFields = <Widget>[
       TextFormField(
         controller: _nameController,
@@ -164,7 +180,11 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       ),
       if (_original != null) ...[
         const SizedBox(height: 24),
-        VariantsSection(productId: _original!.id),
+        VariantsSection(
+          productId: _original!.id,
+          selectedVariantId: selectedVariant?.id,
+          onSelect: (v) => setState(() => _selectedVariantId = v.id),
+        ),
       ],
     ];
 
@@ -202,7 +222,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               flex: 3,
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(0, 24, 24, 24),
-                child: const CostCard(),
+                child: costCard,
               ),
             ),
           ],
@@ -213,7 +233,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
           children: [
             ...formFields,
             const SizedBox(height: 24),
-            const CostCard(),
+            costCard,
           ],
         ),
       ),
