@@ -187,8 +187,7 @@ class _CostCardState extends ConsumerState<CostCard> {
                   DropdownMenuItem(
                     value: f.id,
                     child: Text(
-                      "${f.material} · ${f.colorName} — "
-                          euroPer(_calc.filamentPricePerKg(f), "kg"),
+                      "${f.material} · ${f.colorName} — ${euroPer(_calc.filamentPricePerKg(f), "kg")}",
                     ),
                   ),
               ],
