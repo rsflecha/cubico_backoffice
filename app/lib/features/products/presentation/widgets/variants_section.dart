@@ -1,3 +1,4 @@
+import 'package:cubico_backoffice/core/formatting.dart';
 import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/features/costs/domain/cost_calculator.dart';
 import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
@@ -74,13 +75,20 @@ class VariantsSection extends ConsumerWidget {
                                 DataCell(Text(_formatHours(v.printTimeMin))),
                                 DataCell(
                                   Text(
-                                    "${calc.variantProductionCost(variant: v, filaments: filaments, components: components, costPerHour: perHour).toStringAsFixed(2)} €",
+                                    euro(
+                                      calc.variantProductionCost(
+                                        variant: v,
+                                        filaments: filaments,
+                                        components: components,
+                                        costPerHour: perHour,
+                                      ),
+                                    ),
                                     style: AppTextStyles.mono,
                                   ),
                                 ),
                                 DataCell(
                                   Text(
-                                    "${v.salePrice.toStringAsFixed(2)} €",
+                                    euro(v.salePrice),
                                     style: AppTextStyles.mono,
                                   ),
                                 ),

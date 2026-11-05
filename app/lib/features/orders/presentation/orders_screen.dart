@@ -1,3 +1,4 @@
+import 'package:cubico_backoffice/core/formatting.dart';
 import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
 import 'package:cubico_backoffice/features/orders/domain/order.dart';
@@ -193,7 +194,7 @@ class OrdersScreen extends ConsumerWidget {
                                         DataCell(_deadline(o)),
                                         DataCell(
                                           Text(
-                                            "${o.total.toStringAsFixed(2)} €",
+                                            euro(o.total),
                                             style: AppTextStyles.mono.copyWith(
                                               color:
                                                   o.status ==
@@ -205,7 +206,7 @@ class OrdersScreen extends ConsumerWidget {
                                         ),
                                         DataCell(
                                           Text(
-                                            "${o.profit.toStringAsFixed(2)} €",
+                                            euro(o.profit),
                                             style: AppTextStyles.mono.copyWith(
                                               color: profitColor(o),
                                             ),

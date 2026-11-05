@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import 'package:cubico_backoffice/core/formatting.dart';
 import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/features/costs/domain/cost_calculator.dart';
 import 'package:material_ui/material_ui.dart';
@@ -48,7 +51,7 @@ class _CostCardState extends ConsumerState<CostCard> {
     if (v == null) return; // sem variante: ficam os valores de exemplo
 
     _minutesController.text = "${v.printTimeMin}";
-    _priceController.text = v.salePrice.toStringAsFixed(2);
+    _priceController.text = decimalField(v.salePrice);
 
     final firstFilament = v.filaments.firstOrNull;
     if (firstFilament != null) {
@@ -72,11 +75,11 @@ class _CostCardState extends ConsumerState<CostCard> {
       filaments: filamentId == null
           ? []
           : [
-              VariantFilament(
-                filamentId: filamentId,
-                grams: _read(_gramsController).round(),
-              ),
-            ],
+        VariantFilament(
+          filamentId: filamentId,
+          grams: _read(_gramsController).round(),
+        ),
+      ],
       components: [
         for (final entry in _componentQty.entries)
           if (entry.value > 0)
@@ -89,9 +92,9 @@ class _CostCardState extends ConsumerState<CostCard> {
 
     if (!mounted) return;
     setState(() => _savingVariant = false);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text("Variante \"${v.name}\" guardada.")));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Variante \"${v.name}\" guardada.")),
+    );
   }
 
   /// Lê um número de um campo. Aceita vírgula ("29,90") e devolve 0 se estiver vazio.
@@ -101,21 +104,18 @@ class _CostCardState extends ConsumerState<CostCard> {
 
   @override
   Widget build(BuildContext context) {
+
     final filaments = ref.watch(filamentsProvider).value ?? [];
-    final filament =
-        filaments.where((f) => f.id == _filamentId).firstOrNull ??
-        filaments.firstOrNull;
+    final filament = filaments.where((f) => f.id == _filamentId).firstOrNull
+        ?? filaments.firstOrNull;
     final channels = ref.watch(salesChannelsProvider).value ?? [];
-    final channel =
-        channels.where((c) => c.id == _channelId).firstOrNull ??
-        channels.firstOrNull;
+    final channel = channels.where((c) => c.id == _channelId).firstOrNull
+        ?? channels.firstOrNull;
     final allComponents = ref.watch(componentsProvider).value ?? [];
-    final components = allComponents
-        .where((c) => c.kind == ComponentKind.component)
-        .toList();
-    final packaging = allComponents
-        .where((c) => c.kind == ComponentKind.packaging)
-        .toList();
+    final components =
+    allComponents.where((c) => c.kind == ComponentKind.component).toList();
+    final packaging =
+    allComponents.where((c) => c.kind == ComponentKind.packaging).toList();
 
     // 1. ler o que está escrito
     final grams = _read(_gramsController);
@@ -150,11 +150,7 @@ class _CostCardState extends ConsumerState<CostCard> {
       flatFee: channel?.flatFee ?? 0,
       listingFee: channel?.listingFee ?? 0,
     );
-    final margin = _calc.marginPct(
-      price: price,
-      productionCost: production,
-      fees: fees,
-    );
+    final margin = _calc.marginPct(price: price, productionCost: production, fees: fees);
     final profit = price - production - fees;
     final suggested = _calc.suggestedPrice(
       productionCost: production,
@@ -164,8 +160,9 @@ class _CostCardState extends ConsumerState<CostCard> {
       flatFee: channel?.flatFee ?? 0,
       listingFee: channel?.listingFee ?? 0,
     );
-    // a barra vai de 0 até ao dobro do preço sugerido (no mínimo 10 €)
-    final sliderMax = (suggested * 2).clamp(10.0, 1000.0);
+    // a barra vai até ao dobro do sugerido, ou 50% acima do preço guardado (o maior dos dois)
+    final savedPrice = widget.variant?.salePrice ?? 0;
+    final sliderMax = math.max(suggested * 2, savedPrice * 1.5).clamp(10.0, 1000.0);
 
     // 3. mostrar
     return Card(
@@ -191,7 +188,7 @@ class _CostCardState extends ConsumerState<CostCard> {
                     value: f.id,
                     child: Text(
                       "${f.material} · ${f.colorName} — "
-                      "${_calc.filamentPricePerKg(f).toStringAsFixed(2)} €/kg",
+                          euroPer(_calc.filamentPricePerKg(f), "kg"),
                     ),
                   ),
               ],
@@ -203,9 +200,7 @@ class _CostCardState extends ConsumerState<CostCard> {
                 Expanded(
                   child: TextField(
                     controller: _gramsController,
-                    decoration: const InputDecoration(
-                      labelText: "Filamento (g)",
-                    ),
+                    decoration: const InputDecoration(labelText: "Filamento (g)"),
                     keyboardType: TextInputType.number,
                     onChanged: (_) => setState(() {}),
                   ),
@@ -214,9 +209,7 @@ class _CostCardState extends ConsumerState<CostCard> {
                 Expanded(
                   child: TextField(
                     controller: _minutesController,
-                    decoration: const InputDecoration(
-                      labelText: "Impressão (minutos)",
-                    ),
+                    decoration: const InputDecoration(labelText: "Impressão (minutos)"),
                     keyboardType: TextInputType.number,
                     onChanged: (_) => setState(() {}),
                   ),
@@ -252,9 +245,7 @@ class _CostCardState extends ConsumerState<CostCard> {
               children: [
                 for (final p in packaging)
                   FilterChip(
-                    label: Text(
-                      "${p.name} · ${_calc.componentUnitCost(p).toStringAsFixed(2)} €",
-                    ),
+                    label: Text("${p.name} · ${euro(_calc.componentUnitCost(p))}"),
                     selected: (_componentQty[p.id] ?? 0) > 0,
                     onSelected: (selected) => setState(() {
                       if (selected) {
@@ -277,9 +268,7 @@ class _CostCardState extends ConsumerState<CostCard> {
                   width: 140,
                   child: TextField(
                     controller: _priceController,
-                    decoration: const InputDecoration(
-                      labelText: "Preço de venda (€)",
-                    ),
+                    decoration: const InputDecoration(labelText: "Preço de venda (€)"),
                     keyboardType: TextInputType.number,
                     onChanged: (_) => setState(() {}),
                   ),
@@ -289,9 +278,9 @@ class _CostCardState extends ConsumerState<CostCard> {
                     value: price.clamp(0.0, sliderMax),
                     max: sliderMax,
                     divisions: (sliderMax / 0.5).round(),
-                    label: "${price.toStringAsFixed(2)} €",
+                    label: euro(price),
                     onChanged: (value) => setState(() {
-                      _priceController.text = value.toStringAsFixed(2);
+                      _priceController.text = decimalField(value);
                     }),
                   ),
                 ),
@@ -304,15 +293,13 @@ class _CostCardState extends ConsumerState<CostCard> {
             if (widget.variant != null) ...[
               const SizedBox(height: 12),
               FilledButton(
-                onPressed: _savingVariant
-                    ? null
-                    : () => _saveVariant(filament?.id),
+                onPressed: _savingVariant ? null : () => _saveVariant(filament?.id),
                 child: _savingVariant
                     ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
                     : const Text("Guardar variante"),
               ),
             ],
@@ -325,11 +312,11 @@ class _CostCardState extends ConsumerState<CostCard> {
   /// Uma linha com o nome à esquerda e o valor em € à direita.
   Widget _row(String label, double value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2), // era 4
+      padding: const EdgeInsets.symmetric(vertical: 2),   // era 4
       child: Row(
         children: [
           Expanded(child: Text(label)),
-          Text("${value.toStringAsFixed(2)} €", style: AppTextStyles.mono),
+          Text(euro(value), style: AppTextStyles.mono),
         ],
       ),
     );
@@ -341,17 +328,13 @@ class _CostCardState extends ConsumerState<CostCard> {
     return Row(
       children: [
         Expanded(
-          child: Text(
-            "${c.name} · ${_calc.componentUnitCost(c).toStringAsFixed(3)} €/un.",
-          ),
+          child: Text("${c.name} · ${euroPer(_calc.componentUnitCost(c), "un.", decimals: 3)}"),
         ),
         IconButton(
           icon: const Icon(Icons.remove),
           iconSize: 18,
           visualDensity: VisualDensity.compact,
-          onPressed: qty == 0
-              ? null
-              : () => setState(() => _componentQty[c.id] = qty - 1),
+          onPressed: qty == 0 ? null : () => setState(() => _componentQty[c.id] = qty - 1),
         ),
         Text("$qty", style: AppTextStyles.mono),
         IconButton(
@@ -383,9 +366,7 @@ class _CostCardState extends ConsumerState<CostCard> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withValues(
-          alpha: 0.10,
-        ), // a mesma cor, muito clara, no fundo
+        color: color.withValues(alpha: 0.10), // a mesma cor, muito clara, no fundo
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -394,7 +375,7 @@ class _CostCardState extends ConsumerState<CostCard> {
           const Text("Margem"),
           const SizedBox(height: 4),
           Text(
-            "${profit.toStringAsFixed(2)} € · ${margin.toStringAsFixed(0)}%",
+            "${euro(profit)} · ${margin.toStringAsFixed(0)}%",
             style: AppTextStyles.mono.copyWith(
               fontSize: 24,
               fontWeight: FontWeight.w700,

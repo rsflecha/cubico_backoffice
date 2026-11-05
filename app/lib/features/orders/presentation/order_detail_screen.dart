@@ -1,3 +1,4 @@
+import 'package:cubico_backoffice/core/formatting.dart';
 import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
 import 'package:cubico_backoffice/features/orders/domain/order.dart';
@@ -177,12 +178,12 @@ class OrderDetailScreen extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        "${line.quantity} × ${line.unitPrice.toStringAsFixed(2)} €",
+                        "${line.quantity} × ${euro(line.unitPrice)}",
                         style: AppTextStyles.mono,
                       ),
                       const SizedBox(width: 24),
                       Text(
-                        "${(line.quantity * line.unitPrice - line.discount).toStringAsFixed(2)} €",
+                        euro(line.quantity * line.unitPrice - line.discount),
                         style: AppTextStyles.mono.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -242,7 +243,7 @@ class OrderDetailScreen extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        "${order.profit.toStringAsFixed(2)} € · ${marginPct.toStringAsFixed(0)}%",
+                        "${euro(order.profit)} · ${marginPct.toStringAsFixed(0)}%",
                         style: AppTextStyles.mono.copyWith(
                           fontWeight: FontWeight.w700,
                           color: profitColor(order),
@@ -270,7 +271,7 @@ class OrderDetailScreen extends ConsumerWidget {
             child: Text(label, style: TextStyle(fontWeight: weight)),
           ),
           Text(
-            "${value.toStringAsFixed(2)} €",
+            euro(value),
             style: AppTextStyles.mono.copyWith(fontWeight: weight),
           ),
         ],
@@ -455,7 +456,7 @@ class OrderDetailScreen extends ConsumerWidget {
                         "${i + 1}",
                         style: TextStyle(
                           fontSize: 12,
-                          color: i <= current ? Colors.white : null,
+                          color: i <= current ? Colors.white : Colors.black54,
                         ),
                       ),
               ),
