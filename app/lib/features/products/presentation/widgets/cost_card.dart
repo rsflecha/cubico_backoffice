@@ -31,10 +31,7 @@ class _CostCardState extends ConsumerState<CostCard> {
   // Quantidade de cada componente: id do componente → quantidade.
   final Map<int, int> _componentQty = {};
   var _savingVariant = false; // desliga o botão enquanto grava
-  final settings = ref.watch(costSettingsProvider).value;
-  final target = settings?.targetMarginPct ?? 60;
-  final minimum = settings?.minMarginPct ?? 35;
-  final rounding = settings?.rounding ?? 0.50;
+
 
   final _gramsController = TextEditingController(text: "180");
   final _minutesController = TextEditingController(text: "540");
@@ -120,6 +117,10 @@ class _CostCardState extends ConsumerState<CostCard> {
     allComponents.where((c) => c.kind == ComponentKind.component).toList();
     final packaging =
     allComponents.where((c) => c.kind == ComponentKind.packaging).toList();
+    final settings = ref.watch(costSettingsProvider).value;
+    final target = settings?.targetMarginPct ?? 60;
+    final minimum = settings?.minMarginPct ?? 35;
+    final rounding = settings?.rounding ?? 0.50;
 
     // 1. ler o que está escrito
     final grams = _read(_gramsController);

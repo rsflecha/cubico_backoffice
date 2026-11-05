@@ -41,7 +41,6 @@ class _EnergyForm extends ConsumerStatefulWidget {
 }
 
 class _EnergyFormState extends ConsumerState<_EnergyForm> {
-  static const _calc = CostCalculator();
 
   late final _kwh = TextEditingController(text: "${widget.settings.kwhPrice}".replaceAll(".", ","));
   late final _power = TextEditingController(text: "${widget.printer.powerW}");
