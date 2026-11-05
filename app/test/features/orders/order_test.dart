@@ -44,4 +44,21 @@ void main() {
     expect(order.cost, 0);
     expect(order.profit, 0);
   });
+
+  test("o fluxo avança de pendente até entregue, e pára aí", () {
+    Order withStatus(OrderStatus s) => Order(
+      id: 1,
+      orderNumber: 1,
+      channelId: 1,
+      customerName: "Teste",
+      status: s,
+      createdAt: DateTime(2026, 11, 1),
+      updatedAt: DateTime(2026, 11, 1),
+    );
+
+    expect(withStatus(OrderStatus.pending).nextStatus, OrderStatus.inProduction);
+    expect(withStatus(OrderStatus.shipped).nextStatus, OrderStatus.delivered);
+    expect(withStatus(OrderStatus.delivered).nextStatus, isNull);
+    expect(withStatus(OrderStatus.cancelled).nextStatus, isNull);
+  });
 }

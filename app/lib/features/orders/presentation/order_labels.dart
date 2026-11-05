@@ -22,6 +22,16 @@ extension OrderStatusLabels on OrderStatus {
     OrderStatus.cancelled => "Canceladas",
   };
 
+  /// O texto do botão que leva a encomenda PARA este estado.
+  String get actionLabel => switch (this) {
+    OrderStatus.pending => "Voltar a pendente",
+    OrderStatus.inProduction => "Enviar para produção",
+    OrderStatus.ready => "Marcar como pronta",
+    OrderStatus.shipped => "Marcar como enviada",
+    OrderStatus.delivered => "Marcar como entregue",
+    OrderStatus.cancelled => "Cancelar encomenda",
+  };
+
   /// A cor do texto da etiqueta.
   Color get color => switch (this) {
     OrderStatus.pending => const Color(0xFF92400E),

@@ -100,4 +100,13 @@ class DemoOrderRepository implements OrderRepository {
     copy.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return copy;
   }
+
+  @override
+  Future<Order> update(Order order) async {
+    await _latency();
+    final index = _items.indexWhere((o) => o.id == order.id);
+    if (index == -1) throw StateError("Encomenda ${order.id} não existe.");
+    _items[index] = order;
+    return order;
+  }
 }

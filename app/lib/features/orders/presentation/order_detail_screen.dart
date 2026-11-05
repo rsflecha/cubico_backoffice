@@ -69,35 +69,62 @@ class OrderDetailScreen extends ConsumerWidget {
             StatusBadge(order.status),
           ],
         ),
-      ),
-      body: isWide
-          ? Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 3,
-            child: ListView(
-              padding: const EdgeInsets.all(24),
-              children: [subtitle, const SizedBox(height: 16), ...leftCards],
+        actions: [
+          if (order.nextStatus != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: FilledButton(
+                onPressed: () async {
+                  final next = order.nextStatus!;
+                  await ref.read(orderRepositoryProvider).update(
+                    order.copyWith(status: next, updatedAt: DateTime.now()),
+                  );
+                  ref.invalidate(ordersProvider);
+                },
+                child: Text(order.nextStatus!.actionLabel),
+              ),
             ),
-          ),
-          Expanded(
-            flex: 2,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(0, 24, 24, 24),
-              children: [const SizedBox(height: 32), ...rightCards],
-            ),
-          ),
         ],
-      )
-          : ListView(
-        padding: const EdgeInsets.all(24),
+      ),
+      body: Column(
         children: [
-          subtitle,
-          const SizedBox(height: 16),
-          ...leftCards,
-          const SizedBox(height: 16),
-          ...rightCards,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+            child: _statusSteps(context, order),
+          ),
+          Expanded(
+            child: isWide
+                ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: ListView(
+                    padding: const EdgeInsets.all(24),
+                    children: [subtitle, const SizedBox(height: 16), ...leftCards],
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(0, 24, 24, 24),
+                    children: [const SizedBox(height: 32), ...rightCards],
+                  ),
+                ),
+              ],
+            )
+            // a tua Row das duas colunas, igual
+                : ListView(
+              padding: const EdgeInsets.all(24),
+              children: [
+                subtitle,
+                const SizedBox(height: 16),
+                ...leftCards,
+                const SizedBox(height: 16),
+                ...rightCards,
+              ],
+            ),  // o teu ListView do telemóvel, igual
+          ),
         ],
       ),
     );
@@ -354,6 +381,66 @@ class OrderDetailScreen extends ConsumerWidget {
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// A barra com os 5 passos do fluxo, com o atual destacado.
+  Widget _statusSteps(BuildContext context, Order order) {
+    const flow = [
+      OrderStatus.pending,
+      OrderStatus.inProduction,
+      OrderStatus.ready,
+      OrderStatus.shipped,
+      OrderStatus.delivered,
+    ];
+
+    // uma cancelada não está no fluxo: mostra só um aviso
+    if (order.status == OrderStatus.cancelled) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            "Esta encomenda foi cancelada.",
+            style: TextStyle(color: order.status.color, fontWeight: FontWeight.w600),
+          ),
+        ),
+      );
+    }
+
+    final current = flow.indexOf(order.status);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            for (var i = 0; i < flow.length; i++) ...[
+              if (i > 0) const Expanded(child: Divider(indent: 8, endIndent: 8)),
+              CircleAvatar(
+                radius: 13,
+                backgroundColor:
+                i <= current ? AppColors.orange : Colors.grey.withValues(alpha: 0.2),
+                child: i < current
+                    ? const Icon(Icons.check, size: 14, color: Colors.white)
+                    : Text(
+                  "${i + 1}",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: i <= current ? Colors.white : null,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                flow[i].label,
+                style: TextStyle(
+                  fontWeight: i == current ? FontWeight.w700 : FontWeight.normal,
+                ),
+              ),
+            ],
           ],
         ),
       ),

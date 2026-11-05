@@ -108,6 +108,15 @@ abstract class Order with _$Order {
         status == OrderStatus.ready;
     return stillToShip && deadline.isBefore(DateTime.now());
   }
+
+  /// O passo seguinte no fluxo normal. null = já acabou (entregue) ou foi cancelada.
+  OrderStatus? get nextStatus => switch (status) {
+    OrderStatus.pending => OrderStatus.inProduction,
+    OrderStatus.inProduction => OrderStatus.ready,
+    OrderStatus.ready => OrderStatus.shipped,
+    OrderStatus.shipped => OrderStatus.delivered,
+    OrderStatus.delivered || OrderStatus.cancelled => null,
+  };
 }
 
 /// Uma linha da encomenda: uma variante, quantas, e as "fotografias" de preço e custo.
