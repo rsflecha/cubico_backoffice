@@ -3,6 +3,7 @@ import 'package:cubico_backoffice/features/costs/presentation/tabs/energy_tab.da
 import 'package:cubico_backoffice/features/costs/presentation/tabs/fees_tab.dart';
 import 'package:cubico_backoffice/features/costs/presentation/tabs/filaments_tab.dart';
 import 'package:cubico_backoffice/features/costs/presentation/tabs/margins_tab.dart';
+import 'package:cubico_backoffice/features/costs/presentation/tabs/shipping_tab.dart';
 import 'package:material_ui/material_ui.dart';
 
 class CostsScreen extends StatelessWidget {
@@ -33,7 +34,7 @@ class CostsScreen extends StatelessWidget {
             EnergyTab(),
             FilamentsTab(),
             ComponentsTab(),
-            _Placeholder("Portes de envio"),
+            ShippingTab(),
             FeesTab(),
             MarginsTab(),
           ],
