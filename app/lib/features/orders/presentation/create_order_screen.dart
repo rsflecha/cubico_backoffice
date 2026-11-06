@@ -31,6 +31,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   int? _channelId;
   final _customerName = TextEditingController();
   final _customerContact = TextEditingController();
+  final _shippingCharged = TextEditingController(text: "0,00"); // o que o cliente paga de portes
   var _delivery = DeliveryMethod.hand;
   DateTime? _shipByDate;
   var _paymentMethod = _paymentMethods.first;
@@ -42,12 +43,14 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
   @override
   void dispose() {
-    final _shippingCharged = TextEditingController(text: "0,00"); // o que o cliente paga de portes
     for (final c in [_customerName, _customerContact, _notes]) {
       c.dispose();
     }
     for (final line in _lines) {
       line.dispose();
+    }
+    for (final c in [_customerName, _customerContact, _notes, _shippingCharged]) {
+      c.dispose();
     }
     super.dispose();
   }
@@ -412,7 +415,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       ],
     );
 
-    final summary = _summaryCard(channel);
+    final summary = _summaryCard(channel, draft, problem);
 
     return Scaffold(
       appBar: AppBar(title: const Text("Criar encomenda")),

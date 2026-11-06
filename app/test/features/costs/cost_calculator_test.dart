@@ -2,6 +2,7 @@ import 'package:cubico_backoffice/features/costs/domain/component.dart';
 import 'package:cubico_backoffice/features/costs/domain/cost_calculator.dart';
 import 'package:cubico_backoffice/features/costs/domain/filament.dart';
 import 'package:cubico_backoffice/features/costs/domain/shipping_rate.dart';
+import 'package:cubico_backoffice/features/products/domain/variant.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
