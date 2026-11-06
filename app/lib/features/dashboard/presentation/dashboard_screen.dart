@@ -7,6 +7,7 @@ import 'package:cubico_backoffice/features/orders/presentation/widgets/status_ba
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -49,6 +50,28 @@ class DashboardScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 24),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 24, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Vendas e lucro · últimos 14 dias",
+                          style: Theme.of(context).textTheme.titleMedium),
+                      const SizedBox(height: 16),
+                      SizedBox(height: 240, child: _chart(list)),
+                      const SizedBox(height: 8),
+                      const Row(
+                        children: [
+                          _Legend(color: AppColors.orange, label: "Vendas"),
+                          SizedBox(width: 16),
+                          _Legend(color: Color(0xFF15803D), label: "Lucro"),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               Text("Precisam de atenção", style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               if (pending.isEmpty)
@@ -113,6 +136,90 @@ class DashboardScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  /// O gráfico: um ponto por dia, das vendas e do lucro.
+  Widget _chart(List<Order> orders) {
+    final today = DateTime.now();
+    final start = DateTime(today.year, today.month, today.day).subtract(const Duration(days: 13));
+
+    final sales = <FlSpot>[];
+    final profit = <FlSpot>[];
+    for (var i = 0; i < 14; i++) {
+      final day = start.add(Duration(days: i));
+      final ofDay = orders.where((o) =>
+      o.createdAt.year == day.year &&
+          o.createdAt.month == day.month &&
+          o.createdAt.day == day.day);
+      sales.add(FlSpot(i.toDouble(), ofDay.fold(0.0, (s, o) => s + o.total)));
+      profit.add(FlSpot(i.toDouble(), ofDay.fold(0.0, (s, o) => s + o.profit)));
+    }
+
+    LineChartBarData line(List<FlSpot> spots, Color color) => LineChartBarData(
+      spots: spots,
+      color: color,
+      barWidth: 3,
+      isCurved: true,
+      preventCurveOverShooting: true,
+      dotData: const FlDotData(show: false),
+    );
+
+    return LineChart(
+      LineChartData(
+        minY: 0,
+        lineBarsData: [
+          line(sales, AppColors.orange),
+          line(profit, const Color(0xFF15803D)),
+        ],
+        gridData: const FlGridData(drawVerticalLine: false),
+        borderData: FlBorderData(show: false),
+        titlesData: FlTitlesData(
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 44,
+              getTitlesWidget: (value, meta) =>
+                  Text("${value.toInt()} €", style: const TextStyle(fontSize: 11)),
+            ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              interval: 2, // um dia sim, um dia não, para os textos não se atropelarem
+              getTitlesWidget: (value, meta) => Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  shortDate(start.add(Duration(days: value.toInt()))),
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Um quadradinho de cor com o nome da linha.
+class _Legend extends StatelessWidget {
+  const _Legend({required this.color, required this.label});
+
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 12, height: 12, color: color),
+        const SizedBox(width: 6),
+        Text(label),
+      ],
     );
   }
 }
