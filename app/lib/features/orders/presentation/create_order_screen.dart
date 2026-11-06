@@ -1,7 +1,12 @@
+import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/features/costs/domain/sales_channel.dart';
 import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
 import 'package:cubico_backoffice/features/orders/domain/order.dart';
 import 'package:cubico_backoffice/features/orders/presentation/order_labels.dart';
+import 'package:cubico_backoffice/features/products/domain/product.dart';
+import 'package:cubico_backoffice/features/products/domain/variant.dart';
+import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
+import 'package:cubico_backoffice/core/formatting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -25,11 +30,15 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   var _paymentMethod = _paymentMethods.first;
   var _paymentStatus = PaymentStatus.paid;
   final _notes = TextEditingController();
+  final List<_DraftLine> _lines = [];
 
   @override
   void dispose() {
     for (final c in [_customerName, _customerContact, _notes]) {
       c.dispose();
+    }
+    for (final line in _lines) {
+      line.dispose();
     }
     super.dispose();
   }
@@ -46,6 +55,44 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     if (picked != null) setState(() => _shipByDate = picked);
   }
 
+  /// Abre a lista do catálogo e junta a variante escolhida às linhas.
+  Future<void> _addProduct(List<Product> products, List<Variant> variants) async {
+    final chosen = await showDialog<Variant>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text("Escolher produto"),
+        children: [
+          for (final product in products)
+          // só os produtos que têm variantes
+            if (variants.any((v) => v.productId == product.id)) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
+                child: Text(product.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+              ),
+              for (final v in variants.where((v) => v.productId == product.id))
+                SimpleDialogOption(
+                  onPressed: () => Navigator.pop(context, v),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(v.name)),
+                      Text(euro(v.salePrice), style: AppTextStyles.mono),
+                    ],
+                  ),
+                ),
+            ],
+        ],
+      ),
+    );
+    if (chosen == null) return;
+    setState(() => _lines.add(_DraftLine(chosen)));
+  }
+
+  /// Tira uma linha (e arruma os campos dela).
+  void _removeLine(_DraftLine line) {
+    setState(() => _lines.remove(line));
+    line.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     // só os canais manuais: a Etsy entra sozinha
@@ -53,6 +100,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         .where((c) => !c.isAutomatic)
         .toList();
     final channel = channels.where((c) => c.id == _channelId).firstOrNull ?? channels.firstOrNull;
+    final products = ref.watch(productsProvider).value ?? <Product>[];
+    final variants = ref.watch(allVariantsProvider).value ?? <Variant>[];
 
     final isWide = MediaQuery.sizeOf(context).width >= 1100;
 
@@ -112,7 +161,14 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         ),
         _section(
           "3 · Artigos",
-          [const Text("Em breve (passo 7b).")],
+          [
+            for (final line in _lines) _lineCard(line, products),
+            OutlinedButton.icon(
+              onPressed: () => _addProduct(products, variants),
+              icon: const Icon(Icons.add),
+              label: const Text("Adicionar produto do catálogo"),
+            ),
+          ],
         ),
         _section(
           "4 · Entrega",
@@ -241,6 +297,79 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     );
   }
 
+  /// O cartão de uma linha: produto e variante, quantidade, preço, personalização.
+  Widget _lineCard(_DraftLine line, List<Product> products) {
+    final product = products.where((p) => p.id == line.variant.productId).firstOrNull;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFFE4E4E7)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product?.name ?? "Produto",
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    Text(
+                      "Variante: ${line.variant.name} · ${line.variant.sku}",
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(
+                width: 80,
+                child: TextField(
+                  controller: line.quantity,
+                  keyboardType: TextInputType.number,
+                  style: AppTextStyles.mono,
+                  decoration: const InputDecoration(labelText: "Qtd."),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 120,
+                child: TextField(
+                  controller: line.price,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: AppTextStyles.mono,
+                  decoration: const InputDecoration(labelText: "Preço un.", suffixText: "€"),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              IconButton(
+                tooltip: "Tirar",
+                onPressed: () => _removeLine(line),
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: line.customization,
+            decoration: const InputDecoration(
+              labelText: "Personalização (opcional)",
+              hintText: "Ex.: CARLA, NUNO",
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// O resumo à direita. As contas e o botão a sério vêm no passo 7c.
   Widget _summaryCard(SalesChannel? channel) {
     final name = _customerName.text.trim();
@@ -275,5 +404,24 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         ),
       ),
     );
+  }
+}
+
+/// Uma linha da encomenda enquanto se preenche: a variante e os seus campos.
+class _DraftLine {
+  _DraftLine(this.variant)
+      : quantity = TextEditingController(text: "1"),
+        price = TextEditingController(text: decimalField(variant.salePrice)),
+        customization = TextEditingController();
+
+  final Variant variant;
+  final TextEditingController quantity;
+  final TextEditingController price;
+  final TextEditingController customization;
+
+  void dispose() {
+    quantity.dispose();
+    price.dispose();
+    customization.dispose();
   }
 }

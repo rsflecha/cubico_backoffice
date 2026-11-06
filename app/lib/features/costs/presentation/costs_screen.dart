@@ -43,15 +43,3 @@ class CostsScreen extends StatelessWidget {
     );
   }
 }
-
-/// Página provisória de um separador, até ser feita.
-class _Placeholder extends StatelessWidget {
-  const _Placeholder(this.title);
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(child: Text("$title — em construção"));
-  }
-}
