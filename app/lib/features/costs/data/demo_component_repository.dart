@@ -2,7 +2,7 @@ import 'package:cubico_backoffice/features/costs/domain/component.dart';
 import 'package:cubico_backoffice/features/costs/domain/component_repository.dart';
 
 class DemoComponentRepository implements ComponentRepository {
-  final List<Component> _items = const [
+  final List<Component> _items = [
     // componentes: vão dentro do produto
     Component(
       id: 1,
@@ -67,6 +67,25 @@ class DemoComponentRepository implements ComponentRepository {
       unitsPerPack: 100,
     ),
   ];
+
+  int _nextId = 8;
+
+  @override
+  Future<Component> create(Component draft) async {
+    await _latency();
+    final created = draft.copyWith(id: _nextId++);
+    _items.add(created);
+    return created;
+  }
+
+  @override
+  Future<Component> update(Component component) async {
+    await _latency();
+    final index = _items.indexWhere((f) => f.id == component.id);
+    if (index == -1) throw StateError("Componente ${component.id} não existe.");
+    _items[index] = component;
+    return component;
+  }
 
   Future<void> _latency() => Future.delayed(const Duration(milliseconds: 300));
 

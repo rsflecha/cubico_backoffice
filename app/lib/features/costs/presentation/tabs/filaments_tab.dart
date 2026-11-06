@@ -262,13 +262,23 @@ class _FilamentFormState extends ConsumerState<_FilamentForm> {
     final repository = ref.read(filamentRepositoryProvider);
     final draft = _draft();
 
-    if (widget.initial == null) {
-      await repository.create(draft);
-    } else {
-      await repository.update(draft);
+    try {
+      if (widget.initial == null) {
+        await repository.create(draft);
+      } else {
+        await repository.update(draft);
+      }
+    } catch (error) {
+      // correu mal: volta a ligar o botão e mostra o erro
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Não foi possível guardar: $error")),
+      );
+      return;
     }
-    ref.invalidate(filamentsProvider);
 
+    ref.invalidate(componentsProvider);
     if (!mounted) return;
     widget.onClose();
   }
