@@ -2,7 +2,7 @@ import 'package:cubico_backoffice/features/costs/domain/sales_channel.dart';
 import 'package:cubico_backoffice/features/costs/domain/sales_channel_repository.dart';
 
 class DemoSalesChannelRepository implements SalesChannelRepository {
-  final List<SalesChannel> _items = const [
+  final List<SalesChannel> _items = [
     SalesChannel(
       id: 1,
       code: "etsy",
@@ -24,5 +24,14 @@ class DemoSalesChannelRepository implements SalesChannelRepository {
   Future<List<SalesChannel>> fetchAll() async {
     await _latency();
     return List<SalesChannel>.of(_items);
+  }
+
+  @override
+  Future<SalesChannel> update(SalesChannel channel) async {
+    await _latency();
+    final index = _items.indexWhere((c) => c.id == channel.id);
+    if (index == -1) throw StateError("Canal ${channel.id} não existe.");
+    _items[index] = channel;
+    return channel;
   }
 }
