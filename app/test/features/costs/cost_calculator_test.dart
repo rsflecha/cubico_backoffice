@@ -109,6 +109,19 @@ void main() {
       );
       expect(calc.componentUnitCost(magnet), closeTo(0.075, 0.0001));
     });
+
+    test("peso de envio: peça + componentes", () {
+      // 120 g da peça + 2 ímanes de 1 g = 122 g
+      const magnet = Component(
+        id: 1, name: "Íman", kind: ComponentKind.component,
+        weightG: 1, packPrice: 7.50, unitsPerPack: 100,
+      );
+      const variant = Variant(
+        id: 1, productId: 1, name: "Teste", sku: "T", salePrice: 10, weightG: 120,
+        components: [VariantComponent(componentId: 1, quantity: 2)],
+      );
+      expect(calc.variantShippingWeightG(variant: variant, components: [magnet]), 122);
+    });
   });
 
   group("Portes", () {

@@ -10,7 +10,7 @@ class DemoVariantRepository implements VariantRepository {
       name: "Preto mate",
       sku: "CD3-SDA-01-PM",
       salePrice: 24.00,
-      printTimeMin: 300,
+      printTimeMin: 120,
       filaments: [VariantFilament(filamentId: 1, grams: 120)],
       components: [
         VariantComponent(componentId: 3, quantity: 2), // 2 parafusos
@@ -24,7 +24,7 @@ class DemoVariantRepository implements VariantRepository {
       name: "Laranja",
       sku: "CD3-SDA-01-LR",
       salePrice: 24.00,
-      printTimeMin: 300,
+      printTimeMin: 120,
       filaments: [VariantFilament(filamentId: 2, grams: 120)],
       components: [
         VariantComponent(componentId: 3, quantity: 2),
@@ -39,7 +39,7 @@ class DemoVariantRepository implements VariantRepository {
       name: "Verde",
       sku: "CD3-ADN-01-VD",
       salePrice: 12.00,
-      printTimeMin: 150,
+      printTimeMin: 60,
       filaments: [VariantFilament(filamentId: 1, grams: 60)],
       components: [
         VariantComponent(componentId: 5), // papel de seda

@@ -1,13 +1,19 @@
 import 'package:cubico_backoffice/app/theme.dart';
+import 'package:cubico_backoffice/features/costs/domain/component.dart';
+import 'package:cubico_backoffice/features/costs/domain/cost_calculator.dart';
+import 'package:cubico_backoffice/features/costs/domain/filament.dart';
 import 'package:cubico_backoffice/features/costs/domain/sales_channel.dart';
+import 'package:cubico_backoffice/features/costs/domain/shipping_rate.dart';
 import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
 import 'package:cubico_backoffice/features/orders/domain/order.dart';
 import 'package:cubico_backoffice/features/orders/presentation/order_labels.dart';
+import 'package:cubico_backoffice/features/orders/presentation/orders_providers.dart';
 import 'package:cubico_backoffice/features/products/domain/product.dart';
 import 'package:cubico_backoffice/features/products/domain/variant.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
 import 'package:cubico_backoffice/core/formatting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Os métodos de pagamento (do seed.sql). Mais tarde vêm das definições.
@@ -31,9 +37,12 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   var _paymentStatus = PaymentStatus.paid;
   final _notes = TextEditingController();
   final List<_DraftLine> _lines = [];
+  var _submitted = false; // já se carregou em "Criar"? (para mostrar os problemas)
+  var _saving = false;
 
   @override
   void dispose() {
+    final _shippingCharged = TextEditingController(text: "0,00"); // o que o cliente paga de portes
     for (final c in [_customerName, _customerContact, _notes]) {
       c.dispose();
     }
@@ -93,6 +102,139 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     line.dispose();
   }
 
+  static const _calc = CostCalculator();
+
+  /// O peso de envio de todas as linhas.
+  int _totalWeight(List<Component> components) {
+    var total = 0;
+    for (final line in _lines) {
+      final qty = parseDecimal(line.quantity.text).round();
+      total += qty * _calc.variantShippingWeightG(variant: line.variant, components: components);
+    }
+    return total;
+  }
+
+  /// Junta tudo o que está escrito numa encomenda. Serve para o resumo E para gravar.
+  Order _draftOrder(
+      SalesChannel? channel,
+      List<Filament> filaments,
+      List<Component> components,
+      double perHour,
+      List<ShippingRate> rates,
+      ) {
+    final now = DateTime.now();
+    final contact = _customerContact.text.trim();
+    final notes = _notes.text.trim();
+    final byCarrier = _delivery == DeliveryMethod.carrier;
+
+    return Order(
+      id: 0,
+      orderNumber: 0,
+      channelId: channel?.id ?? 0,
+      customerName: _customerName.text.trim(),
+      customerContact: contact.isEmpty ? null : contact,
+      paymentStatus: _paymentStatus,
+      paymentMethod: _paymentMethod,
+      deliveryMethod: _delivery,
+      carrierName: byCarrier ? "CTT" : null,
+      shippingCharged: byCarrier ? parseDecimal(_shippingCharged.text) : 0,
+      // os portes reais: o escalão do Correio Registado (zona 1, Portugal) para o peso total
+      shippingPaid: byCarrier
+          ? _calc.shippingPrice(weightG: _totalWeight(components), zoneId: 1, rates: rates) ?? 0
+          : 0,
+      shipByDate: _shipByDate,
+      notes: notes.isEmpty ? null : notes,
+      createdManually: true,
+      isSeen: true,
+      createdAt: now,
+      updatedAt: now,
+      lines: [
+        for (var i = 0; i < _lines.length; i++)
+          _orderLine(_lines[i], isFirst: i == 0, channel, filaments, components, perHour),
+      ],
+    );
+  }
+
+
+  /// Uma linha da encomenda, com as "fotografias" do custo e da taxa do canal.
+  OrderLine _orderLine(
+      _DraftLine line,
+      SalesChannel? channel,
+      List<Filament> filaments,
+      List<Component> components,
+      double perHour, {
+        required bool isFirst,
+      }) {
+    final qty = parseDecimal(line.quantity.text).round();
+    final unitPrice = parseDecimal(line.price.text);
+    final customization = line.customization.text.trim();
+
+    return OrderLine(
+      id: 0,
+      variantId: line.variant.id,
+      quantity: qty,
+      unitPrice: unitPrice,
+      customization: customization.isEmpty ? null : customization,
+      // a fotografia do custo de produção, neste momento
+      unitCost: _calc.variantProductionCost(
+        variant: line.variant,
+        filaments: filaments,
+        components: components,
+        costPerHour: perHour,
+      ),
+      // as percentagens do canal sobre esta linha; os valores fixos só uma vez, na primeira
+      channelFee: _calc.channelFees(
+        price: qty * unitPrice,
+        transactionPct: channel?.transactionFee ?? 0,
+        processingPct: channel?.processingFee ?? 0,
+        flatFee: isFirst ? channel?.flatFee ?? 0 : 0,
+        listingFee: isFirst ? channel?.listingFee ?? 0 : 0,
+      ),
+    );
+  }
+
+  /// O primeiro problema que impede de criar, ou null.
+  String? _problem(
+      Order draft,
+      SalesChannel? channel,
+      List<Component> components,
+      List<ShippingRate> rates,
+      ) {
+    if (channel == null) return "Escolhe a origem.";
+    if (draft.customerName.isEmpty) return "Escreve para quem é.";
+    if (draft.lines.isEmpty) return "Junta pelo menos um artigo.";
+    if (draft.lines.any((l) => l.quantity < 1)) return "Cada artigo tem de ter quantidade 1 ou mais.";
+    if (draft.lines.any((l) => l.unitPrice <= 0)) return "Cada artigo tem de ter preço.";
+    if (_delivery == DeliveryMethod.carrier &&
+        _calc.shippingPrice(weightG: _totalWeight(components), zoneId: 1, rates: rates) == null) {
+      return "O pacote é demasiado pesado para o correio (mais de 2 kg).";
+    }
+    return null;
+  }
+
+  /// Grava a encomenda e abre o detalhe dela.
+  Future<void> _create(Order draft, String? problem) async {
+    setState(() => _submitted = true);
+    if (problem != null) return;
+
+    setState(() => _saving = true);
+    final Order created;
+    try {
+      created = await ref.read(orderRepositoryProvider).create(draft);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Não foi possível criar: $error")),
+      );
+      return;
+    }
+    ref.invalidate(ordersProvider);
+    if (!mounted) return;
+    // troca este ecrã pelo detalhe: o "voltar" do detalhe leva à lista, e não a este formulário
+    context.pushReplacement("/orders/${created.id}");
+  }
+
   @override
   Widget build(BuildContext context) {
     // só os canais manuais: a Etsy entra sozinha
@@ -102,6 +244,13 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     final channel = channels.where((c) => c.id == _channelId).firstOrNull ?? channels.firstOrNull;
     final products = ref.watch(productsProvider).value ?? <Product>[];
     final variants = ref.watch(allVariantsProvider).value ?? <Variant>[];
+    final filaments = ref.watch(filamentsProvider).value ?? <Filament>[];
+    final components = ref.watch(componentsProvider).value ?? <Component>[];
+    final perHour = ref.watch(printerCostPerHourProvider);
+    final rates = ref.watch(shippingRatesProvider).value ?? <ShippingRate>[];
+
+    final draft = _draftOrder(channel, filaments, components, perHour, rates);
+    final problem = _problem(draft, channel, components, rates);
 
     final isWide = MediaQuery.sizeOf(context).width >= 1100;
 
@@ -191,6 +340,22 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                   : "Sem portes. Fica «Pronta» quando a produção terminar.",
               style: Theme.of(context).textTheme.bodySmall,
             ),
+            if (_delivery == DeliveryMethod.carrier) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: 220,
+                child: TextField(
+                  controller: _shippingCharged,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: AppTextStyles.mono,
+                  decoration: const InputDecoration(
+                    labelText: "Portes cobrados ao cliente",
+                    suffixText: "€",
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerLeft,
@@ -370,15 +535,21 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     );
   }
 
-  /// O resumo à direita. As contas e o botão a sério vêm no passo 7c.
-  Widget _summaryCard(SalesChannel? channel) {
-    final name = _customerName.text.trim();
-    Widget line(String label, String value) => Padding(
+  /// O resumo à direita: as contas vêm do próprio rascunho da encomenda.
+  Widget _summaryCard(SalesChannel? channel, Order draft, String? problem) {
+    final margin = draft.total > 0 ? draft.profit / draft.total * 100 : 0;
+
+    Widget line(String label, String value, {bool bold = false, Color? color}) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Expanded(child: Text(label)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+          Expanded(
+            child: Text(label,
+                style: TextStyle(fontWeight: bold ? FontWeight.w700 : null, color: color)),
+          ),
+          Text(value,
+              style: AppTextStyles.mono.copyWith(
+                  fontWeight: bold ? FontWeight.w700 : null, color: color)),
         ],
       ),
     );
@@ -392,9 +563,39 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
             Text("Resumo", style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             line("Origem", channel?.name ?? "—"),
-            line("Para quem", name.isEmpty ? "—" : name),
+            line("Para quem", draft.customerName.isEmpty ? "—" : draft.customerName),
+            const Divider(),
+            line("Artigos (${draft.itemCount})", euro(draft.itemsTotal)),
+            line("Portes cobrados", euro(draft.shippingCharged)),
+            line("Total", euro(draft.total), bold: true),
+            const SizedBox(height: 8),
+            line("Custo estimado", euro(draft.cost)),
+            line(
+              "Lucro estimado",
+              "${euro(draft.profit)} · ${margin.toStringAsFixed(0)}%",
+              bold: true,
+              color: profitColor(draft),
+            ),
+            if (_delivery == DeliveryMethod.carrier)
+              Text(
+                "Inclui ${euro(draft.shippingPaid)} de portes reais (CTT Registado).",
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             const SizedBox(height: 16),
-            const FilledButton(onPressed: null, child: Text("Criar encomenda")),
+            if (_submitted && problem != null) ...[
+              Text(problem, style: const TextStyle(color: Color(0xFFB91C1C))),
+              const SizedBox(height: 8),
+            ],
+            FilledButton(
+              onPressed: _saving ? null : () => _create(draft, problem),
+              child: _saving
+                  ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+                  : const Text("Criar encomenda"),
+            ),
             const SizedBox(height: 8),
             OutlinedButton(
               onPressed: () => Navigator.of(context).pop(),

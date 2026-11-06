@@ -192,6 +192,24 @@ class DemoOrderRepository implements OrderRepository {
     ),
   ];
 
+  int _nextId = 100;
+  int _nextLineId = 100;
+
+  @override
+  Future<Order> create(Order draft) async {
+    await _latency();
+    // o número seguinte ao maior que existe: #1043, #1044…
+    final nextNumber =
+        _items.map((o) => o.orderNumber).fold(0, (a, b) => a > b ? a : b) + 1;
+    final created = draft.copyWith(
+      id: _nextId++,
+      orderNumber: nextNumber,
+      lines: [for (final l in draft.lines) l.copyWith(id: _nextLineId++)],
+    );
+    _items.add(created);
+    return created;
+  }
+
   Future<void> _latency() => Future.delayed(const Duration(milliseconds: 300));
 
   @override

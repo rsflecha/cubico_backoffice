@@ -138,4 +138,17 @@ class CostCalculator {
     }
     return null;
   }
+
+  /// Peso de envio de uma variante: a peça + os componentes e a embalagem.
+  int variantShippingWeightG({
+    required Variant variant,
+    required List<Component> components,
+  }) {
+    var total = variant.weightG;
+    for (final line in variant.components) {
+      final component = components.where((c) => c.id == line.componentId).firstOrNull;
+      if (component != null) total += line.quantity * component.weightG;
+    }
+    return total;
+  }
 }
