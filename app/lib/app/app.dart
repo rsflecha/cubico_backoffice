@@ -15,6 +15,10 @@ class App extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: buildTheme(),
       routerConfig: router,
+      // a app em português de Portugal
+      locale: const Locale("pt", "PT"),
+      supportedLocales: const [Locale("pt", "PT")],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
     );
   }
 }
