@@ -3,7 +3,7 @@
 Como a app está organizada, por onde passam os dados e onde fica cada coisa.
 O âmbito, as decisões e o plano completo estão em [`cubico-backoffice.md`](cubico-backoffice.md).
 
-**Última atualização:** 05/11/2026 — Fatias 0 a 4 e 6 concluídas
+**Última atualização:** 06/11/2026 — Fatias 0 a 6 concluídas (portes de envio pendentes)
 
 ---
 
@@ -72,9 +72,11 @@ features/
 │                      products_providers
 │                      widgets/  category_dialog · cost_card · variants_section
 ├── costs/
-│   ├── domain/        Filament, Component, SalesChannel, CostCalculator e os contratos
-│   ├── data/          DemoFilamentRepository, DemoComponentRepository, DemoSalesChannelRepository
-│   └── presentation/  costs_providers (e o ecrã "Custos e preços", ainda vazio)
+│   ├── domain/        Filament, Component, SalesChannel, Printer, CostSettings,
+│   │                  CostCalculator e os contratos dos repositórios
+│   ├── data/          Demo… de filamentos, componentes, canais, impressoras e definições
+│   └── presentation/  costs_screen (6 separadores) e costs_providers
+│                      tabs/  energy_tab · filaments_tab · components_tab · fees_tab · margins_tab
 └── orders/
     ├── domain/        Order, OrderLine (com total, custo, lucro, atrasada, passo seguinte)
     ├── data/          DemoOrderRepository (datas relativas a hoje)
@@ -93,6 +95,7 @@ As restantes secções (`dashboard`, `production`, `customers`, `settings`) têm
 |---|---|---|
 | Dados que vêm de um repositório | `FutureProvider` | `productsProvider`, `ordersProvider` |
 | Dados de um item concreto | `FutureProvider.family` | `variantsProvider(productId)` |
+| Um valor calculado a partir de outras placas | `Provider` | `printerCostPerHourProvider` (definições + impressora principal) |
 | Uma escolha que tem de durar ao mudar de secção | `Notifier` | categoria escolhida, estado e pesquisa das encomendas |
 | Estado que só interessa a um ecrã ou cartão | `setState` | campos do formulário, canal escolhido na calculadora |
 
@@ -143,7 +146,7 @@ Correm com `flutter test`, dentro de `app/`.
 | 2 | Modelos e dados demo | ✅ |
 | 3 | Produtos e categorias | ✅ |
 | 4 | Ficha do produto, calculadora de custo e variantes | ✅ |
-| 5 | Custos e preços | ⬜ |
+| 5 | Custos e preços | ✅ (portes de envio pendentes) |
 | 6 | Encomendas: lista e detalhe | ✅ |
 | 7 | Criar encomenda | ⬜ |
 | 8 | Produção (kanban) | ⬜ |
@@ -151,4 +154,4 @@ Correm com `flutter test`, dentro de `app/`.
 | 10 | Login e papéis | ⬜ |
 | 11 | Ligar à API real | ⬜ |
 
-**Limitações conhecidas:** um filamento por variante no cartão de custo; valores da impressora e margem alvo fixos até à Fatia 5; ainda não se criam nem apagam variantes.
+**Limitações conhecidas:** um filamento por variante no cartão de custo; ainda não se criam nem apagam variantes; portes de envio por preencher (à espera da tabela dos CTT).

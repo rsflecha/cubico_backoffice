@@ -434,7 +434,7 @@ lucro    = recebido − custos
 | 2 ✅ | Modelos (produto, variante, categoria, filamento…) + dados demo | Freezed, json_serializable, repositórios |
 | 3 ✅ | Produtos e categorias (criar, editar, apagar, filtrar) | Riverpod: estado, listas, CRUD em memória |
 | 4 ✅ | Ficha do produto + calculadora de custo + variantes | Estado derivado, formulários, **testes unitários** das contas |
-| 5 | Custos e preços (6 separadores) | Formulários maiores, `TabBar`, validação |
+| 5 ✅ | Custos e preços (6 separadores; portes de envio pendentes) | Formulários maiores, `TabBar`, validação |
 | 6 ✅ | Encomendas: lista com filtros e detalhe | Listas grandes, filtros, navegação com parâmetros |
 | 7 | Criar encomenda | Formulários dinâmicos, campos condicionais |
 | 8 | Produção (kanban) | Drag and drop, regras de estado |
