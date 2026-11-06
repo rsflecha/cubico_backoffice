@@ -36,7 +36,19 @@ class OrdersScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Encomendas")),
+      appBar: AppBar(
+        title: const Text("Encomendas"),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: FilledButton.icon(
+              onPressed: () => context.push("/orders/new"),
+              icon: const Icon(Icons.add),
+              label: const Text("Criar encomenda"),
+            ),
+          ),
+        ],
+      ),
       body: orders.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text("Erro: $error")),

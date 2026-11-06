@@ -2,6 +2,7 @@ import 'package:cubico_backoffice/app/shell/app_shell.dart';
 import 'package:cubico_backoffice/features/costs/presentation/costs_screen.dart';
 import 'package:cubico_backoffice/features/customers/presentation/customers_screen.dart';
 import 'package:cubico_backoffice/features/dashboard/presentation/dashboard_screen.dart';
+import 'package:cubico_backoffice/features/orders/presentation/create_order_screen.dart';
 import 'package:cubico_backoffice/features/orders/presentation/orders_screen.dart';
 import 'package:cubico_backoffice/features/production/presentation/production_screen.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_screen.dart';
@@ -35,11 +36,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) => const OrdersScreen(),
                 routes: [
                   GoRoute(
-                    path: ":id", // fica /orders/1
-                    builder: (context, state) {
-                      final id = int.parse(state.pathParameters["id"]!);
-                      return OrderDetailScreen(orderId: id);
-                    },
+                    path: 'new', // fica /orders/new
+                    builder: (context, state) => const CreateOrderScreen(),
                   ),
                 ],
               ),
