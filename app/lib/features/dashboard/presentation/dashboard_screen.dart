@@ -174,6 +174,22 @@ class DashboardScreen extends ConsumerWidget {
         ],
         gridData: const FlGridData(drawVerticalLine: false),
         borderData: FlBorderData(show: false),
+        // a caixinha que aparece ao passar por cima: valores em euros, com 2 casas
+        lineTouchData: LineTouchData(
+          touchTooltipData: LineTouchTooltipData(
+            getTooltipColor: (_) => AppColors.black,
+            getTooltipItems: (spots) => [
+              for (final s in spots)
+                LineTooltipItem(
+                  "${s.barIndex == 0 ? "Vendas" : "Lucro"}: ${euro(s.y)}",
+                  TextStyle(
+                    color: s.barIndex == 0 ? AppColors.orange : const Color(0xFF4ADE80),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+            ],
+          ),
+        ),
         titlesData: FlTitlesData(
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
