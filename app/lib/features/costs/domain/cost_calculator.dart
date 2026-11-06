@@ -1,3 +1,4 @@
+import 'package:cubico_backoffice/features/costs/domain/shipping_rate.dart';
 import 'package:cubico_backoffice/features/products/domain/variant.dart';
 import 'component.dart';
 import 'filament.dart';
@@ -120,5 +121,21 @@ class CostCalculator {
     }
 
     return total;
+  }
+
+  /// O preço do envio para um peso, numa zona: o primeiro escalão dessa zona
+  /// (do mais leve para o mais pesado) que aguenta o peso.
+  /// null = mais pesado do que todos os escalões, ou zona sem escalões.
+  double? shippingPrice({
+    required int weightG,
+    required int zoneId,
+    required List<ShippingRate> rates,
+  }) {
+    final sorted = rates.where((r) => r.zoneId == zoneId).toList()
+      ..sort((a, b) => a.maxWeightG.compareTo(b.maxWeightG));
+    for (final rate in sorted) {
+      if (weightG <= rate.maxWeightG) return rate.price;
+    }
+    return null;
   }
 }

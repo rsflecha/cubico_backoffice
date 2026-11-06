@@ -36,8 +36,15 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) => const OrdersScreen(),
                 routes: [
                   GoRoute(
-                    path: 'new', // fica /orders/new
+                    path: "new", // fica /orders/new
                     builder: (context, state) => const CreateOrderScreen(),
+                  ),
+                  GoRoute(
+                    path: ":id", // fica /orders/1
+                    builder: (context, state) {
+                      final id = int.parse(state.pathParameters["id"]!);
+                      return OrderDetailScreen(orderId: id);
+                    },
                   ),
                 ],
               ),

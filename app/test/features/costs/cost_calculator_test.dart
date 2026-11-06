@@ -1,6 +1,7 @@
 import 'package:cubico_backoffice/features/costs/domain/component.dart';
 import 'package:cubico_backoffice/features/costs/domain/cost_calculator.dart';
 import 'package:cubico_backoffice/features/costs/domain/filament.dart';
+import 'package:cubico_backoffice/features/costs/domain/shipping_rate.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -107,6 +108,37 @@ void main() {
         unitsPerPack: 100,
       );
       expect(calc.componentUnitCost(magnet), closeTo(0.075, 0.0001));
+    });
+  });
+
+  group("Portes", () {
+    const rates = [
+      // Portugal, Correio Registado (fora de ordem de propósito)
+      ShippingRate(id: 3, zoneId: 1, maxWeightG: 2000, price: 8.93),
+      ShippingRate(id: 1, zoneId: 1, maxWeightG: 100, price: 4.60),
+      ShippingRate(id: 2, zoneId: 1, maxWeightG: 500, price: 5.40),
+      // Europa, Correio Azul Internacional (só dois escalões, para o teste)
+      ShippingRate(id: 4, carrierId: 2, zoneId: 2, maxWeightG: 100, price: 5.80),
+      ShippingRate(id: 5, carrierId: 2, zoneId: 2, maxWeightG: 250, price: 7.55),
+    ];
+
+    test("um pacote leve paga o primeiro escalão da sua zona", () {
+      expect(calc.shippingPrice(weightG: 80, zoneId: 1, rates: rates), 4.60);
+      expect(calc.shippingPrice(weightG: 80, zoneId: 2, rates: rates), 5.80);
+    });
+
+    test("o limite do escalão está incluído", () {
+      expect(calc.shippingPrice(weightG: 100, zoneId: 1, rates: rates), 4.60);
+      expect(calc.shippingPrice(weightG: 101, zoneId: 1, rates: rates), 5.40);
+    });
+
+    test("sem escalão que aguente o peso, não há preço", () {
+      expect(calc.shippingPrice(weightG: 2500, zoneId: 1, rates: rates), isNull);
+      expect(calc.shippingPrice(weightG: 300, zoneId: 2, rates: rates), isNull);
+    });
+
+    test("uma zona sem escalões não tem preço", () {
+      expect(calc.shippingPrice(weightG: 80, zoneId: 4, rates: rates), isNull);
     });
   });
 }

@@ -2,6 +2,7 @@ import 'package:cubico_backoffice/features/costs/data/demo_component_repository.
 import 'package:cubico_backoffice/features/costs/data/demo_cost_settings_repository.dart';
 import 'package:cubico_backoffice/features/costs/data/demo_filament_repository.dart';
 import 'package:cubico_backoffice/features/costs/data/demo_printer_repository.dart';
+import 'package:cubico_backoffice/features/costs/data/demo_shipping_rate_repository.dart';
 import 'package:cubico_backoffice/features/costs/domain/component.dart';
 import 'package:cubico_backoffice/features/costs/domain/component_repository.dart';
 import 'package:cubico_backoffice/features/costs/domain/cost_settings.dart';
@@ -10,6 +11,8 @@ import 'package:cubico_backoffice/features/costs/domain/filament.dart';
 import 'package:cubico_backoffice/features/costs/domain/filament_repository.dart';
 import 'package:cubico_backoffice/features/costs/domain/printer.dart';
 import 'package:cubico_backoffice/features/costs/domain/printer_repository.dart';
+import 'package:cubico_backoffice/features/costs/domain/shipping_rate.dart';
+import 'package:cubico_backoffice/features/costs/domain/shipping_rate_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cubico_backoffice/features/costs/data/demo_sales_channel_repository.dart';
@@ -88,4 +91,12 @@ final costSettingsRepositoryProvider = Provider<CostSettingsRepository>((ref) {
 /// As definições de custos e preços.
 final costSettingsProvider = FutureProvider<CostSettings>((ref) {
   return ref.watch(costSettingsRepositoryProvider).fetch();
+});
+
+final shippingRateRepositoryProvider = Provider<ShippingRateRepository>((ref) {
+  return DemoShippingRateRepository();
+});
+
+final shippingRatesProvider = FutureProvider<List<ShippingRate>>((ref) {
+  return ref.watch(shippingRateRepositoryProvider).fetchAll();
 });
