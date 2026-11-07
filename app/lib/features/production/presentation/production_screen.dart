@@ -156,45 +156,24 @@ class ProductionScreen extends ConsumerWidget {
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              variant?.name ?? "Variante ${job.variantId}",
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-            Text(
-              "${job.quantity} un. · $time",
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            if (job.notes != null)
-              Text(job.notes!, style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: 6),
             Row(
               children: [
-                if (job.orderNumber != null)
-                  InkWell(
-                    onTap: () => context.push("/orders/${job.orderId}"),
-                    child: Text(
-                      "#${job.orderNumber}",
-                      style: AppTextStyles.mono.copyWith(
-                        color: AppColors.orange,
-                        fontWeight: FontWeight.w700,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  )
-                else
-                  const Text("Manual", style: TextStyle(color: Color(0xFF71717A))),
-                const Spacer(),
-                if (job.nextStatus != null)
-                  IconButton(
-                    tooltip: "Passar a «${job.nextStatus!.label}»",
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () => _advance(ref, job),
-                    icon: const Icon(Icons.arrow_forward),
-                  ),
+                Expanded(
+                  child: Text(status.label, style: const TextStyle(fontWeight: FontWeight.w700)),
+                ),
+                Text("${jobs.length}"),
               ],
             ),
+            const SizedBox(height: 8),
+            if (jobs.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Text("Vazio", style: TextStyle(color: Color(0xFF71717A))),
+              ),
+            for (final job in jobs) _card(context, ref, job, variants),
           ],
         ),
       ),
