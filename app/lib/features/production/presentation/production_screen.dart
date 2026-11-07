@@ -20,20 +20,31 @@ extension _StatusLabel on PrintJobStatus {
 class ProductionScreen extends ConsumerWidget {
   const ProductionScreen({super.key});
 
-  /// Passa a tarefa para a coluna seguinte.
-  Future<void> _advance(WidgetRef ref, PrintJob job) async {
-    final next = job.nextStatus;
-    if (next == null) return;
+  /// Move a tarefa para uma coluna (qualquer uma, para a frente ou para trás).
+  Future<void> _moveTo(WidgetRef ref, PrintJob job, PrintJobStatus status) async {
+    if (job.status == status) return;
     final now = DateTime.now();
     await ref.read(printJobRepositoryProvider).update(
       job.copyWith(
-        status: next,
-        // ao começar a imprimir, guarda a hora; ao sair da impressora, também
-        startedAt: next == PrintJobStatus.printing ? now : job.startedAt,
-        finishedAt: next == PrintJobStatus.postProcessing ? now : job.finishedAt,
+        status: status,
+        // volta a "Por imprimir": apaga as horas
+        startedAt: status == PrintJobStatus.queued
+            ? null
+            : status == PrintJobStatus.printing
+            ? now
+            : job.startedAt ?? now,
+        finishedAt: status == PrintJobStatus.queued || status == PrintJobStatus.printing
+            ? null
+            : job.finishedAt ?? now,
       ),
     );
     ref.invalidate(printJobsProvider);
+  }
+
+  /// O botão →: passa para a coluna seguinte.
+  Future<void> _advance(WidgetRef ref, PrintJob job) async {
+    final next = job.nextStatus;
+    if (next != null) await _moveTo(ref, job, next);
   }
 
   @override
@@ -96,32 +107,27 @@ class ProductionScreen extends ConsumerWidget {
       List<PrintJob> jobs,
       List<Variant> variants,
       ) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(status.label, style: const TextStyle(fontWeight: FontWeight.w700)),
-              ),
-              Text("${jobs.length}"),
-            ],
+    return DragTarget<PrintJob>(
+      // só aceita tarefas que venham de OUTRA coluna
+      onWillAcceptWithDetails: (details) => details.data.status != status,
+      onAcceptWithDetails: (details) => _moveTo(ref, details.data, status),
+      builder: (context, candidates, rejected) => AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          // enquanto um cartão está por cima, a coluna acende
+          color: candidates.isNotEmpty
+              ? AppColors.orange.withValues(alpha: 0.10)
+              : Colors.black.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: candidates.isNotEmpty ? AppColors.orange : Colors.transparent,
+            width: 2,
           ),
-          const SizedBox(height: 8),
-          if (jobs.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Text("Vazio", style: TextStyle(color: Color(0xFF71717A))),
-            ),
-          for (final job in jobs) _card(context, ref, job, variants),
-        ],
+        ),
+        child: Column(
+          // ...o Column que já tens, igual
+        ),
       ),
     );
   }
@@ -134,7 +140,7 @@ class ProductionScreen extends ConsumerWidget {
     final time = minutes == 0 ? "$hours h" : "$hours h $minutes";
     final isPrinting = job.status == PrintJobStatus.printing;
 
-    return Card(
+    final card = Card(
       margin: const EdgeInsets.only(bottom: 8),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
@@ -186,5 +192,22 @@ class ProductionScreen extends ConsumerWidget {
         ),
       ),
     );
+    // o que fica "colado ao rato" enquanto se arrasta: o cartão, um pouco levantado
+    final feedback = SizedBox(
+      width: 260,
+      child: Material(
+        elevation: 8,
+        borderRadius: BorderRadius.circular(10),
+        child: card,
+      ),
+    );
+// o que fica no sítio de onde saiu: o cartão, esbatido
+    final ghost = Opacity(opacity: 0.3, child: card);
+
+    final isWide = MediaQuery.sizeOf(context).width >= 1100;
+    return isWide
+        ? Draggable<PrintJob>(data: job, feedback: feedback, childWhenDragging: ghost, child: card)
+        : LongPressDraggable<PrintJob>(
+        data: job, feedback: feedback, childWhenDragging: ghost, child: card);
   }
 }
