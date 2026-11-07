@@ -15,8 +15,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ShippingRate {
 
- int get id; int get carrierId;// por agora só há uma: CTT · Correio Registado
- int get zoneId;// por agora só há uma: Portugal (o preço é igual em todo o país)
+ int get id; int get carrierId;// 1 = CTT Correio Registado (PT); 2 = CTT Correio Azul Internacional
+ int get zoneId;// 1 = Portugal; 2 = Europa; 3 = EUA; 4 = Resto do mundo
  int get maxWeightG;// o peso máximo deste escalão, incluído
  double get price;
 /// Create a copy of ShippingRate
@@ -221,9 +221,9 @@ class _ShippingRate implements ShippingRate {
 
 @override final  int id;
 @override@JsonKey() final  int carrierId;
-// por agora só há uma: CTT · Correio Registado
+// 1 = CTT Correio Registado (PT); 2 = CTT Correio Azul Internacional
 @override@JsonKey() final  int zoneId;
-// por agora só há uma: Portugal (o preço é igual em todo o país)
+// 1 = Portugal; 2 = Europa; 3 = EUA; 4 = Resto do mundo
 @override final  int maxWeightG;
 // o peso máximo deste escalão, incluído
 @override final  double price;
