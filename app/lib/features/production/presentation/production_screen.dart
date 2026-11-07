@@ -275,7 +275,7 @@ class ProductionScreen extends ConsumerWidget {
 
 /// O cartão escuro do topo: a tarefa a imprimir, com o progresso a avançar sozinho.
 class _PrintingBanner extends StatefulWidget {
-  const _PrintingBanner({required this.job, required this.title});
+  const _PrintingBanner({super.key, required this.job, required this.title});
 
   final PrintJob? job; // null = a impressora está livre
   final String title;
