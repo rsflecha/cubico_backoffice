@@ -39,6 +39,7 @@ class ProductionScreen extends ConsumerWidget {
             : job.finishedAt ?? now,
       ),
     );
+
     // se a tarefa é de uma encomenda, acerta o estado dela
     final orderId = job.orderId;
     if (orderId != null) {
@@ -79,14 +80,14 @@ class ProductionScreen extends ConsumerWidget {
 
           // PC: 4 colunas lado a lado. Telemóvel: colunas a deslizar para o lado.
           return isWide
-              ? Padding(
+              ? SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final c in columns) ...[
-                  Expanded(child: c),
-                  const SizedBox(width: 16),
+                for (var i = 0; i < columns.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 16),
+                  Expanded(child: columns[i]),
                 ],
               ],
             ),
@@ -95,9 +96,9 @@ class ProductionScreen extends ConsumerWidget {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.all(16),
             children: [
-              for (final c in columns) ...[
-                SizedBox(width: 280, child: c),
-                const SizedBox(width: 12),
+              for (var i = 0; i < columns.length; i++) ...[
+                if (i > 0) const SizedBox(width: 12),
+                SizedBox(width: 280, child: SingleChildScrollView(child: columns[i])),
               ],
             ],
           );
@@ -106,7 +107,7 @@ class ProductionScreen extends ConsumerWidget {
     );
   }
 
-  /// Uma coluna do quadro: título, contagem e cartões.
+  /// Uma coluna do quadro: aceita cartões largados, e mostra título, contagem e cartões.
   Widget _column(
       BuildContext context,
       WidgetRef ref,
@@ -133,29 +134,6 @@ class ProductionScreen extends ConsumerWidget {
           ),
         ),
         child: Column(
-          // ...o Column que já tens, igual
-        ),
-      ),
-    );
-  }
-
-  /// O cartão de uma tarefa.
-  Widget _card(BuildContext context, WidgetRef ref, PrintJob job, List<Variant> variants) {
-    final variant = variants.where((v) => v.id == job.variantId).firstOrNull;
-    final hours = job.estimatedMin ~/ 60;
-    final minutes = job.estimatedMin % 60;
-    final time = minutes == 0 ? "$hours h" : "$hours h $minutes";
-    final isPrinting = job.status == PrintJobStatus.printing;
-
-    final card = Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: isPrinting ? BorderSide(color: AppColors.orange, width: 2) : BorderSide.none,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -178,6 +156,69 @@ class ProductionScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// O cartão de uma tarefa, que se pode arrastar para outra coluna.
+  Widget _card(BuildContext context, WidgetRef ref, PrintJob job, List<Variant> variants) {
+    final variant = variants.where((v) => v.id == job.variantId).firstOrNull;
+    final hours = job.estimatedMin ~/ 60;
+    final minutes = job.estimatedMin % 60;
+    final time = minutes == 0 ? "$hours h" : "$hours h $minutes";
+    final isPrinting = job.status == PrintJobStatus.printing;
+
+    final card = Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: isPrinting ? BorderSide(color: AppColors.orange, width: 2) : BorderSide.none,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              variant?.name ?? "Variante ${job.variantId}",
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            Text(
+              "${job.quantity} un. · $time",
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            if (job.notes != null)
+              Text(job.notes!, style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                if (job.orderNumber != null)
+                  InkWell(
+                    onTap: () => context.push("/orders/${job.orderId}"),
+                    child: Text(
+                      "#${job.orderNumber}",
+                      style: AppTextStyles.mono.copyWith(
+                        color: AppColors.orange,
+                        fontWeight: FontWeight.w700,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  )
+                else
+                  const Text("Manual", style: TextStyle(color: Color(0xFF71717A))),
+                const Spacer(),
+                if (job.nextStatus != null)
+                  IconButton(
+                    tooltip: "Passar a «${job.nextStatus!.label}»",
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => _advance(ref, job),
+                    icon: const Icon(Icons.arrow_forward),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+
     // o que fica "colado ao rato" enquanto se arrasta: o cartão, um pouco levantado
     final feedback = SizedBox(
       width: 260,
@@ -187,13 +228,23 @@ class ProductionScreen extends ConsumerWidget {
         child: card,
       ),
     );
-// o que fica no sítio de onde saiu: o cartão, esbatido
+    // o que fica no sítio de onde saiu: o cartão, esbatido
     final ghost = Opacity(opacity: 0.3, child: card);
 
+    // no PC arrasta-se logo; no telemóvel é preciso manter o dedo, para não estragar o deslizar
     final isWide = MediaQuery.sizeOf(context).width >= 1100;
     return isWide
-        ? Draggable<PrintJob>(data: job, feedback: feedback, childWhenDragging: ghost, child: card)
+        ? Draggable<PrintJob>(
+      data: job,
+      feedback: feedback,
+      childWhenDragging: ghost,
+      child: card,
+    )
         : LongPressDraggable<PrintJob>(
-        data: job, feedback: feedback, childWhenDragging: ghost, child: card);
+      data: job,
+      feedback: feedback,
+      childWhenDragging: ghost,
+      child: card,
+    );
   }
 }
