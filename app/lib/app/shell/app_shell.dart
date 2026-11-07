@@ -1,14 +1,18 @@
 import 'package:cubico_backoffice/app/theme.dart';
+import 'package:cubico_backoffice/features/auth/domain/app_user.dart';
+import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
-class AppShell extends StatelessWidget {
+class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(sessionProvider);
     final isWide = MediaQuery.sizeOf(context).width >= 900;
 
     if (!isWide) {
@@ -135,33 +139,34 @@ class AppShell extends StatelessWidget {
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          const CircleAvatar(
+                          CircleAvatar(
                             radius: 18,
-                            backgroundColor: Color(0xFF3F3F46),
+                            backgroundColor: const Color(0xFF3F3F46),
                             child: Text(
-                              "R",
-                              style: TextStyle(color: Colors.white),
+                              (user?.name ?? "?")[0],
+                              style: const TextStyle(color: Colors.white),
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Rui",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  user?.name ?? "",
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                                 ),
-                              ),
-                              Text(
-                                "Administrador",
-                                style: TextStyle(
-                                  color: Color(0xFFA1A1AA),
-                                  fontSize: 12,
+                                Text(
+                                  user?.role == UserRole.admin ? "Administrador" : "Colaborador",
+                                  style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 12),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: "Terminar sessão",
+                            onPressed: () => ref.read(sessionProvider.notifier).signOut(),
+                            icon: const Icon(Icons.logout, color: Color(0xFFA1A1AA)),
                           ),
                         ],
                       ),
