@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/features/orders/presentation/orders_providers.dart';
 import 'package:cubico_backoffice/features/production/domain/print_job.dart';
@@ -78,28 +79,51 @@ class ProductionScreen extends ConsumerWidget {
               ),
           ];
 
+          // a primeira tarefa a imprimir (se houver)
+          final printing = list.where((j) => j.status == PrintJobStatus.printing).firstOrNull;
+          final printingVariant =
+              variants.where((v) => v.id == printing?.variantId).firstOrNull;
+
+          final banner = _PrintingBanner(
+            // a key muda quando muda a tarefa a imprimir, e o cartão recomeça
+            key: ValueKey(printing?.id),
+            job: printing,
+            title: printingVariant?.name ?? "",
+          );
+
           // PC: 4 colunas lado a lado. Telemóvel: colunas a deslizar para o lado.
-          return isWide
-              ? SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (var i = 0; i < columns.length; i++) ...[
-                  if (i > 0) const SizedBox(width: 16),
-                  Expanded(child: columns[i]),
-                ],
-              ],
-            ),
-          )
-              : ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.all(16),
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              for (var i = 0; i < columns.length; i++) ...[
-                if (i > 0) const SizedBox(width: 12),
-                SizedBox(width: 280, child: SingleChildScrollView(child: columns[i])),
-              ],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                child: banner,
+              ),
+              Expanded(
+                child: isWide
+                    ? SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (var i = 0; i < columns.length; i++) ...[
+                        if (i > 0) const SizedBox(width: 16),
+                        Expanded(child: columns[i]),
+                      ],
+                    ],
+                  ),
+                )
+                    : ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    for (var i = 0; i < columns.length; i++) ...[
+                      if (i > 0) const SizedBox(width: 12),
+                      SizedBox(width: 280, child: SingleChildScrollView(child: columns[i])),
+                    ],
+                  ],
+                ),
+              ),
             ],
           );
         },
@@ -245,6 +269,109 @@ class ProductionScreen extends ConsumerWidget {
       feedback: feedback,
       childWhenDragging: ghost,
       child: card,
+    );
+  }
+}
+
+/// O cartão escuro do topo: a tarefa a imprimir, com o progresso a avançar sozinho.
+class _PrintingBanner extends StatefulWidget {
+  const _PrintingBanner({required this.job, required this.title});
+
+  final PrintJob? job; // null = a impressora está livre
+  final String title;
+
+  @override
+  State<_PrintingBanner> createState() => _PrintingBannerState();
+}
+
+class _PrintingBannerState extends State<_PrintingBanner> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    // de 30 em 30 segundos, redesenha para o progresso avançar
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel(); // sem isto, o relógio continuava a tocar depois de saíres do ecrã
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final job = widget.job;
+    const white = TextStyle(color: Colors.white);
+    const muted = TextStyle(color: Colors.white70);
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.black,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: job == null
+          ? const Text("Bambu Lab A1 · livre. Arrasta uma tarefa para «A imprimir».", style: muted)
+          : Builder(builder: (context) {
+        final now = DateTime.now();
+        final progress = job.progressAt(now);
+        final left = job.minutesLeftAt(now);
+        return Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Bambu Lab A1 · a imprimir", style: muted),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.title,
+                    style: white.copyWith(fontSize: 20, fontWeight: FontWeight.w700),
+                  ),
+                  Text(
+                    job.orderNumber == null
+                        ? "Tarefa manual"
+                        : "Encomenda #${job.orderNumber}",
+                    style: muted,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 24),
+            SizedBox(
+              width: 260,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Text("${(progress * 100).round()}%",
+                          style: white.copyWith(fontWeight: FontWeight.w700)),
+                      const Spacer(),
+                      Text(
+                        left == 0
+                            ? "deve ter acabado"
+                            : "faltam ${left ~/ 60} h ${left % 60} min",
+                        style: muted,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 8,
+                    color: AppColors.orange,
+                    backgroundColor: Colors.white24,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      }),
     );
   }
 }

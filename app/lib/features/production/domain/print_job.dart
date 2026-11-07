@@ -43,4 +43,19 @@ abstract class PrintJob with _$PrintJob {
     PrintJobStatus.postProcessing => PrintJobStatus.done,
     PrintJobStatus.done => null,
   };
+
+  /// Quanto já imprimiu, de 0 a 1, calculado pelo tempo desde o início.
+  /// 0 se ainda não começou; nunca passa de 1.
+  double progressAt(DateTime now) {
+    final start = startedAt;
+    if (start == null || estimatedMin <= 0) return 0;
+    final elapsed = now.difference(start).inSeconds / 60;
+    return (elapsed / estimatedMin).clamp(0.0, 1.0);
+  }
+
+  /// Os minutos que faltam, nunca menos de 0.
+  int minutesLeftAt(DateTime now) {
+    final left = estimatedMin * (1 - progressAt(now));
+    return left.round();
+  }
 }
