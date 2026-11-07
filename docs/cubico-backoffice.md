@@ -21,6 +21,7 @@
 - **Decisões técnicas:** **tudo em inglês — código Dart e base de dados** (classes, variáveis, ficheiros, pastas, tabelas, colunas); **só a interface em português**. Decidido a 2026-10-28; substitui "BD em português com `@JsonKey`". Os nomes batem certo dos dois lados, por isso não é preciso `@JsonKey` — e deixa de haver o erro mudo de escrever o nome com gralha no `@JsonKey`, que compila e devolve `null`; Material pelo pacote `material_ui` em vez de `package:flutter/material.dart`, com Flutter 3.47+.
 - **Contas de custo:** a `CostCalculator` (Dart puro, com testes unitários) faz as contas na app para a pré-visualização em tempo real da calculadora; a API refaz as mesmas contas e é ela que grava os valores oficiais. Decidido a 2026-11-01.
 - **Encomendas canceladas:** contam 0 € recebidos, 0 € de custos e 0 € de lucro (mesmo que tenham sido produzidas). O lucro de uma encomenda usa as "fotografias" de preço, custo e taxa gravadas em cada linha no momento da venda. Decidido a 2026-11-05.
+- **Envios:** Portugal (todas as vendas) por **CTT Correio Registado**, com seguimento; estrangeiro (só Etsy) por **CTT Correio Azul Internacional**, porque desde 2026 o registado internacional não aceita produtos. Preços base de 2026 (pacote postal), por zona e escalão de peso: Portugal, Europa, EUA e Resto do mundo. Decidido a 2026-11-06.
 - **Forma de trabalhar:** o Rui escreve o código; o Claude explica, revê e ajuda. Plano por fatias no fim deste documento.
 
 ---
@@ -434,11 +435,11 @@ lucro    = recebido − custos
 | 2 ✅ | Modelos (produto, variante, categoria, filamento…) + dados demo | Freezed, json_serializable, repositórios |
 | 3 ✅ | Produtos e categorias (criar, editar, apagar, filtrar) | Riverpod: estado, listas, CRUD em memória |
 | 4 ✅ | Ficha do produto + calculadora de custo + variantes | Estado derivado, formulários, **testes unitários** das contas |
-| 5 ✅ | Custos e preços (6 separadores; portes de envio pendentes) | Formulários maiores, `TabBar`, validação |
+| 5 ✅ | Custos e preços (6 separadores) | Formulários maiores, `TabBar`, validação |
 | 6 ✅ | Encomendas: lista com filtros e detalhe | Listas grandes, filtros, navegação com parâmetros |
-| 7 | Criar encomenda | Formulários dinâmicos, campos condicionais |
-| 8 | Produção (kanban) | Drag and drop, regras de estado |
-| 9 | Dashboard | fl_chart, estados de carregamento/erro |
+| 7 ✅ | Criar encomenda | Formulários dinâmicos, campos condicionais |
+| 8 ✅ | Produção (kanban) | Drag and drop, regras de estado |
+| 9 ✅ | Dashboard | fl_chart, estados de carregamento/erro |
 | 10 | Login e papéis (administrador/colaborador) | Rotas protegidas, redirecionamentos |
 | 11 | Ligar à API real | Dio, JWT, interceptores, tratamento de erros |
 

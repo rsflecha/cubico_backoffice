@@ -20,11 +20,23 @@ Feito em **Flutter** para **Windows** e Android. É um projeto real, para a minh
 - Margem com cores (saudável, abaixo do alvo, baixa), preço sugerido arredondado e barra para experimentar preços.
 - Cada variante guarda a sua receita de produção; a tabela de variantes mostra o custo de cada uma.
 
+**Dashboard**
+- Vendas, lucro e encomendas do mês, encomendas por fazer ordenadas por urgência, e gráfico de vendas e lucro dos últimos 14 dias.
+
 **Encomendas**
 - Lista com separadores por estado e contagens, pesquisa (nº, cliente ou referência Etsy) e filtro por canal.
 - Encomendas atrasadas destacadas a vermelho.
 - Detalhe com artigos, recebido, custos e **lucro real** (com as taxas da Etsy e os portes pagos), cliente, envio e pagamento.
 - Fluxo de estados (Pendente → Em produção → Pronta → Enviada → Entregue) com um botão para avançar.
+- Criar encomendas manuais (Instagram, Facebook, em mão) com lucro estimado antes de gravar e portes calculados pelo peso.
+
+**Produção**
+- Enviar uma encomenda para produção cria uma tarefa por artigo num quadro kanban (Por imprimir → A imprimir → Pós-processamento → Concluído), com arrastar entre colunas.
+- Quando todas as tarefas de uma encomenda acabam, a encomenda passa sozinha a "Pronta".
+- A impressão em curso mostra o progresso calculado pelo tempo.
+
+**Custos e preços**
+- Energia e impressora, filamentos (com portes repartidos e poupança), embalagens e componentes, portes CTT por zona e peso, taxas de cada canal e margens. A calculadora usa sempre estes valores.
 
 | Encomendas | Detalhe da encomenda |
 |---|---|
@@ -38,6 +50,7 @@ Feito em **Flutter** para **Windows** e Android. É um projeto real, para a minh
 | Estado | Riverpod 3 |
 | Navegação | GoRouter 18 (`StatefulShellRoute`) |
 | Modelos | Freezed + json_serializable |
+| Gráficos | fl_chart |
 | Testes | `flutter_test` |
 | Backend (próxima fase) | PHP 8 (Slim) · MySQL · cPanel |
 
@@ -82,8 +95,10 @@ Também há uma versão Windows pronta a usar, em modo demo, nos [Releases](../.
 | ✅ | Produtos, categorias e variantes | |
 | ✅ | Calculadora de custo e margem, com testes | |
 | ✅ | Encomendas: lista, filtros, detalhe e estados | |
-| ⬜ | Custos e preços (filamentos, energia, embalagens, canais) | |
-| ⬜ | Criar encomenda manual, produção (kanban), dashboard | |
+| ✅ | Custos e preços: energia, filamentos, embalagens, portes CTT, taxas e margens | |
+| ✅ | Criar encomenda manual, com lucro estimado e portes | |
+| ✅ | Produção: quadro kanban com arrastar, ligado às encomendas | |
+| ✅ | Dashboard com números do mês e gráfico de vendas e lucro | |
 | ⬜ | Login com papéis (administrador / colaborador) | |
 | ⬜ | API PHP + MySQL e sincronização com a Etsy | |
 

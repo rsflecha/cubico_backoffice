@@ -3,7 +3,7 @@
 Como a app está organizada, por onde passam os dados e onde fica cada coisa.
 O âmbito, as decisões e o plano completo estão em [`cubico-backoffice.md`](cubico-backoffice.md).
 
-**Última atualização:** 06/11/2026 — Fatias 0 a 6 concluídas (portes de envio pendentes)
+**Última atualização:** 07/11/2026 — Fatias 0 a 9 concluídas
 
 ---
 
@@ -76,18 +76,30 @@ features/
 │   │                  CostCalculator e os contratos dos repositórios
 │   ├── data/          Demo… de filamentos, componentes, canais, impressoras e definições
 │   └── presentation/  costs_screen (6 separadores) e costs_providers
-│                      tabs/  energy_tab · filaments_tab · components_tab · fees_tab · margins_tab
-└── orders/
+│                      tabs/  energy_tab · filaments_tab · components_tab · shipping_tab
+│                             fees_tab · margins_tab
+├── orders/
     ├── domain/        Order, OrderLine (com total, custo, lucro, atrasada, passo seguinte)
     ├── data/          DemoOrderRepository (datas relativas a hoje)
     └── presentation/  orders_screen        lista com separadores, pesquisa e filtro por canal
-                       order_detail_screen  detalhe com artigos, contas, cliente, envio e estados
-                       order_labels         textos e cores dos estados
-                       orders_providers
-                       widgets/  status_badge
+│                      order_detail_screen  detalhe com artigos, contas, cliente, envio e estados
+│                      create_order_screen  criar encomenda manual, com resumo e lucro estimado
+│                      order_labels         textos e cores dos estados
+│                      orders_providers
+│                      widgets/  status_badge
+├── production/
+│   ├── domain/        PrintJob (com passo seguinte e progresso pelo tempo), o contrato
+│   │                  e o ProductionService (as regras que ligam encomendas e produção)
+│   ├── data/          DemoPrintJobRepository
+│   └── presentation/  production_screen    quadro kanban com arrastar e a impressão em curso
+│                      production_providers
+└── dashboard/
+    └── presentation/  dashboard_screen     números do mês, encomendas por fazer e gráfico (fl_chart)
 ```
 
-As restantes secções (`dashboard`, `production`, `customers`, `settings`) têm, por agora, só o ecrã vazio.
+As restantes secções (`customers`, `settings`) têm, por agora, só o ecrã vazio.
+
+**Serviços:** quando uma regra mexe em vários repositórios ao mesmo tempo (enviar uma encomenda para produção cria tarefas **e** muda a encomenda), fica num serviço em `domain`, que recebe os contratos dos repositórios. Exemplo: `ProductionService`. Com a API, estas regras passam para o servidor.
 
 ## 5. Estado: Riverpod ou `setState`?
 
@@ -108,7 +120,7 @@ GoRouter com `StatefulShellRoute.indexedStack`: cada secção do menu é uma "ga
 | Caminho | Ecrã |
 |---|---|
 | `/dashboard` | Dashboard (Início no telemóvel) |
-| `/orders` · `/orders/:id` | Encomendas · detalhe da encomenda |
+| `/orders` · `/orders/new` · `/orders/:id` | Encomendas · criar encomenda · detalhe da encomenda |
 | `/production` | Produção |
 | `/products` · `/products/new` · `/products/:id` | Produtos · novo produto · editar produto |
 | `/customers` | Clientes |
@@ -124,8 +136,9 @@ Correm com `flutter test`, dentro de `app/`.
 
 | Ficheiro | O que prova |
 |---|---|
-| `test/features/costs/cost_calculator_test.dart` | €/kg com portes, custo de filamento e de impressão, taxas por canal, margem, preço sugerido, custo de componentes |
+| `test/features/costs/cost_calculator_test.dart` | €/kg com portes, custo de filamento e de impressão, taxas por canal, margem, preço sugerido, custo de componentes, peso de envio, portes por zona e escalão |
 | `test/features/orders/order_test.dart` | total, custo e lucro; canceladas contam 0; fluxo de estados |
+| `test/features/production/print_job_test.dart` | progresso da impressão e minutos que faltam, calculados pelo tempo |
 
 ## 8. Convenções
 
@@ -146,12 +159,12 @@ Correm com `flutter test`, dentro de `app/`.
 | 2 | Modelos e dados demo | ✅ |
 | 3 | Produtos e categorias | ✅ |
 | 4 | Ficha do produto, calculadora de custo e variantes | ✅ |
-| 5 | Custos e preços | ✅ (portes de envio pendentes) |
+| 5 | Custos e preços | ✅ |
 | 6 | Encomendas: lista e detalhe | ✅ |
-| 7 | Criar encomenda | ⬜ |
-| 8 | Produção (kanban) | ⬜ |
-| 9 | Dashboard com gráficos | ⬜ |
+| 7 | Criar encomenda | ✅ |
+| 8 | Produção (kanban) | ✅ |
+| 9 | Dashboard com gráficos | ✅ |
 | 10 | Login e papéis | ⬜ |
 | 11 | Ligar à API real | ⬜ |
 
-**Limitações conhecidas:** um filamento por variante no cartão de custo; ainda não se criam nem apagam variantes; portes de envio por preencher (à espera da tabela dos CTT).
+**Limitações conhecidas:** um filamento por variante no cartão de custo; ainda não se criam nem apagam variantes; nas encomendas manuais, os portes reais usam só a zona Portugal; a produção ainda não desconta filamento do stock nem regista falhas.
