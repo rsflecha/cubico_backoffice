@@ -5,6 +5,7 @@ import 'package:cubico_backoffice/features/orders/domain/order.dart';
 import 'package:cubico_backoffice/features/orders/presentation/order_labels.dart';
 import 'package:cubico_backoffice/features/orders/presentation/orders_providers.dart';
 import 'package:cubico_backoffice/features/orders/presentation/widgets/status_badge.dart';
+import 'package:cubico_backoffice/features/production/presentation/production_providers.dart';
 import 'package:cubico_backoffice/features/products/domain/variant.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -77,11 +78,16 @@ class OrderDetailScreen extends ConsumerWidget {
               child: FilledButton(
                 onPressed: () async {
                   final next = order.nextStatus!;
-                  await ref
-                      .read(orderRepositoryProvider)
-                      .update(
-                        order.copyWith(status: next, updatedAt: DateTime.now()),
-                      );
+                  if (next == OrderStatus.inProduction) {
+                    // enviar para produção: cria as tarefas no quadro
+                    final variants = ref.read(allVariantsProvider).value ?? <Variant>[];
+                    await ref.read(productionServiceProvider).sendToProduction(order, variants);
+                    ref.invalidate(printJobsProvider);
+                  } else {
+                    await ref.read(orderRepositoryProvider).update(
+                      order.copyWith(status: next, updatedAt: DateTime.now()),
+                    );
+                  }
                   ref.invalidate(ordersProvider);
                 },
                 child: Text(order.nextStatus!.actionLabel),

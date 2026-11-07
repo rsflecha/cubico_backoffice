@@ -27,6 +27,16 @@ class DemoPrintJobRepository implements PrintJobRepository {
     ),
   ];
 
+  int _nextId = 100;
+
+  @override
+  Future<PrintJob> create(PrintJob draft) async {
+    await _latency();
+    final created = draft.copyWith(id: _nextId++);
+    _items.add(created);
+    return created;
+  }
+
   Future<void> _latency() => Future.delayed(const Duration(milliseconds: 300));
 
   @override

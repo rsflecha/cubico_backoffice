@@ -1,4 +1,5 @@
 import 'package:cubico_backoffice/app/theme.dart';
+import 'package:cubico_backoffice/features/orders/presentation/orders_providers.dart';
 import 'package:cubico_backoffice/features/production/domain/print_job.dart';
 import 'package:cubico_backoffice/features/production/presentation/production_providers.dart';
 import 'package:cubico_backoffice/features/products/domain/variant.dart';
@@ -38,6 +39,12 @@ class ProductionScreen extends ConsumerWidget {
             : job.finishedAt ?? now,
       ),
     );
+    // se a tarefa é de uma encomenda, acerta o estado dela
+    final orderId = job.orderId;
+    if (orderId != null) {
+      await ref.read(productionServiceProvider).syncOrder(orderId);
+      ref.invalidate(ordersProvider);
+    }
     ref.invalidate(printJobsProvider);
   }
 
