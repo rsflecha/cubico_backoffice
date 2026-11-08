@@ -1,3 +1,4 @@
+import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
 import 'package:cubico_backoffice/features/products/presentation/widgets/cost_card.dart';
 import 'package:cubico_backoffice/features/products/presentation/widgets/variants_section.dart';
@@ -114,6 +115,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   Widget build(BuildContext context) {
     final categories = ref.watch(productCategoriesProvider).value ?? [];
     final isWide = MediaQuery.sizeOf(context).width >= 1100;
+    // o colaborador só consulta: sem editar, sem apagar, sem calculadora
+    final canSeeCosts = ref.watch(sessionProvider)?.canSeeCosts ?? false;
 
     // as variantes deste produto (só quando se edita)
     final variants = _original == null
@@ -124,14 +127,14 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         variants.where((v) => v.id == _selectedVariantId).firstOrNull ??
         variants.firstOrNull;
 
-    final costCard = CostCard(
-      key: ValueKey(selectedVariant?.id),
-      variant: selectedVariant,
-    );
+    final Widget? costCard = canSeeCosts
+        ? CostCard(key: ValueKey(selectedVariant?.id), variant: selectedVariant)
+        : null;
 
     final formFields = <Widget>[
       TextFormField(
         controller: _nameController,
+        enabled: canSeeCosts,
         decoration: const InputDecoration(
           labelText: "Nome",
           hintText: "Ex.: Suporte de auscultadores",
@@ -151,12 +154,14 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
           for (final category in categories)
             DropdownMenuItem(value: category.id, child: Text(category.name)),
         ],
-        onChanged: (value) => setState(() => _categoryId = value),
+        // sem onChanged, a lista fica desligada (só consulta)
+        onChanged: canSeeCosts ? (value) => setState(() => _categoryId = value) : null,
         validator: (value) => value == null ? "Escolhe uma categoria." : null,
       ),
       const SizedBox(height: 16),
       TextFormField(
         controller: _skuController,
+        enabled: canSeeCosts,
         decoration: const InputDecoration(
           labelText: "SKU base",
           hintText: "Ex.: CD3-SDA-01",
@@ -171,17 +176,19 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
           return null;
         },
       ),
-      const SizedBox(height: 24),
-      FilledButton(
-        onPressed: _saving ? null : _save,
-        child: _saving
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Text("Guardar"),
-      ),
+      if (canSeeCosts) ...[
+        const SizedBox(height: 24),
+        FilledButton(
+          onPressed: _saving ? null : _save,
+          child: _saving
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text("Guardar"),
+        ),
+      ],
       if (_original != null) ...[
         const SizedBox(height: 24),
         VariantsSection(
@@ -195,10 +202,14 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.productId == null ? "Novo produto" : "Editar produto",
+          widget.productId == null
+              ? "Novo produto"
+              : canSeeCosts
+                  ? "Editar produto"
+                  : "Produto",
         ),
         actions: [
-          if (_original != null)
+          if (_original != null && canSeeCosts)
             IconButton(
               onPressed: _delete,
               icon: const Icon(Icons.delete_outline),
@@ -212,8 +223,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         autovalidateMode: _submitted
             ? AutovalidateMode.onUserInteraction
             : AutovalidateMode.disabled,
-        child: isWide
-            // PC: formulário à esquerda, cartão à direita
+        child: isWide && costCard != null
+            // PC (administrador): formulário à esquerda, cartão à direita
             ? Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -233,10 +244,13 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                   ),
                 ],
               )
-            // telemóvel: tudo empilhado
+            // telemóvel, ou colaborador: tudo numa coluna
             : ListView(
                 padding: const EdgeInsets.all(24),
-                children: [...formFields, const SizedBox(height: 24), costCard],
+                children: [
+                  ...formFields,
+                  if (costCard != null) ...[const SizedBox(height: 24), costCard],
+                ],
               ),
       ),
     );

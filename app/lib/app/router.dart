@@ -32,6 +32,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (user == null) return atLogin ? null : "/login";
       // com sessão: o login já não faz sentido
       if (atLogin) return "/dashboard";
+
+      // secções só do administrador
+      const adminOnly = ["/costs", "/settings"];
+      if (!user.canSeeCosts && adminOnly.any((p) => state.matchedLocation.startsWith(p))) {
+        return "/dashboard";
+      }
       return null; // pode passar
     },
     routes: [

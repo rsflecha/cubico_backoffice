@@ -4,6 +4,7 @@ import 'package:cubico_backoffice/features/products/presentation/widgets/categor
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
 
 class ProductsScreen extends ConsumerWidget {
   const ProductsScreen({super.key});
@@ -14,20 +15,22 @@ class ProductsScreen extends ConsumerWidget {
     final products = ref.watch(productsProvider);
     final categories = ref.watch(productCategoriesProvider).value ?? [];
     final selected = ref.watch(selectedCategoryProvider);
+    final canSeeCosts = ref.watch(sessionProvider)?.canSeeCosts ?? false;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("Produtos"),
         centerTitle: true,
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: FilledButton.icon(
-              onPressed: () => context.push("/products/new"),
-              icon: const Icon(Icons.add),
-              label: const Text("Novo produto"),
+          if (canSeeCosts)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: FilledButton.icon(
+                onPressed: () => context.push("/products/new"),
+                icon: const Icon(Icons.add),
+                label: const Text("Novo produto"),
+              ),
             ),
-          ),
         ],
       ),
 
@@ -55,6 +58,7 @@ class ProductsScreen extends ConsumerWidget {
                         .select(category.id),
                   ),
                 ],
+                if (canSeeCosts) ...[
                 const SizedBox(width: 8),
                 ActionChip(
                   avatar: const Icon(Icons.add, size: 18),
@@ -166,7 +170,8 @@ class ProductsScreen extends ConsumerWidget {
                   ),
                 ],
               ],
-            ),
+              ],
+            )
           ),
           // 2. a lista, filtrada
           Expanded(

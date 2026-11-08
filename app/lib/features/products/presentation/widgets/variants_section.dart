@@ -2,6 +2,7 @@ import 'package:cubico_backoffice/core/formatting.dart';
 import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/features/costs/domain/cost_calculator.dart';
 import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
+import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
@@ -28,6 +29,8 @@ class VariantsSection extends ConsumerWidget {
     final filaments = ref.watch(filamentsProvider).value ?? [];
     final components = ref.watch(componentsProvider).value ?? [];
     final perHour = ref.watch(printerCostPerHourProvider);
+    // o colaborador não vê o custo de produção
+    final canSeeCosts = ref.watch(sessionProvider)?.canSeeCosts ?? false;
 
     return Card(
       child: Padding(
@@ -55,12 +58,12 @@ class VariantsSection extends ConsumerWidget {
                         showCheckboxColumn: false,
                         columnSpacing: 32, // espaço entre colunas (era 56)
                         horizontalMargin: 16, // espaço nas pontas (era 24)
-                        columns: const [
-                          DataColumn(label: Text("Variante")),
-                          DataColumn(label: Text("SKU")),
-                          DataColumn(label: Text("Tempo")),
-                          DataColumn(label: Text("Custo*"), numeric: true),
-                          DataColumn(label: Text("Preço"), numeric: true),
+                        columns: [
+                          const DataColumn(label: Text("Variante")),
+                          const DataColumn(label: Text("SKU")),
+                          const DataColumn(label: Text("Tempo")),
+                          if (canSeeCosts) const DataColumn(label: Text("Custo*"), numeric: true),
+                          const DataColumn(label: Text("Preço"), numeric: true),
                         ],
                         rows: [
                           for (final v in list)
@@ -73,6 +76,7 @@ class VariantsSection extends ConsumerWidget {
                                   Text(v.sku, style: AppTextStyles.mono),
                                 ),
                                 DataCell(Text(_formatHours(v.printTimeMin))),
+                                if (canSeeCosts)
                                 DataCell(
                                   Text(
                                     euro(
@@ -101,12 +105,14 @@ class VariantsSection extends ConsumerWidget {
                 );
               },
             ),
-            const SizedBox(height: 8),
-            Text(
-              "* Custo de produção: filamento + impressão + componentes + embalagem, "
-              "sem taxas do canal nem portes.",
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            if (canSeeCosts) ...[
+              const SizedBox(height: 8),
+              Text(
+                "* Custo de produção: filamento + impressão + componentes + embalagem, "
+                "sem taxas do canal nem portes.",
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
           ],
         ),
       ),

@@ -13,6 +13,7 @@ class AppShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(sessionProvider);
+    final canSeeCosts = user?.canSeeCosts ?? false;
     final isWide = MediaQuery.sizeOf(context).width >= 900;
 
     if (!isWide) {
@@ -122,12 +123,14 @@ class AppShell extends ConsumerWidget {
                         selected: navigationShell.currentIndex == 4,
                         onTap: () => navigationShell.goBranch(4),
                       ),
-                      ListTile(
-                        leading: Icon(Icons.calculate_outlined),
-                        title: Text("Custos e preços"),
-                        selected: navigationShell.currentIndex == 5,
-                        onTap: () => navigationShell.goBranch(5),
-                      ),
+                      if (canSeeCosts)
+                        ListTile(
+                          leading: Icon(Icons.calculate_outlined),
+                          title: Text("Custos e preços"),
+                          selected: navigationShell.currentIndex == 5,
+                          onTap: () => navigationShell.goBranch(5),
+                        ),
+                      if (canSeeCosts)
                       ListTile(
                         leading: Icon(Icons.settings_outlined),
                         title: Text("Definições"),

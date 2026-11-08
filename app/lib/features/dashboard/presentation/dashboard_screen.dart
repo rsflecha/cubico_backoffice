@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -15,6 +16,7 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final orders = ref.watch(ordersProvider);
+    final canSeeCosts = ref.watch(sessionProvider)?.canSeeCosts ?? false;
 
     return Scaffold(
       appBar: AppBar(title: const Text("Dashboard")),
@@ -36,19 +38,30 @@ class DashboardScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                children: [
+            Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: [
+                if (canSeeCosts) ...[
                   _kpi(context, "Vendas do mês", euro(sales)),
-                  _kpi(context, "Lucro do mês", euro(profit),
-                      color: profit >= 0 ? const Color(0xFF15803D) : const Color(0xFFB91C1C)),
+                  _kpi(
+                    context,
+                    "Lucro do mês",
+                    euro(profit),
+                    color: profit >= 0 ? const Color(0xFF15803D) : const Color(0xFFB91C1C),
+                  ),
                   _kpi(context, "Encomendas do mês", "${month.length}"),
-                  _kpi(context, "Por fazer", "${pending.length}"),
-                  _kpi(context, "Atrasadas", "${overdue.length}",
-                      color: overdue.isEmpty ? null : const Color(0xFFB91C1C)),
+                ],
+                _kpi(context, "Por fazer", "${pending.length}"),
+                _kpi(
+                  context,
+                  "Atrasadas",
+                  "${overdue.length}",
+                  color: overdue.isEmpty ? null : const Color(0xFFB91C1C),
+                  ),
                 ],
               ),
+              if (canSeeCosts)
               const SizedBox(height: 24),
               Card(
                 child: Padding(
@@ -72,6 +85,7 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 24),
               Text("Precisam de atenção", style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               if (pending.isEmpty)

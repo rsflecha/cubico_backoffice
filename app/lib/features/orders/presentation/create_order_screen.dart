@@ -15,6 +15,7 @@ import 'package:cubico_backoffice/core/formatting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
 
 /// Os métodos de pagamento (do seed.sql). Mais tarde vêm das definições.
 const _paymentMethods = ["MB WAY", "Transferência", "Dinheiro"];
@@ -251,6 +252,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     final components = ref.watch(componentsProvider).value ?? <Component>[];
     final perHour = ref.watch(printerCostPerHourProvider);
     final rates = ref.watch(shippingRatesProvider).value ?? <ShippingRate>[];
+    final canSeeCosts = ref.watch(sessionProvider)?.canSeeCosts ?? false;
 
     final draft = _draftOrder(channel, filaments, components, perHour, rates);
     final problem = _problem(draft, channel, components, rates);
@@ -415,7 +417,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       ],
     );
 
-    final summary = _summaryCard(channel, draft, problem);
+    final summary = _summaryCard(channel, draft, problem, canSeeCosts);
 
     return Scaffold(
       appBar: AppBar(title: const Text("Criar encomenda")),
@@ -539,7 +541,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   }
 
   /// O resumo à direita: as contas vêm do próprio rascunho da encomenda.
-  Widget _summaryCard(SalesChannel? channel, Order draft, String? problem) {
+  Widget _summaryCard(SalesChannel? channel, Order draft, String? problem, bool canSeeCosts) {
     final margin = draft.total > 0 ? draft.profit / draft.total * 100 : 0;
 
     Widget line(String label, String value, {bool bold = false, Color? color}) => Padding(
@@ -571,19 +573,22 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
             line("Artigos (${draft.itemCount})", euro(draft.itemsTotal)),
             line("Portes cobrados", euro(draft.shippingCharged)),
             line("Total", euro(draft.total), bold: true),
-            const SizedBox(height: 8),
-            line("Custo estimado", euro(draft.cost)),
-            line(
-              "Lucro estimado",
-              "${euro(draft.profit)} · ${margin.toStringAsFixed(0)}%",
-              bold: true,
-              color: profitColor(draft),
-            ),
-            if (_delivery == DeliveryMethod.carrier)
-              Text(
-                "Inclui ${euro(draft.shippingPaid)} de portes reais (CTT Registado).",
-                style: Theme.of(context).textTheme.bodySmall,
+            // o custo e o lucro, só para quem pode ver
+            if (canSeeCosts) ...[
+              const SizedBox(height: 8),
+              line("Custo estimado", euro(draft.cost)),
+              line(
+                "Lucro estimado",
+                "${euro(draft.profit)} · ${margin.toStringAsFixed(0)}%",
+                bold: true,
+                color: profitColor(draft),
               ),
+              if (_delivery == DeliveryMethod.carrier)
+                Text(
+                  "Inclui ${euro(draft.shippingPaid)} de portes reais (CTT Registado).",
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+            ],
             const SizedBox(height: 16),
             if (_submitted && problem != null) ...[
               Text(problem, style: const TextStyle(color: Color(0xFFB91C1C))),

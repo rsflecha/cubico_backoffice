@@ -7,6 +7,7 @@ import 'package:cubico_backoffice/features/orders/presentation/orders_providers.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
 
 class OrdersScreen extends ConsumerWidget {
   const OrdersScreen({super.key});
@@ -14,6 +15,7 @@ class OrdersScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final orders = ref.watch(ordersProvider);
+    final canSeeCosts = ref.watch(sessionProvider)?.canSeeCosts ?? false;
     final channels = ref.watch(salesChannelsProvider).value ?? [];
     final selected = ref.watch(selectedOrderStatusProvider);
     final search = ref.watch(orderSearchProvider);
@@ -144,26 +146,17 @@ class OrdersScreen extends ConsumerWidget {
                                 showCheckboxColumn: false,
                                 columnSpacing: 24,
                                 horizontalMargin: 12,
-                                columns: const [
-                                  DataColumn(label: Text("Nº")),
-                                  DataColumn(label: Text("Data")),
-                                  DataColumn(label: Text("Cliente")),
-                                  DataColumn(label: Text("Canal")),
-                                  DataColumn(
-                                    label: Text("Artigos"),
-                                    numeric: true,
-                                  ),
-                                  DataColumn(label: Text("Estado")),
-                                  DataColumn(label: Text("Pagamento")),
-                                  DataColumn(label: Text("Prazo")),
-                                  DataColumn(
-                                    label: Text("Total"),
-                                    numeric: true,
-                                  ),
-                                  DataColumn(
-                                    label: Text("Lucro"),
-                                    numeric: true,
-                                  ),
+                                columns: [
+                                  const DataColumn(label: Text("Nº")),
+                                  const DataColumn(label: Text("Data")),
+                                  const DataColumn(label: Text("Cliente")),
+                                  const DataColumn(label: Text("Canal")),
+                                  const DataColumn(label: Text("Artigos"), numeric: true),
+                                  const DataColumn(label: Text("Estado")),
+                                  const DataColumn(label: Text("Pagamento")),
+                                  const DataColumn(label: Text("Prazo")),
+                                  const DataColumn(label: Text("Total"), numeric: true),
+                                  if (canSeeCosts) const DataColumn(label: Text("Lucro"), numeric: true),
                                 ],
                                 rows: [
                                   for (final o in visible)
@@ -216,14 +209,11 @@ class OrdersScreen extends ConsumerWidget {
                                             ),
                                           ),
                                         ),
-                                        DataCell(
-                                          Text(
+                                        if (canSeeCosts)
+                                          DataCell(Text(
                                             euro(o.profit),
-                                            style: AppTextStyles.mono.copyWith(
-                                              color: profitColor(o),
-                                            ),
-                                          ),
-                                        ),
+                                            style: AppTextStyles.mono.copyWith(color: profitColor(o)),
+                                          )),
                                       ],
                                     ),
                                 ],
