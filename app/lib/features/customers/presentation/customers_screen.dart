@@ -96,7 +96,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
           ),
         ],
       ),
-      onTap: () {}, // a ficha vem no C2
+      onTap: () => context.push("/customers/${c.id}"),
     );
   }
 }
