@@ -4,7 +4,7 @@ Backoffice para gerir uma pequena loja de impressão 3D: produtos e variantes, *
 
 Feito em **Flutter** para **Windows** e Android. É um projeto real, para a minha loja, e o meu primeiro projeto de portfólio depois do curso de Flutter.
 
-> **Estado:** em desenvolvimento, em modo demo (dados de exemplo em memória). A API em PHP + MySQL é a fase seguinte.
+> **Estado:** app completa em modo demo (dados de exemplo em memória). A API em PHP + MySQL é a fase seguinte.
 
 ![Ficha do produto com a calculadora de custo](docs/screenshots/produto-custos.png)
 
@@ -19,6 +19,10 @@ Feito em **Flutter** para **Windows** e Android. É um projeto real, para a minh
 - **Calculadora de custo em tempo real:** filamento (com a parte dos portes de cada rolo), luz e desgaste da impressora, componentes, embalagem e taxas do canal de venda.
 - Margem com cores (saudável, abaixo do alvo, baixa), preço sugerido arredondado e barra para experimentar preços.
 - Cada variante guarda a sua receita de produção; a tabela de variantes mostra o custo de cada uma.
+
+**Login e papéis**
+- Entrar com email e palavra-passe, ou explorar em modo demo como administrador ou colaborador.
+- O colaborador vê só a parte operacional: nunca custos, lucros nem margens, e não mexe em produtos nem em Custos e preços.
 
 **Dashboard**
 - Vendas, lucro e encomendas do mês, encomendas por fazer ordenadas por urgência, e gráfico de vendas e lucro dos últimos 14 dias.
@@ -99,7 +103,7 @@ Também há uma versão Windows pronta a usar, em modo demo, nos [Releases](../.
 | ✅ | Criar encomenda manual, com lucro estimado e portes | |
 | ✅ | Produção: quadro kanban com arrastar, ligado às encomendas | |
 | ✅ | Dashboard com números do mês e gráfico de vendas e lucro | |
-| ⬜ | Login com papéis (administrador / colaborador) | |
+| ✅ | Login com dois papéis: o colaborador não vê custos, lucros nem margens | |
 | ⬜ | API PHP + MySQL e sincronização com a Etsy | |
 
 ## O que aprendi

@@ -440,7 +440,7 @@ lucro    = recebido − custos
 | 7 ✅ | Criar encomenda | Formulários dinâmicos, campos condicionais |
 | 8 ✅ | Produção (kanban) | Drag and drop, regras de estado |
 | 9 ✅ | Dashboard | fl_chart, estados de carregamento/erro |
-| 10 | Login e papéis (administrador/colaborador) | Rotas protegidas, redirecionamentos |
+| 10 ✅ | Login e papéis (administrador/colaborador) | Rotas protegidas, redirecionamentos |
 | 11 | Ligar à API real | Dio, JWT, interceptores, tratamento de erros |
 
 ### Fatia 0 — tarefas

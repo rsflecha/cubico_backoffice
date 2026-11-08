@@ -3,7 +3,7 @@
 Como a app está organizada, por onde passam os dados e onde fica cada coisa.
 O âmbito, as decisões e o plano completo estão em [`cubico-backoffice.md`](cubico-backoffice.md).
 
-**Última atualização:** 07/11/2026 — Fatias 0 a 9 concluídas
+**Última atualização:** 08/11/2026 — Fatias 0 a 10 concluídas (app completa em modo demo)
 
 ---
 
@@ -93,8 +93,12 @@ features/
 │   ├── data/          DemoPrintJobRepository
 │   └── presentation/  production_screen    quadro kanban com arrastar e a impressão em curso
 │                      production_providers
-└── dashboard/
-    └── presentation/  dashboard_screen     números do mês, encomendas por fazer e gráfico (fl_chart)
+├── dashboard/
+│   └── presentation/  dashboard_screen     números do mês, encomendas por fazer e gráfico (fl_chart)
+└── auth/
+    ├── domain/        AppUser (com o papel e canSeeCosts), AuthRepository e AuthException
+    ├── data/          DemoAuthRepository (contas de demonstração)
+    └── presentation/  login_screen e auth_providers (a sessão)
 ```
 
 As restantes secções (`customers`, `settings`) têm, por agora, só o ecrã vazio.
@@ -113,12 +117,20 @@ As restantes secções (`customers`, `settings`) têm, por agora, só o ecrã va
 
 Depois de gravar, o ecrã chama `ref.invalidate(...)` e a lista recarrega-se sozinha.
 
-## 6. Navegação
+## 6. Sessão e papéis
 
-GoRouter com `StatefulShellRoute.indexedStack`: cada secção do menu é uma "gaveta" que guarda o seu estado.
+- A sessão vive no `sessionProvider` (`AppUser?`): `null` = ninguém entrou.
+- Dois papéis: **administrador** (vê tudo) e **colaborador** (só a parte operacional). Os ecrãs perguntam sempre `user.canSeeCosts`, e na dúvida escondem.
+- O colaborador não vê: Custos e preços e Definições (nem no menu, nem pelo endereço), vendas e lucro no Dashboard, a coluna Lucro, o bloco de custos no detalhe, o custo e o lucro estimados ao criar encomenda, a calculadora e os custos dos produtos; e não cria, edita nem apaga produtos.
+- **Esconder no Flutter não chega:** na Fase 3, a API deixa de enviar custos, lucros e margens a um colaborador.
+
+## 7. Navegação
+
+GoRouter com `StatefulShellRoute.indexedStack`: cada secção do menu é uma "gaveta" que guarda o seu estado. Um `redirect` (o "porteiro") manda para o login quem não tem sessão, e para o Dashboard o colaborador que tente abrir `/costs` ou `/settings`; o `refreshListenable` faz o porteiro decidir de novo sempre que a sessão muda.
 
 | Caminho | Ecrã |
 |---|---|
+| `/login` | Entrar (fora da moldura, sem menu) |
 | `/dashboard` | Dashboard (Início no telemóvel) |
 | `/orders` · `/orders/new` · `/orders/:id` | Encomendas · criar encomenda · detalhe da encomenda |
 | `/production` | Produção |
@@ -130,7 +142,7 @@ GoRouter com `StatefulShellRoute.indexedStack`: cada secção do menu é uma "ga
 - **PC** (largura ≥ 900 px): menu lateral preto. Os ecrãs com muito conteúdo passam a duas colunas a partir de 1100 px.
 - **Telemóvel:** menu de baixo com 4 secções (Início, Encomendas, Produção, Produtos).
 
-## 7. Testes
+## 8. Testes
 
 Correm com `flutter test`, dentro de `app/`.
 
@@ -140,7 +152,7 @@ Correm com `flutter test`, dentro de `app/`.
 | `test/features/orders/order_test.dart` | total, custo e lucro; canceladas contam 0; fluxo de estados |
 | `test/features/production/print_job_test.dart` | progresso da impressão e minutos que faltam, calculados pelo tempo |
 
-## 8. Convenções
+## 9. Convenções
 
 - **Tudo o que é técnico em inglês** (código, ficheiros, pastas, tabelas, colunas); **a interface em português**.
 - Material pelo pacote **`material_ui`**, nunca `package:flutter/material.dart`.
@@ -150,7 +162,7 @@ Correm com `flutter test`, dentro de `app/`.
 - Ficheiros `*.freezed.dart` e `*.g.dart` são gerados: nunca se editam à mão (`dart run build_runner build`).
 - Antes de cada commit: `flutter analyze` sem problemas e `flutter test` a passar.
 
-## 9. Estado das fatias
+## 10. Estado das fatias
 
 | Fatia | O quê | Estado |
 |---:|---|:---:|
@@ -164,7 +176,7 @@ Correm com `flutter test`, dentro de `app/`.
 | 7 | Criar encomenda | ✅ |
 | 8 | Produção (kanban) | ✅ |
 | 9 | Dashboard com gráficos | ✅ |
-| 10 | Login e papéis | ⬜ |
+| 10 | Login e papéis | ✅ (contas demo; o login a sério vem com a API) |
 | 11 | Ligar à API real | ⬜ |
 
 **Limitações conhecidas:** um filamento por variante no cartão de custo; ainda não se criam nem apagam variantes; nas encomendas manuais, os portes reais usam só a zona Portugal; a produção ainda não desconta filamento do stock nem regista falhas.
