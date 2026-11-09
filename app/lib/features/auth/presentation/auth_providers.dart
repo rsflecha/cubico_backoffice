@@ -1,6 +1,8 @@
 import 'package:cubico_backoffice/features/auth/data/demo_auth_repository.dart';
+import 'package:cubico_backoffice/features/auth/data/demo_user_repository.dart';
 import 'package:cubico_backoffice/features/auth/domain/app_user.dart';
 import 'package:cubico_backoffice/features/auth/domain/auth_repository.dart';
+import 'package:cubico_backoffice/features/auth/domain/user_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Qual é o repositório de autenticação.
@@ -31,3 +33,13 @@ class SessionNotifier extends Notifier<AppUser?> {
 
 /// A sessão: quem está a usar a app.
 final sessionProvider = NotifierProvider<SessionNotifier, AppUser?>(SessionNotifier.new);
+
+/// Qual é o repositório dos utilizadores.
+final userRepositoryProvider = Provider<UserRepository>((ref) {
+  return DemoUserRepository();
+});
+
+/// Quem tem acesso à app.
+final usersProvider = FutureProvider<List<AppUser>>((ref) {
+  return ref.watch(userRepositoryProvider).fetchAll();
+});
