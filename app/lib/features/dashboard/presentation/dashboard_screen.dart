@@ -19,7 +19,17 @@ class DashboardScreen extends ConsumerWidget {
     final canSeeCosts = ref.watch(sessionProvider)?.canSeeCosts ?? false;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Dashboard")),
+      appBar: AppBar(
+        title: const Text("Dashboard"),
+        actions: [
+          IconButton(
+            tooltip: "A minha conta",
+            icon: const Icon(Icons.account_circle_outlined),
+            onPressed: () => _showAccount(context, ref),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: orders.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text("Erro: $error")),
@@ -146,6 +156,45 @@ class DashboardScreen extends ConsumerWidget {
               Text(value,
                   style: AppTextStyles.mono
                       .copyWith(fontSize: 24, fontWeight: FontWeight.w700, color: color)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Uma folha que sobe do fundo, com quem está a usar a app e o botão de sair.
+  void _showAccount(BuildContext context, WidgetRef ref) {
+    final user = ref.read(sessionProvider);
+    if (user == null) return;
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: CircleAvatar(child: Text(user.name[0])),
+                title: Text(user.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: Text(
+                  "${user.email} · ${user.isAdmin ? "Administrador" : "Colaborador"}",
+                ),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context); // fecha a folha
+                  ref.read(sessionProvider.notifier).signOut();
+                },
+                icon: const Icon(Icons.logout),
+                label: const Text("Terminar sessão"),
+              ),
             ],
           ),
         ),
