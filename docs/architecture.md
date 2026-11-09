@@ -3,7 +3,7 @@
 Como a app está organizada, por onde passam os dados e onde fica cada coisa.
 O âmbito, as decisões e o plano completo estão em [`cubico-backoffice.md`](cubico-backoffice.md).
 
-**Última atualização:** 08/11/2026 — Fatias 0 a 10 concluídas (app completa em modo demo)
+**Última atualização:** 09/11/2026 — v1 completa em modo demo (Fatias 0 a 10, Clientes e Definições)
 
 ---
 
@@ -95,13 +95,22 @@ features/
 │                      production_providers
 ├── dashboard/
 │   └── presentation/  dashboard_screen     números do mês, encomendas por fazer e gráfico (fl_chart)
+├── customers/
+│   ├── domain/        Customer e Address (com a morada numa linha) e o contrato
+│   ├── data/          DemoCustomerRepository
+│   └── presentation/  customers_screen (lista com pesquisa e total gasto), customer_detail_screen
+│                      (contactos, moradas, histórico) e customer_form_screen (criar e editar)
+├── settings/
+│   └── presentation/  settings_screen (a minha conta, utilizadores, atalhos, sobre)
+│                      widgets/  users_section
 └── auth/
-    ├── domain/        AppUser (com o papel e canSeeCosts), AuthRepository e AuthException
-    ├── data/          DemoAuthRepository (contas de demonstração)
+    ├── domain/        AppUser (com o papel, isAdmin e canSeeCosts), AuthRepository, AuthException
+    │                  e UserRepository (gestão de utilizadores)
+    ├── data/          DemoAuthRepository (contas de demonstração) e DemoUserRepository
     └── presentation/  login_screen e auth_providers (a sessão)
 ```
 
-As restantes secções (`customers`, `settings`) têm, por agora, só o ecrã vazio.
+Todas as secções do menu têm o seu ecrã.
 
 **Serviços:** quando uma regra mexe em vários repositórios ao mesmo tempo (enviar uma encomenda para produção cria tarefas **e** muda a encomenda), fica num serviço em `domain`, que recebe os contratos dos repositórios. Exemplo: `ProductionService`. Com a API, estas regras passam para o servidor.
 
@@ -135,7 +144,7 @@ GoRouter com `StatefulShellRoute.indexedStack`: cada secção do menu é uma "ga
 | `/orders` · `/orders/new` · `/orders/:id` | Encomendas · criar encomenda · detalhe da encomenda |
 | `/production` | Produção |
 | `/products` · `/products/new` · `/products/:id` | Produtos · novo produto · editar produto |
-| `/customers` | Clientes |
+| `/customers` · `/customers/new` · `/customers/:id` · `/customers/:id/edit` | Clientes · novo · ficha · editar |
 | `/costs` | Custos e preços |
 | `/settings` | Definições |
 
@@ -179,4 +188,6 @@ Correm com `flutter test`, dentro de `app/`.
 | 10 | Login e papéis | ✅ (contas demo; o login a sério vem com a API) |
 | 11 | Ligar à API real | ⬜ |
 
-**Limitações conhecidas:** um filamento por variante no cartão de custo; ainda não se criam nem apagam variantes; nas encomendas manuais, os portes reais usam só a zona Portugal; a produção ainda não desconta filamento do stock nem regista falhas.
+**Limitações conhecidas:** um filamento por variante no cartão de custo; ainda não se criam nem apagam variantes; nas encomendas manuais, os portes reais usam só a zona Portugal; a produção ainda não desconta filamento do stock nem regista falhas; na demo, os utilizadores juntados nas Definições não conseguem entrar (o login usa as contas fixas do DemoAuthRepository).
+
+**Para fazer depois:** validar o telemóvel dos clientes; preencher a localidade a partir do código postal (reaproveitando a adaptação portuguesa feita no curso); na API, um tipo de erro próprio com mensagens em português para todos os ecrãs.
