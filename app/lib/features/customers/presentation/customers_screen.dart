@@ -5,7 +5,9 @@ import 'package:cubico_backoffice/features/customers/presentation/customers_prov
 import 'package:cubico_backoffice/features/orders/domain/order.dart';
 import 'package:cubico_backoffice/features/orders/presentation/orders_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
 
 class CustomersScreen extends ConsumerStatefulWidget {
   const CustomersScreen({super.key});
@@ -21,9 +23,23 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
   Widget build(BuildContext context) {
     final customers = ref.watch(customersProvider);
     final orders = ref.watch(ordersProvider).value ?? <Order>[];
+    final isAdmin = ref.watch(sessionProvider)?.isAdmin ?? false;
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Clientes")),
+      appBar: AppBar(
+        title: const Text("Clientes"),
+        actions: [
+          if (isAdmin)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: FilledButton.icon(
+                onPressed: () => context.push("/customers/new"),
+                icon: const Icon(Icons.add),
+                label: const Text("Novo cliente"),
+              ),
+            ),
+        ],
+      ),
       body: customers.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text("Erro: $error")),

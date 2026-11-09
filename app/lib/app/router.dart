@@ -3,6 +3,7 @@ import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart
 import 'package:cubico_backoffice/features/auth/presentation/login_screen.dart';
 import 'package:cubico_backoffice/features/costs/presentation/costs_screen.dart';
 import 'package:cubico_backoffice/features/customers/presentation/customer_detail_screen.dart';
+import 'package:cubico_backoffice/features/customers/presentation/customer_form_screen.dart';
 import 'package:cubico_backoffice/features/customers/presentation/customers_screen.dart';
 import 'package:cubico_backoffice/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:cubico_backoffice/features/orders/presentation/create_order_screen.dart';
@@ -115,11 +116,24 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) => const CustomersScreen(),
                 routes: [
                   GoRoute(
-                    path: ":id", // fica /customers/1
+                    path: "new", // /customers/new
+                    builder: (context, state) => const CustomerFormScreen(),
+                  ),
+                  GoRoute(
+                    path: ":id", // /customers/1
                     builder: (context, state) {
                       final id = int.parse(state.pathParameters["id"]!);
                       return CustomerDetailScreen(customerId: id);
                     },
+                    routes: [
+                      GoRoute(
+                        path: "edit", // /customers/1/edit
+                        builder: (context, state) {
+                          final id = int.parse(state.pathParameters["id"]!);
+                          return CustomerFormScreen(customerId: id);
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),

@@ -9,6 +9,7 @@ import 'package:cubico_backoffice/features/orders/presentation/widgets/status_ba
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
 
 class CustomerDetailScreen extends ConsumerWidget {
   const CustomerDetailScreen({super.key, required this.customerId});
@@ -19,6 +20,7 @@ class CustomerDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final customers = ref.watch(customersProvider).value ?? <Customer>[];
     final customer = customers.where((c) => c.id == customerId).firstOrNull;
+    final isAdmin = ref.watch(sessionProvider)?.isAdmin ?? false;
 
     if (customer == null) {
       return Scaffold(
@@ -52,7 +54,17 @@ class CustomerDetailScreen extends ConsumerWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: Text(customer.name)),
+      appBar: AppBar(
+        title: Text(customer.name),
+        actions: [
+          if (isAdmin)
+            IconButton(
+              tooltip: "Editar cliente",
+              onPressed: () => context.push("/customers/${customer.id}/edit"),
+              icon: const Icon(Icons.edit_outlined),
+            ),
+        ],
+      ),
       body: isWide
           ? Row(
         crossAxisAlignment: CrossAxisAlignment.start,

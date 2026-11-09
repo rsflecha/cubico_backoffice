@@ -27,4 +27,7 @@ abstract class AppUser with _$AppUser {
 
   /// Pode ver custos, lucros e margens?
   bool get canSeeCosts => role == UserRole.admin;
+
+  /// É administrador? (pode criar e mudar clientes, produtos, definições…)
+  bool get isAdmin => role == UserRole.admin;
 }

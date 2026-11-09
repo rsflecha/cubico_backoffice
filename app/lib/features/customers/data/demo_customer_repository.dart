@@ -31,6 +31,36 @@ class DemoCustomerRepository implements CustomerRepository {
     ),
   ];
 
+  int _nextId = 10;
+  int _nextAddressId = 10;
+
+  /// Dá um id às moradas novas (as que chegam com id 0).
+  List<Address> _withIds(List<Address> addresses) => [
+    for (final a in addresses) a.id == 0 ? a.copyWith(id: _nextAddressId++) : a,
+  ];
+
+  @override
+  Future<Customer> create(Customer draft) async {
+    await _latency();
+    final created = draft.copyWith(
+      id: _nextId++,
+      createdAt: DateTime.now(),
+      addresses: _withIds(draft.addresses),
+    );
+    _items.add(created);
+    return created;
+  }
+
+  @override
+  Future<Customer> update(Customer customer) async {
+    await _latency();
+    final index = _items.indexWhere((c) => c.id == customer.id);
+    if (index == -1) throw StateError("Cliente ${customer.id} não existe.");
+    final updated = customer.copyWith(addresses: _withIds(customer.addresses));
+    _items[index] = updated;
+    return updated;
+  }
+
   Future<void> _latency() => Future.delayed(const Duration(milliseconds: 300));
 
   @override
