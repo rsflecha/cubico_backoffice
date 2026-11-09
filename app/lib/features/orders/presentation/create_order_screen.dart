@@ -5,6 +5,8 @@ import 'package:cubico_backoffice/features/costs/domain/filament.dart';
 import 'package:cubico_backoffice/features/costs/domain/sales_channel.dart';
 import 'package:cubico_backoffice/features/costs/domain/shipping_rate.dart';
 import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
+import 'package:cubico_backoffice/features/customers/domain/customer.dart';
+import 'package:cubico_backoffice/features/customers/presentation/customers_providers.dart';
 import 'package:cubico_backoffice/features/orders/domain/order.dart';
 import 'package:cubico_backoffice/features/orders/presentation/order_labels.dart';
 import 'package:cubico_backoffice/features/orders/presentation/orders_providers.dart';
@@ -41,6 +43,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   final List<_DraftLine> _lines = [];
   var _submitted = false; // já se carregou em "Criar"? (para mostrar os problemas)
   var _saving = false;
+  int? _customerId; // o cliente com ficha, se se associou um
 
   @override
   void dispose() {
@@ -66,6 +69,39 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       lastDate: now.add(const Duration(days: 365)),
     );
     if (picked != null) setState(() => _shipByDate = picked);
+  }
+
+  /// Escolhe um cliente com ficha e preenche o nome e o contacto.
+  Future<void> _pickCustomer() async {
+    final customers = ref.read(customersProvider).value ?? <Customer>[];
+    final chosen = await showDialog<Customer>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text("Associar a um cliente"),
+        children: [
+          if (customers.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Text("Ainda não há clientes com ficha."),
+            ),
+          for (final c in customers)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, c),
+              child: ListTile(
+                title: Text(c.name),
+                subtitle: Text(c.email ?? c.phone ?? (c.instagram == null ? "" : "@${c.instagram}")),
+              ),
+            ),
+        ],
+      ),
+    );
+    if (chosen == null) return;
+    setState(() {
+      _customerId = chosen.id;
+      _customerName.text = chosen.name;
+      _customerContact.text =
+          chosen.phone ?? chosen.email ?? (chosen.instagram == null ? "" : "@${chosen.instagram}");
+    });
   }
 
   /// Abre a lista do catálogo e junta a variante escolhida às linhas.
@@ -135,6 +171,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       id: 0,
       orderNumber: 0,
       channelId: channel?.id ?? 0,
+      customerId: _customerId,
       customerName: _customerName.text.trim(),
       customerContact: contact.isEmpty ? null : contact,
       paymentStatus: _paymentStatus,
@@ -310,6 +347,21 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: _customerId == null
+                  ? TextButton.icon(
+                onPressed: _pickCustomer,
+                icon: const Icon(Icons.person_search_outlined),
+                label: const Text("Associar a um cliente existente"),
+              )
+                  : InputChip(
+                avatar: const Icon(Icons.person_outline, size: 18),
+                label: const Text("Associada à ficha do cliente"),
+                onDeleted: () => setState(() => _customerId = null),
+              ),
             ),
           ],
         ),
