@@ -11,9 +11,17 @@ class UsersSection extends ConsumerWidget {
   Future<void> _run(BuildContext context, WidgetRef ref, Future<void> Function() action) async {
     try {
       await action();
-    } catch (error) {
+    } on StateError catch (error) {
+      // um erro com uma mensagem nossa: mostra só a mensagem
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$error")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
+      return;
+    } catch (error) {
+      // outro problema qualquer: uma mensagem geral
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Não foi possível guardar. Tenta outra vez.")),
+      );
       return;
     }
     ref.invalidate(usersProvider);
