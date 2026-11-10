@@ -1,3 +1,5 @@
+import 'package:cubico_backoffice/core/api/api_client.dart';
+import 'package:cubico_backoffice/features/auth/data/api_auth_repository.dart';
 import 'package:cubico_backoffice/features/auth/data/demo_auth_repository.dart';
 import 'package:cubico_backoffice/features/auth/data/demo_user_repository.dart';
 import 'package:cubico_backoffice/features/auth/domain/app_user.dart';
@@ -5,9 +7,9 @@ import 'package:cubico_backoffice/features/auth/domain/auth_repository.dart';
 import 'package:cubico_backoffice/features/auth/domain/user_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Qual é o repositório de autenticação.
+/// Qual é o repositório de autenticação: a API a sério.
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return DemoAuthRepository();
+  return ApiAuthRepository(ref.watch(dioProvider), ref.watch(tokenStoreProvider));
 });
 
 /// Quem tem sessão iniciada. null = ninguém.
