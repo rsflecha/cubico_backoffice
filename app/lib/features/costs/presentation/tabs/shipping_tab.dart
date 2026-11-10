@@ -34,28 +34,13 @@ class _ShippingTabState extends ConsumerState<ShippingTab> {
 
   /// Abre a janela para mudar o preço de um escalão.
   Future<void> _editPrice(ShippingRate rate) async {
-    final controller = TextEditingController(text: decimalField(rate.price));
     final newPrice = await showDialog<double>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Até ${_grams(rate.maxWeightG)}"),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(labelText: "Preço", suffixText: "€"),
-          onSubmitted: (value) => Navigator.pop(context, parseDecimal(value)),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, parseDecimal(controller.text)),
-            child: const Text("Guardar"),
-          ),
-        ],
+      builder: (context) => _PriceDialog(
+        title: "Até ${_grams(rate.maxWeightG)}",
+        initialPrice: rate.price,
       ),
     );
-    controller.dispose();
 
     if (newPrice == null || newPrice <= 0) return;
 
@@ -199,3 +184,44 @@ class _ShippingTabState extends ConsumerState<ShippingTab> {
 
 /// 100 → "100 g"; 2000 → "2 kg"
 String _grams(int g) => g >= 1000 && g % 1000 == 0 ? "${g ~/ 1000} kg" : "$g g";
+
+/// A janela do preço: tem o seu próprio controller, e deita-o fora no momento certo.
+class _PriceDialog extends StatefulWidget {
+  const _PriceDialog({required this.title, required this.initialPrice});
+
+  final String title;
+  final double initialPrice;
+
+  @override
+  State<_PriceDialog> createState() => _PriceDialogState();
+}
+
+class _PriceDialogState extends State<_PriceDialog> {
+  late final _controller = TextEditingController(text: decimalField(widget.initialPrice));
+
+  @override
+  void dispose() {
+    _controller.dispose(); // só quando a janela desaparece de vez, depois da animação
+    super.dispose();
+  }
+
+  void _submit() => Navigator.pop(context, parseDecimal(_controller.text));
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: const InputDecoration(labelText: "Preço", suffixText: "€"),
+        onSubmitted: (_) => _submit(),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar")),
+        FilledButton(onPressed: _submit, child: const Text("Guardar")),
+      ],
+    );
+  }
+}
