@@ -18,14 +18,14 @@ class DemoUserRepository implements UserRepository {
   }
 
   @override
-  Future<AppUser> create(AppUser draft) async {
+  Future<({AppUser user, String? temporaryPassword})> create(AppUser draft) async {
     await _latency();
     if (_items.any((u) => u.email == draft.email)) {
       throw StateError("Já existe um utilizador com este email.");
     }
     final created = draft.copyWith(id: _nextId++);
     _items.add(created);
-    return created;
+    return (user: created, temporaryPassword: null); // no modo demo não há palavras-passe
   }
 
   @override

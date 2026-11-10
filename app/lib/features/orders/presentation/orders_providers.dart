@@ -1,3 +1,6 @@
+import 'package:cubico_backoffice/core/api/api_client.dart';
+import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
+import 'package:cubico_backoffice/features/orders/data/api_order_repository.dart';
 import 'package:cubico_backoffice/features/orders/data/demo_order_repository.dart';
 import 'package:cubico_backoffice/features/orders/domain/order.dart';
 import 'package:cubico_backoffice/features/orders/domain/order_repository.dart';
@@ -5,7 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Qual é o repositório das encomendas.
 final orderRepositoryProvider = Provider<OrderRepository>((ref) {
-  return DemoOrderRepository();
+  if (ref.watch(demoModeProvider)) return DemoOrderRepository();
+  return ApiOrderRepository(ref.watch(dioProvider));
 });
 
 /// A lista de encomendas.

@@ -1,5 +1,6 @@
 import 'package:cubico_backoffice/core/api/api_client.dart';
 import 'package:cubico_backoffice/features/auth/data/api_auth_repository.dart';
+import 'package:cubico_backoffice/features/auth/data/api_user_repository.dart';
 import 'package:cubico_backoffice/features/auth/data/demo_user_repository.dart';
 import 'package:cubico_backoffice/features/auth/domain/app_user.dart';
 import 'package:cubico_backoffice/features/auth/domain/auth_repository.dart';
@@ -54,7 +55,8 @@ final sessionProvider = NotifierProvider<SessionNotifier, AppUser?>(SessionNotif
 
 /// Qual é o repositório dos utilizadores.
 final userRepositoryProvider = Provider<UserRepository>((ref) {
-  return DemoUserRepository();
+  if (ref.watch(demoModeProvider)) return DemoUserRepository();
+  return ApiUserRepository(ref.watch(dioProvider));
 });
 
 /// Quem tem acesso à app.

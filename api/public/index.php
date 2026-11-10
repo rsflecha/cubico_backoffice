@@ -14,6 +14,7 @@ require __DIR__ . '/../src/db.php';
 require __DIR__ . '/../src/helpers.php';
 require __DIR__ . '/../src/auth.php'; // os porteiros: $requireAuth e $requireAdmin
 require __DIR__ . '/../src/tables.php'; // os pedidos habituais das tabelas simples
+require __DIR__ . '/../src/costs.php';  // as contas oficiais (custo, portes)
 
 $app = AppFactory::create();
 $app->addBodyParsingMiddleware();
@@ -28,5 +29,8 @@ require __DIR__ . '/../routes/categories.php';
 require __DIR__ . '/../routes/costs.php';
 require __DIR__ . '/../routes/products.php';
 require __DIR__ . '/../routes/customers.php';
+require __DIR__ . '/../routes/orders.php';
+require __DIR__ . '/../routes/production.php';
+require __DIR__ . '/../routes/users.php';
 
 $app->run();

@@ -1,3 +1,4 @@
+import 'package:cubico_backoffice/core/api/api_exception.dart';
 import 'package:cubico_backoffice/features/auth/domain/app_user.dart';
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +14,11 @@ class UsersSection extends ConsumerWidget {
       await action();
     } on StateError catch (error) {
       // um erro com uma mensagem nossa: mostra só a mensagem
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
+      return;
+    } on ApiException catch (error) {
+      // a mensagem que a API mandou ("Tem de haver sempre pelo menos um administrador.")
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.message)));
       return;
@@ -84,7 +90,39 @@ class UsersSection extends ConsumerWidget {
     email.dispose();
 
     if (draft == null || !context.mounted) return;
-    await _run(context, ref, () => ref.read(userRepositoryProvider).create(draft));
+    String? temporary;
+    await _run(context, ref, () async {
+      temporary = (await ref.read(userRepositoryProvider).create(draft)).temporaryPassword;
+    });
+
+    // com a API: mostrar a palavra-passe provisória, que só existe agora
+    final password = temporary;
+    if (password == null || !context.mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Palavra-passe provisória"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Dá esta palavra-passe a ${draft.name}, para entrar a primeira vez:"),
+            const SizedBox(height: 12),
+            SelectableText(
+              password,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, letterSpacing: 1),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              "Só aparece agora: na base de dados fica cifrada, e nem tu a voltas a ver.",
+            ),
+          ],
+        ),
+        actions: [
+          FilledButton(onPressed: () => Navigator.pop(context), child: const Text("Já a copiei")),
+        ],
+      ),
+    );
   }
 
   @override
