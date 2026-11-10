@@ -4,6 +4,7 @@
     "type": "project",
     "require": {
         "php": "^8.4",
+        "firebase/php-jwt": "^7.2",
         "slim/psr7": "^1.7",
         "slim/slim": "^4.14",
         "vlucas/phpdotenv": "^5.6"
