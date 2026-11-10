@@ -1,0 +1,14 @@
+{
+    "name": "cubicodesign3d/backoffice-api",
+    "description": "API do backoffice CubicoDesign3D (PHP 8 + Slim 4)",
+    "type": "project",
+    "require": {
+        "php": "^8.4",
+        "slim/psr7": "^1.7",
+        "slim/slim": "^4.14",
+        "vlucas/phpdotenv": "^5.6"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
