@@ -278,7 +278,7 @@ class _FilamentFormState extends ConsumerState<_FilamentForm> {
       return;
     }
 
-    ref.invalidate(componentsProvider);
+    ref.invalidate(filamentsProvider);
     if (!mounted) return;
     widget.onClose();
   }
