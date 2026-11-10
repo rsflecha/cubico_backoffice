@@ -22,6 +22,24 @@ class VariantsSection extends ConsumerWidget {
   final int? selectedVariantId; // qual está escolhida (para a pintar)
   final ValueChanged<Variant>? onSelect; // chamada quando se toca numa linha
 
+  /// Cria uma variante vazia e escolhe-a, para se preencher no cartão de custo.
+  Future<void> _addVariant(BuildContext context, WidgetRef ref) async {
+    final Variant created;
+    try {
+      created = await ref.read(variantRepositoryProvider).create(productId: productId);
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Não foi possível criar a variante: $error")),
+        );
+      }
+      return;
+    }
+    ref.invalidate(variantsProvider(productId));
+    ref.invalidate(allVariantsProvider);
+    onSelect?.call(created);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     const calc = CostCalculator();
@@ -31,6 +49,7 @@ class VariantsSection extends ConsumerWidget {
     final perHour = ref.watch(printerCostPerHourProvider);
     // o colaborador não vê o custo de produção
     final canSeeCosts = ref.watch(sessionProvider)?.canSeeCosts ?? false;
+    final isAdmin = ref.watch(sessionProvider)?.isAdmin ?? false;
 
     return Card(
       child: Padding(
@@ -38,7 +57,19 @@ class VariantsSection extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Variantes", style: Theme.of(context).textTheme.titleMedium),
+            Row(
+              children: [
+                Expanded(
+                  child: Text("Variantes", style: Theme.of(context).textTheme.titleMedium),
+                ),
+                if (isAdmin)
+                  TextButton.icon(
+                    onPressed: () => _addVariant(context, ref),
+                    icon: const Icon(Icons.add),
+                    label: const Text("Adicionar variante"),
+                  ),
+              ],
+            ),
             const SizedBox(height: 8),
             variants.when(
               loading: () => const Center(child: CircularProgressIndicator()),

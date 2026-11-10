@@ -1,3 +1,5 @@
+import 'package:cubico_backoffice/features/products/data/api_product_repository.dart';
+import 'package:cubico_backoffice/features/products/data/api_variant_repository.dart';
 import 'package:cubico_backoffice/core/api/api_client.dart';
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
 import 'package:cubico_backoffice/features/products/data/api_product_category_repository.dart';
@@ -28,7 +30,8 @@ final productCategoriesProvider = FutureProvider<List<ProductCategory>>((ref) {
 
 /// Qual é o repositório dos produtos.
 final productRepositoryProvider = Provider<ProductRepository>((ref) {
-  return DemoProductRepository();
+  if (ref.watch(demoModeProvider)) return DemoProductRepository();
+  return ApiProductRepository(ref.watch(dioProvider));
 });
 
 /// A lista de produtos, vinda do repositório.
@@ -55,7 +58,8 @@ final selectedCategoryProvider =
 
 /// Qual é o repositório das variantes.
 final variantRepositoryProvider = Provider<VariantRepository>((ref) {
-  return DemoVariantRepository();
+  if (ref.watch(demoModeProvider)) return DemoVariantRepository();
+  return ApiVariantRepository(ref.watch(dioProvider));
 });
 
 /// As variantes de um produto (uma "gaveta" por produto).

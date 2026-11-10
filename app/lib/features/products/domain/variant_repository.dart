@@ -4,6 +4,9 @@ abstract interface class VariantRepository {
   /// As variantes de um produto.
   Future<List<Variant>> fetchByProduct(int productId);
 
+  /// Cria uma variante nova, vazia ("Nova variante", preço 0), para depois se preencher.
+  Future<Variant> create({required int productId});
+
   /// Grava as alterações de uma variante (preço, receita…).
   Future<Variant> update(Variant variant);
 

@@ -26,5 +26,7 @@ require __DIR__ . '/../routes/health.php';
 require __DIR__ . '/../routes/auth.php';
 require __DIR__ . '/../routes/categories.php';
 require __DIR__ . '/../routes/costs.php';
+require __DIR__ . '/../routes/products.php';
+require __DIR__ . '/../routes/customers.php';
 
 $app->run();

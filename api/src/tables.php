@@ -6,10 +6,11 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\App;
 
 /**
- * Cria os pedidos habituais de uma tabela simples, só para o administrador:
- *   GET    {path}        → a lista
+ * Cria os pedidos habituais de uma tabela simples:
+ *   GET    {path}        → a lista         (só o administrador, ou todos com sessão se $everyoneCanList)
  *   POST   {path}        → criar           (se $canCreate)
  *   PUT    {path}/{id}   → mudar uma linha
+ * Criar e mudar são sempre só para o administrador.
  *
  * Muitas tabelas são iguais (filamentos, componentes, impressoras, portes…):
  * em vez de escrever os mesmos pedidos seis vezes, escrevem-se uma vez, aqui.
@@ -30,9 +31,11 @@ function tableRoutes(
     string $orderBy,
     callable $requireAuth,
     callable $requireAdmin,
+    bool $everyoneCanList = false,
 ): void {
-    // as colunas que a app pode mudar: todas menos o id
-    $writable = array_values(array_filter(array_keys($types), fn ($c) => $c !== 'id'));
+    // as colunas que a app pode mudar: todas menos o id e as datas automáticas
+    $readOnly = ['id', 'created_at', 'updated_at'];
+    $writable = array_values(array_filter(array_keys($types), fn ($c) => !in_array($c, $readOnly, true)));
 
     $find = function (int $id) use ($table): ?array {
         $stmt = db()->prepare("SELECT * FROM $table WHERE id = ?");
@@ -41,10 +44,14 @@ function tableRoutes(
     };
 
     // GET → a lista
-    $app->get($path, function (Request $request, Response $response) use ($table, $types, $orderBy) {
+    $list = $app->get($path, function (Request $request, Response $response) use ($table, $types, $orderBy) {
         $rows = db()->query("SELECT * FROM $table ORDER BY $orderBy")->fetchAll();
         return json($response, array_map(fn ($row) => typed($row, $types), $rows));
-    })->add($requireAdmin)->add($requireAuth);
+    });
+    if (!$everyoneCanList) {
+        $list->add($requireAdmin);
+    }
+    $list->add($requireAuth);
 
     // POST → criar
     if ($canCreate) {

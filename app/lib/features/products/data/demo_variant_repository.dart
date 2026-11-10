@@ -56,6 +56,23 @@ class DemoVariantRepository implements VariantRepository {
     return _items.where((v) => v.productId == productId).toList();
   }
 
+  int _nextId = 100;
+
+  @override
+  Future<Variant> create({required int productId}) async {
+    await _latency();
+    final id = _nextId++;
+    final created = Variant(
+      id: id,
+      productId: productId,
+      name: "Nova variante",
+      sku: "DEMO-$id",
+      salePrice: 0,
+    );
+    _items.add(created);
+    return created;
+  }
+
   @override
   Future<Variant> update(Variant variant) async {
     await _latency();
