@@ -1,4 +1,5 @@
 import 'package:cubico_backoffice/app/theme.dart';
+import 'package:cubico_backoffice/core/api/api_exception.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
 import 'package:cubico_backoffice/features/products/presentation/widgets/category_dialog.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -73,10 +74,14 @@ class ProductsScreen extends ConsumerWidget {
                     // 2. se cancelou ou deixou vazio, não faz nada
                     if (name == null || name.trim().isEmpty) return;
 
-                    // 3. pede ao balcão para criar
-                    await ref
-                        .read(productCategoryRepositoryProvider)
-                        .create(name: name.trim());
+                    // 3. pede ao balcão para criar (se falhar, mostra o erro e pára)
+                    final ok = await _tryCategory(
+                      context,
+                      () => ref
+                          .read(productCategoryRepositoryProvider)
+                          .create(name: name.trim()),
+                    );
+                    if (!ok) return;
 
                     // 4. diz ao Riverpod que a lista mudou, para a ir buscar outra vez
                     ref.invalidate(productCategoriesProvider);
@@ -103,9 +108,13 @@ class ProductsScreen extends ConsumerWidget {
                       );
                       if (name == null || name.trim().isEmpty) return;
 
-                      await ref
-                          .read(productCategoryRepositoryProvider)
-                          .update(category.copyWith(name: name.trim()));
+                      final ok = await _tryCategory(
+                        context,
+                        () => ref
+                            .read(productCategoryRepositoryProvider)
+                            .update(category.copyWith(name: name.trim())),
+                      );
+                      if (!ok) return;
                       ref.invalidate(productCategoriesProvider);
                     },
                   ),
@@ -159,9 +168,14 @@ class ProductsScreen extends ConsumerWidget {
                       );
                       if (confirmed != true) return;
 
-                      await ref
-                          .read(productCategoryRepositoryProvider)
-                          .delete(category.id);
+                      if (!context.mounted) return;
+                      final ok = await _tryCategory(
+                        context,
+                        () => ref
+                            .read(productCategoryRepositoryProvider)
+                            .delete(category.id),
+                      );
+                      if (!ok) return;
                       ref
                           .read(selectedCategoryProvider.notifier)
                           .select(null); // volta a "Todas"
@@ -208,5 +222,26 @@ class ProductsScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+/// Corre uma gravação de categorias. Se falhar, mostra a mensagem e devolve false.
+Future<bool> _tryCategory(BuildContext context, Future<void> Function() action) async {
+  try {
+    await action();
+    return true;
+  } catch (error) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error is ApiException
+                ? error.message
+                : "Não foi possível guardar. Tenta outra vez.",
+          ),
+        ),
+      );
+    }
+    return false;
   }
 }

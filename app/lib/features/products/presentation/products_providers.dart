@@ -1,3 +1,6 @@
+import 'package:cubico_backoffice/core/api/api_client.dart';
+import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
+import 'package:cubico_backoffice/features/products/data/api_product_category_repository.dart';
 import 'package:cubico_backoffice/features/products/data/demo_product_category_repository.dart';
 import 'package:cubico_backoffice/features/products/domain/product_category.dart';
 import 'package:cubico_backoffice/features/products/domain/product_category_repository.dart';
@@ -10,12 +13,10 @@ import 'package:cubico_backoffice/features/products/domain/product_repository.da
 import 'package:cubico_backoffice/features/products/domain/variant.dart';
 import 'package:cubico_backoffice/features/products/domain/variant_repository.dart';
 
-/// Qual é o repositório das categorias.
-/// Na Fatia 11 troca-se aqui o Demo pelo Api, e mais nada muda.
-final productCategoryRepositoryProvider = Provider<ProductCategoryRepository>((
-  ref,
-) {
-  return DemoProductCategoryRepository();
+/// Qual é o repositório das categorias: os dados de exemplo no modo demo, a API numa sessão a sério.
+final productCategoryRepositoryProvider = Provider<ProductCategoryRepository>((ref) {
+  if (ref.watch(demoModeProvider)) return DemoProductCategoryRepository();
+  return ApiProductCategoryRepository(ref.watch(dioProvider));
 });
 
 /// A lista de categorias, vinda do repositório.

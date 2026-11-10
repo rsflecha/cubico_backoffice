@@ -1,6 +1,5 @@
 import 'package:cubico_backoffice/core/api/api_client.dart';
 import 'package:cubico_backoffice/features/auth/data/api_auth_repository.dart';
-import 'package:cubico_backoffice/features/auth/data/demo_auth_repository.dart';
 import 'package:cubico_backoffice/features/auth/data/demo_user_repository.dart';
 import 'package:cubico_backoffice/features/auth/domain/app_user.dart';
 import 'package:cubico_backoffice/features/auth/domain/auth_repository.dart';
@@ -12,6 +11,20 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return ApiAuthRepository(ref.watch(dioProvider), ref.watch(tokenStoreProvider));
 });
 
+/// O modo da sessão: true = modo demo (dados de exemplo, sem servidor);
+/// false = sessão a sério, com os dados da API.
+class DemoModeNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool value) {
+    state = value;
+  }
+}
+
+/// Em que modo está a app. Cada placa de repositório escolhe o Demo ou o Api conforme isto.
+final demoModeProvider = NotifierProvider<DemoModeNotifier, bool>(DemoModeNotifier.new);
+
 /// Quem tem sessão iniciada. null = ninguém.
 class SessionNotifier extends Notifier<AppUser?> {
   @override
@@ -19,11 +32,14 @@ class SessionNotifier extends Notifier<AppUser?> {
 
   /// Entra com email e palavra-passe. Lança AuthException se falhar.
   Future<void> signIn(String email, String password) async {
-    state = await ref.read(authRepositoryProvider).signIn(email: email, password: password);
+    final user = await ref.read(authRepositoryProvider).signIn(email: email, password: password);
+    ref.read(demoModeProvider.notifier).set(false); // sessão a sério: os dados vêm da API
+    state = user;
   }
 
   /// Entra diretamente com uma conta demo (o botão "Explorar em modo demo").
   void signInAs(AppUser user) {
+    ref.read(demoModeProvider.notifier).set(true); // modo demo: os dados de exemplo
     state = user;
   }
 
