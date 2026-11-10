@@ -54,3 +54,38 @@ function isDuplicate(PDOException $e): bool
 {
     return $e->getCode() === '23000';
 }
+
+/**
+ * Uma linha da base de dados com os tipos certos para a app.
+ * O PHP lê os DECIMAL como texto ("13.99") e os BOOLEAN como 0/1;
+ * a app espera números e true/false.
+ * $types: ['id' => 'int', 'paid_price' => 'float', 'is_active' => 'bool', 'name' => 'string', …]
+ */
+function typed(array $row, array $types): array
+{
+    $out = [];
+    foreach ($types as $column => $type) {
+        $value = $row[$column] ?? null;
+        $out[$column] = $value === null ? null : match ($type) {
+            'int' => (int) $value,
+            'float' => (float) $value,
+            'bool' => (bool) $value,
+            default => (string) $value,
+        };
+    }
+    return $out;
+}
+
+/** Um valor que veio da app, pronto para gravar na coluna (true/false → 1/0). */
+function dbValue(mixed $value, string $type): mixed
+{
+    if ($value === null) {
+        return null;
+    }
+    return match ($type) {
+        'int' => (int) $value,
+        'float' => (float) $value,
+        'bool' => $value ? 1 : 0,
+        default => trim((string) $value),
+    };
+}

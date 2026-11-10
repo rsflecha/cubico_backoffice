@@ -50,19 +50,23 @@ INSERT INTO payment_methods (name, percent_fee, flat_fee) VALUES
   ('Dinheiro',      0.00, 0.00);
 
 -- ───────────── Envios ─────────────
-INSERT INTO carriers (name) VALUES
-  ('CTT · Correio Registado'),
-  ('CTT Expresso');
+-- Decisão de 2026-11-06: Portugal por CTT Correio Registado (com seguimento);
+-- estrangeiro (só Etsy) por CTT Correio Azul Internacional. Preços base de 2026, pacote postal.
+INSERT INTO carriers (id, name) VALUES
+  (1, 'CTT · Correio Registado'),
+  (2, 'CTT · Correio Azul Internacional');
 
-INSERT INTO shipping_zones (name, countries) VALUES
-  ('Portugal Continental', 'PT'),
-  ('Ilhas',                'PT'),
-  ('Europa',               'ES,FR,DE,IT,NL,BE,LU,AT,IE,DK,SE,FI,PL,CZ,GR');
+INSERT INTO shipping_zones (id, name, countries) VALUES
+  (1, 'Portugal',       'PT'),
+  (2, 'Europa',         'ES,FR,DE,IT,NL,BE,LU,AT,IE,DK,SE,FI,PL,CZ,GR,GB,CH,NO'),
+  (3, 'Estados Unidos', 'US'),
+  (4, 'Resto do mundo', NULL);
 
--- As tarifas ficam por preencher: dependem dos escaloes de peso do contrato
--- dos CTT. Sem elas, os portes entram a mao em cada encomenda.
--- Exemplo do formato, quando houver os precos:
--- INSERT INTO shipping_rates (carrier_id, zone_id, max_weight_g, price) VALUES (1, 1, 20, 2.95);
+INSERT INTO shipping_rates (carrier_id, zone_id, max_weight_g, price) VALUES
+  (1, 1,  100,  4.60), (1, 1,  500,  5.40), (1, 1, 2000,  8.93),
+  (2, 2,  100,  5.80), (2, 2,  250,  7.55), (2, 2,  500,  9.80), (2, 2, 1000, 13.20), (2, 2, 2000, 21.20),
+  (2, 3,  100,  6.95), (2, 3,  250, 10.10), (2, 3,  500, 15.70), (2, 3, 1000, 26.75), (2, 3, 2000, 39.25),
+  (2, 4,  100,  6.55), (2, 4,  250,  9.30), (2, 4,  500, 14.15), (2, 4, 1000, 23.95), (2, 4, 2000, 36.15);
 
 -- ───────────── Utilizador administrador ─────────────
 -- Fica por criar de proposito: a password tem de ser guardada como hash

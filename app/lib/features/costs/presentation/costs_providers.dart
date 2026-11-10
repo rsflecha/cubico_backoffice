@@ -1,3 +1,11 @@
+import 'package:cubico_backoffice/core/api/api_client.dart';
+import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
+import 'package:cubico_backoffice/features/costs/data/api_component_repository.dart';
+import 'package:cubico_backoffice/features/costs/data/api_cost_settings_repository.dart';
+import 'package:cubico_backoffice/features/costs/data/api_filament_repository.dart';
+import 'package:cubico_backoffice/features/costs/data/api_printer_repository.dart';
+import 'package:cubico_backoffice/features/costs/data/api_sales_channel_repository.dart';
+import 'package:cubico_backoffice/features/costs/data/api_shipping_rate_repository.dart';
 import 'package:cubico_backoffice/features/costs/data/demo_component_repository.dart';
 import 'package:cubico_backoffice/features/costs/data/demo_cost_settings_repository.dart';
 import 'package:cubico_backoffice/features/costs/data/demo_filament_repository.dart';
@@ -22,7 +30,8 @@ import 'package:cubico_backoffice/features/costs/domain/sales_channel_repository
 
 /// Qual é o repositório dos filamentos.
 final filamentRepositoryProvider = Provider<FilamentRepository>((ref) {
-  return DemoFilamentRepository();
+  if (ref.watch(demoModeProvider)) return DemoFilamentRepository();
+  return ApiFilamentRepository(ref.watch(dioProvider));
 });
 
 /// A lista de filamentos, vinda do repositório.
@@ -33,7 +42,8 @@ final filamentsProvider = FutureProvider<List<Filament>>((ref) {
 
 /// Qual é o repositório dos canais de venda.
 final salesChannelRepositoryProvider = Provider<SalesChannelRepository>((ref) {
-  return DemoSalesChannelRepository();
+  if (ref.watch(demoModeProvider)) return DemoSalesChannelRepository();
+  return ApiSalesChannelRepository(ref.watch(dioProvider));
 });
 
 /// A lista de canais de venda.
@@ -44,7 +54,8 @@ final salesChannelsProvider = FutureProvider<List<SalesChannel>>((ref) {
 
 /// Qual é o repositório dos componentes e embalagens.
 final componentRepositoryProvider = Provider<ComponentRepository>((ref) {
-  return DemoComponentRepository();
+  if (ref.watch(demoModeProvider)) return DemoComponentRepository();
+  return ApiComponentRepository(ref.watch(dioProvider));
 });
 
 /// A lista de componentes e embalagens.
@@ -75,7 +86,8 @@ final printerCostPerHourProvider = Provider<double>((ref) {
 
 /// Qual é o repositório das impressoras.
 final printerRepositoryProvider = Provider<PrinterRepository>((ref) {
-  return DemoPrinterRepository();
+  if (ref.watch(demoModeProvider)) return DemoPrinterRepository();
+  return ApiPrinterRepository(ref.watch(dioProvider));
 });
 
 /// A lista de impressoras.
@@ -85,7 +97,8 @@ final printersProvider = FutureProvider<List<Printer>>((ref) {
 
 /// Qual é o repositório das definições de custos.
 final costSettingsRepositoryProvider = Provider<CostSettingsRepository>((ref) {
-  return DemoCostSettingsRepository();
+  if (ref.watch(demoModeProvider)) return DemoCostSettingsRepository();
+  return ApiCostSettingsRepository(ref.watch(dioProvider));
 });
 
 /// As definições de custos e preços.
@@ -94,7 +107,8 @@ final costSettingsProvider = FutureProvider<CostSettings>((ref) {
 });
 
 final shippingRateRepositoryProvider = Provider<ShippingRateRepository>((ref) {
-  return DemoShippingRateRepository();
+  if (ref.watch(demoModeProvider)) return DemoShippingRateRepository();
+  return ApiShippingRateRepository(ref.watch(dioProvider));
 });
 
 final shippingRatesProvider = FutureProvider<List<ShippingRate>>((ref) {

@@ -13,6 +13,7 @@ $debug = ($_ENV['APP_DEBUG'] ?? 'false') === 'true';
 require __DIR__ . '/../src/db.php';
 require __DIR__ . '/../src/helpers.php';
 require __DIR__ . '/../src/auth.php'; // os porteiros: $requireAuth e $requireAdmin
+require __DIR__ . '/../src/tables.php'; // os pedidos habituais das tabelas simples
 
 $app = AppFactory::create();
 $app->addBodyParsingMiddleware();
@@ -24,5 +25,6 @@ $app->addErrorMiddleware($debug, true, true);
 require __DIR__ . '/../routes/health.php';
 require __DIR__ . '/../routes/auth.php';
 require __DIR__ . '/../routes/categories.php';
+require __DIR__ . '/../routes/costs.php';
 
 $app->run();

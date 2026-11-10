@@ -107,11 +107,12 @@ CREATE TABLE shipping_zones (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE shipping_rates (
+  id           SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   carrier_id   TINYINT UNSIGNED NOT NULL,
   zone_id      TINYINT UNSIGNED NOT NULL,
-  max_weight_g INT UNSIGNED NOT NULL,           -- escalao: ate 20 g, 100 g, 500 g…
+  max_weight_g INT UNSIGNED NOT NULL,           -- escalao: ate 100 g, 500 g…
   price        DECIMAL(10,2) NOT NULL,
-  PRIMARY KEY (carrier_id, zone_id, max_weight_g),
+  UNIQUE KEY uq_rate (carrier_id, zone_id, max_weight_g),
   FOREIGN KEY (carrier_id) REFERENCES carriers(id) ON DELETE CASCADE,
   FOREIGN KEY (zone_id)    REFERENCES shipping_zones(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
