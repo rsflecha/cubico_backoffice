@@ -43,6 +43,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   final List<_DraftLine> _lines = [];
   var _submitted = false; // já se carregou em "Criar"? (para mostrar os problemas)
   var _saving = false;
+  var _shippingEdited = false; // escreveste tu os portes? então a app deixa de os sugerir
   int? _customerId; // o cliente com ficha, se se associou um
 
   @override
@@ -133,12 +134,18 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       ),
     );
     if (chosen == null) return;
-    setState(() => _lines.add(_DraftLine(chosen)));
+    setState(() {
+      _lines.add(_DraftLine(chosen));
+      _suggestShipping();
+    });
   }
 
   /// Tira uma linha (e arruma os campos dela).
   void _removeLine(_DraftLine line) {
-    setState(() => _lines.remove(line));
+    setState(() {
+      _lines.remove(line);
+      _suggestShipping();
+    });
     line.dispose();
   }
 
@@ -152,6 +159,20 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       total += qty * _calc.variantShippingWeightG(variant: line.variant, components: components);
     }
     return total;
+  }
+
+  /// Sugere nos portes cobrados o preço dos CTT para o peso atual,
+  /// enquanto não escreveres tu outro valor.
+  void _suggestShipping() {
+    if (_delivery != DeliveryMethod.carrier || _shippingEdited) return;
+    final components = ref.read(componentsProvider).value ?? <Component>[];
+    final rates = ref.read(shippingRatesProvider).value ?? <ShippingRate>[];
+    final price = _calc.shippingPrice(
+      weightG: _totalWeight(components),
+      zoneId: 1,
+      rates: rates,
+    );
+    if (price != null) _shippingCharged.text = decimalField(price);
   }
 
   /// Junta tudo o que está escrito numa encomenda. Serve para o resumo E para gravar.
@@ -386,11 +407,38 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                   ChoiceChip(
                     label: Text(method == DeliveryMethod.carrier ? "Envio CTT" : method.label),
                     selected: _delivery == method,
-                    onSelected: (_) => setState(() => _delivery = method),
+                    onSelected: (_) => setState(() {
+                      _delivery = method;
+                      _suggestShipping();
+                    }),
                   ),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(
+              width: 260,
+              child: Builder(builder: (context) {
+                // o peso e o preço dos CTT, para mostrar por baixo do campo
+                final components = ref.watch(componentsProvider).value ?? <Component>[];
+                final rates = ref.watch(shippingRatesProvider).value ?? <ShippingRate>[];
+                final weight = _totalWeight(components);
+                final ctt = _calc.shippingPrice(weightG: weight, zoneId: 1, rates: rates);
+
+                return TextField(
+                  controller: _shippingCharged,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: AppTextStyles.mono,
+                  decoration: InputDecoration(
+                    labelText: "Portes cobrados ao cliente",
+                    suffixText: "€",
+                    helperText: ctt == null
+                        ? "$weight g: acima do limite do correio"
+                        : "CTT Registado, $weight g: ${euro(ctt)}",
+                  ),
+                  // a partir do momento em que escreves, o valor é teu
+                  onChanged: (_) => setState(() => _shippingEdited = true),
+                );
+              }),
+            ),
             Text(
               _delivery == DeliveryMethod.carrier
                   ? "Os portes entram no lucro: o que o cliente paga e o que custa enviar."
@@ -558,7 +606,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                   keyboardType: TextInputType.number,
                   style: AppTextStyles.mono,
                   decoration: const InputDecoration(labelText: "Qtd."),
-                  onChanged: (_) => setState(() {}),
+                  onChanged: (_) => setState(_suggestShipping),
                 ),
               ),
               const SizedBox(width: 8),
