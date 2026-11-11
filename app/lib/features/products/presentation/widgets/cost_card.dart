@@ -36,12 +36,19 @@ class _CostCardState extends ConsumerState<CostCard> {
   final _gramsController = TextEditingController(text: "180");
   final _minutesController = TextEditingController(text: "540");
   final _priceController = TextEditingController(text: "29");
+  // o nome, o SKU e o peso da variante (só quando há uma variante escolhida)
+  final _nameController = TextEditingController();
+  final _skuController = TextEditingController();
+  final _weightController = TextEditingController();
 
   @override
   void dispose() {
-    _gramsController.dispose();
-    _minutesController.dispose();
-    _priceController.dispose();
+    for (final c in [
+      _gramsController, _minutesController, _priceController,
+      _nameController, _skuController, _weightController,
+    ]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -53,6 +60,9 @@ class _CostCardState extends ConsumerState<CostCard> {
 
     _minutesController.text = "${v.printTimeMin}";
     _priceController.text = decimalField(v.salePrice);
+    _nameController.text = v.name;
+    _skuController.text = v.sku;
+    _weightController.text = "${v.weightG}";
 
     final firstFilament = v.filaments.firstOrNull;
     if (firstFilament != null) {
@@ -70,7 +80,20 @@ class _CostCardState extends ConsumerState<CostCard> {
     final v = widget.variant!;
     setState(() => _savingVariant = true);
 
+    final name = _nameController.text.trim();
+    final sku = _skuController.text.trim();
+    if (name.isEmpty || sku.isEmpty) {
+      setState(() => _savingVariant = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("A variante precisa de um nome e de um SKU.")),
+      );
+      return;
+    }
+
     final updated = v.copyWith(
+      name: name,
+      sku: sku,
+      weightG: _read(_weightController).round(),
       salePrice: _read(_priceController),
       printTimeMin: _read(_minutesController).round(),
       filaments: filamentId == null
@@ -88,13 +111,24 @@ class _CostCardState extends ConsumerState<CostCard> {
       ],
     );
 
-    await ref.read(variantRepositoryProvider).update(updated);
+    try {
+      await ref.read(variantRepositoryProvider).update(updated);
+    } catch (error) {
+      // por exemplo: "Já existe uma variante com esse SKU."
+      if (!mounted) return;
+      setState(() => _savingVariant = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Não foi possível guardar: $error")),
+      );
+      return;
+    }
     ref.invalidate(variantsProvider(v.productId));
+    ref.invalidate(allVariantsProvider);
 
     if (!mounted) return;
     setState(() => _savingVariant = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Variante \"${v.name}\" guardada.")),
+      SnackBar(content: Text("Variante \"$name\" guardada.")),
     );
   }
 
@@ -184,6 +218,47 @@ class _CostCardState extends ConsumerState<CostCard> {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),
+            // o nome, o SKU e o peso da variante
+            if (widget.variant != null) ...[
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: TextField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(
+                        labelText: "Nome da variante",
+                        hintText: "Ex.: Preto mate",
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: TextField(
+                      controller: _skuController,
+                      style: AppTextStyles.mono,
+                      decoration: const InputDecoration(labelText: "SKU"),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _weightController,
+                      keyboardType: TextInputType.number,
+                      style: AppTextStyles.mono,
+                      decoration: const InputDecoration(
+                        labelText: "Peso",
+                        suffixText: "g",
+                        helperText: "Para os portes.",
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
             DropdownButton<int>(
               value: filament?.id,
               isExpanded: true,
