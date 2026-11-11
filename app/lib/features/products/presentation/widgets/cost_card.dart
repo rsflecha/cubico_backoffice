@@ -80,7 +80,17 @@ class _CostCardState extends ConsumerState<CostCard> {
     final v = widget.variant!;
     setState(() => _savingVariant = true);
 
-    final name = _nameController.text.trim();
+    // uma variante ainda sem nome próprio fica com o nome do filamento (a cor)
+    final typedName = _nameController.text.trim();
+    final filamentName = ref
+        .read(filamentsProvider)
+        .value
+        ?.where((f) => f.id == filamentId)
+        .firstOrNull
+        ?.colorName;
+    final name = (typedName.isEmpty || typedName == "Nova variante") && filamentName != null
+        ? filamentName
+        : typedName;
     final sku = _skuController.text.trim();
     if (name.isEmpty || sku.isEmpty) {
       setState(() => _savingVariant = false);
@@ -272,7 +282,18 @@ class _CostCardState extends ConsumerState<CostCard> {
                     ),
                   ),
               ],
-              onChanged: (id) => setState(() => _filamentId = id),
+              onChanged: (id) => setState(() {
+                final previous = filaments.where((f) => f.id == _filamentId).firstOrNull;
+                final next = filaments.where((f) => f.id == id).firstOrNull;
+                _filamentId = id;
+
+                // o nome segue o filamento, enquanto não lhe deres um nome teu
+                final name = _nameController.text.trim();
+                if (next != null &&
+                    (name.isEmpty || name == "Nova variante" || name == previous?.colorName)) {
+                  _nameController.text = next.colorName;
+                }
+              }),
             ),
             const SizedBox(height: 12),
             Row(
