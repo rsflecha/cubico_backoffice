@@ -26,7 +26,13 @@ class VariantsSection extends ConsumerWidget {
   Future<void> _addVariant(BuildContext context, WidgetRef ref) async {
     final Variant created;
     try {
-      created = await ref.read(variantRepositoryProvider).create(productId: productId);
+      final repository = ref.read(variantRepositoryProvider);
+      final draft = await repository.create(productId: productId);
+      // dá-lhe logo o nome do filamento que o cartão de custo vai mostrar (o primeiro da lista)
+      final first = ref.read(filamentsProvider).value?.firstOrNull;
+      created = first == null
+          ? draft
+          : await repository.update(draft.copyWith(name: first.displayName));
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -38,6 +44,33 @@ class VariantsSection extends ConsumerWidget {
     ref.invalidate(variantsProvider(productId));
     ref.invalidate(allVariantsProvider);
     onSelect?.call(created);
+  }
+
+  /// Pergunta, e apaga a variante.
+  Future<void> _deleteVariant(BuildContext context, WidgetRef ref, Variant v) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Apagar \"${v.name}\"?"),
+        content: const Text("A variante e a receita dela desaparecem. Não dá para desfazer."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancelar")),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text("Apagar")),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await ref.read(variantRepositoryProvider).delete(v.id);
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$error")));
+      }
+      return;
+    }
+    ref.invalidate(variantsProvider(productId));
+    ref.invalidate(allVariantsProvider);
   }
 
   @override
@@ -95,6 +128,7 @@ class VariantsSection extends ConsumerWidget {
                           const DataColumn(label: Text("Tempo")),
                           if (canSeeCosts) const DataColumn(label: Text("Custo*"), numeric: true),
                           const DataColumn(label: Text("Preço"), numeric: true),
+                          if (isAdmin) const DataColumn(label: Text("")),
                         ],
                         rows: [
                           for (final v in list)
@@ -108,25 +142,34 @@ class VariantsSection extends ConsumerWidget {
                                 ),
                                 DataCell(Text(_formatHours(v.printTimeMin))),
                                 if (canSeeCosts)
-                                DataCell(
-                                  Text(
-                                    euro(
-                                      calc.variantProductionCost(
-                                        variant: v,
-                                        filaments: filaments,
-                                        components: components,
-                                        costPerHour: perHour,
+                                  DataCell(
+                                    Text(
+                                      euro(
+                                        calc.variantProductionCost(
+                                          variant: v,
+                                          filaments: filaments,
+                                          components: components,
+                                          costPerHour: perHour,
+                                        ),
                                       ),
+                                      style: AppTextStyles.mono,
                                     ),
-                                    style: AppTextStyles.mono,
                                   ),
-                                ),
                                 DataCell(
                                   Text(
                                     euro(v.salePrice),
                                     style: AppTextStyles.mono,
                                   ),
                                 ),
+                                // o caixote, só para o administrador (a coluna também tem o mesmo if)
+                                if (isAdmin)
+                                  DataCell(
+                                    IconButton(
+                                      tooltip: "Apagar variante",
+                                      icon: const Icon(Icons.delete_outline),
+                                      onPressed: () => _deleteVariant(context, ref, v),
+                                    ),
+                                  ),
                               ],
                             ),
                         ],

@@ -183,3 +183,22 @@ $app->put('/api/variants/{id}', function (Request $request, Response $response, 
     }
     return json($response, readVariants(variantId: $id)[0]);
 })->add($requireAdmin)->add($requireAuth);
+
+// DELETE /api/variants/{id} → apagar (só se nunca foi vendida nem usada)
+$app->delete('/api/variants/{id}', function (Request $request, Response $response, array $args) {
+    try {
+        $stmt = db()->prepare('DELETE FROM variants WHERE id = ?');
+        $stmt->execute([(int) $args['id']]);
+    } catch (PDOException $e) {
+        // está numa encomenda, numa tarefa de produção ou num pack: a base de dados não deixa
+        if ($e->getCode() === '23000') {
+            return fail(
+                $response,
+                'Esta variante já foi vendida, está na produção ou num pack. Fica guardada para o histórico.',
+                409,
+            );
+        }
+        throw $e;
+    }
+    return $response->withStatus(204);
+})->add($requireAdmin)->add($requireAuth);

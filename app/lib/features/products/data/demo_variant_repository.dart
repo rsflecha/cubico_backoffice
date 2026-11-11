@@ -87,4 +87,10 @@ class DemoVariantRepository implements VariantRepository {
     await _latency();
     return List<Variant>.of(_items);
   }
+
+  @override
+  Future<void> delete(int id) async {
+    await _latency();
+    _items.removeWhere((v) => v.id == id);
+  }
 }

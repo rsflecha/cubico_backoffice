@@ -80,14 +80,14 @@ class _CostCardState extends ConsumerState<CostCard> {
     final v = widget.variant!;
     setState(() => _savingVariant = true);
 
-    // uma variante ainda sem nome próprio fica com o nome do filamento (a cor)
+    // uma variante ainda sem nome próprio fica com o nome do filamento ("PLA Basic Black")
     final typedName = _nameController.text.trim();
     final filamentName = ref
         .read(filamentsProvider)
         .value
         ?.where((f) => f.id == filamentId)
         .firstOrNull
-        ?.colorName;
+        ?.displayName;
     final name = (typedName.isEmpty || typedName == "Nova variante") && filamentName != null
         ? filamentName
         : typedName;
@@ -290,8 +290,8 @@ class _CostCardState extends ConsumerState<CostCard> {
                 // o nome segue o filamento, enquanto não lhe deres um nome teu
                 final name = _nameController.text.trim();
                 if (next != null &&
-                    (name.isEmpty || name == "Nova variante" || name == previous?.colorName)) {
-                  _nameController.text = next.colorName;
+                    (name.isEmpty || name == "Nova variante" || name == previous?.displayName)) {
+                  _nameController.text = next.displayName;
                 }
               }),
             ),

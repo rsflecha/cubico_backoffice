@@ -12,4 +12,7 @@ abstract interface class VariantRepository {
 
   /// Todas as variantes da loja.
   Future<List<Variant>> fetchAll();
+
+  /// Apaga uma variante (com a receita). Falha se já tiver sido vendida.
+  Future<void> delete(int id);
 }

@@ -31,4 +31,7 @@ abstract class Filament with _$Filament {
     if (listPrice <= 0 || paidPrice >= listPrice) return 0;
     return (listPrice - paidPrice) / listPrice * 100;
   }
+
+  /// O nome completo do filamento: "PLA Basic Black". É o nome que as variantes recebem.
+  String get displayName => "$material $colorName";
 }

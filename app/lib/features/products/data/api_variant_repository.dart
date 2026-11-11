@@ -45,4 +45,9 @@ class ApiVariantRepository implements VariantRepository {
         );
         return Variant.fromJson(response.data!);
       });
+
+  @override
+  Future<void> delete(int id) => apiCall(() async {
+    await _dio.delete<void>("/variants/$id");
+  });
 }
