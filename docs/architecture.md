@@ -3,7 +3,7 @@
 Como a app está organizada, por onde passam os dados e onde fica cada coisa.
 O âmbito, as decisões e o plano completo estão em [`cubico-backoffice.md`](cubico-backoffice.md).
 
-**Última atualização:** 09/11/2026 — v1 completa em modo demo (Fatias 0 a 10, Clientes e Definições)
+**Última atualização:** 12/11/2026 — v1 completa, em modo demo e ligada à API (no PC); falta publicar no cPanel
 
 ---
 
@@ -171,7 +171,34 @@ Correm com `flutter test`, dentro de `app/`.
 - Ficheiros `*.freezed.dart` e `*.g.dart` são gerados: nunca se editam à mão (`dart run build_runner build`).
 - Antes de cada commit: `flutter analyze` sem problemas e `flutter test` a passar.
 
-## 10. Estado das fatias
+## 10. A API (Fase 3)
+
+PHP 8.4 + Slim 4, em `api/`, e MariaDB 10.6 (o mesmo do alojamento cPanel).
+
+```
+api/
+├── public/index.php   arranca a API e junta as rotas (o único ficheiro público)
+├── src/               db (PDO, sempre utf8mb4) · helpers (json, fail, typed, token) · auth (os porteiros)
+│                      tables (pedidos habituais de tabelas simples) · costs (as contas oficiais)
+├── routes/            um ficheiro por módulo: auth, categories, costs, products, customers,
+│                      orders, production, users, health
+├── bin/create-user.php   criar utilizadores na linha de comandos
+└── .env               segredos (base de dados, JWT); nunca vai para o Git — modelo em .env.example
+```
+
+- **Sessão:** `POST /api/auth/login` devolve um **JWT** (12 h). Palavras-passe com `password_hash` (bcrypt). O Dio junta o token a cada pedido, num interceptor.
+- **Porteiros:** `$requireAuth` (token válido) e `$requireAdmin` (papel admin). No Slim, o último `add` corre primeiro.
+- **A API protege os dados:** o colaborador não recebe custos, taxas nem portes pagos; Custos e preços e Utilizadores são só do administrador.
+- **Contas oficiais:** ao criar uma encomenda, a API refaz o custo de cada linha, as taxas e os portes (`src/costs.php`, as mesmas fórmulas da `CostCalculator`).
+- **Tipos:** o PHP lê `DECIMAL` como texto e `BOOLEAN` como 0/1; o `typed()` converte antes de responder.
+- **Segurança SQL:** os valores entram sempre por `?` (consultas preparadas).
+- **Transações** onde se grava em várias tabelas (variante + receita, cliente + moradas, encomenda + linhas).
+- **Migrações:** alterações a bases de dados já existentes ficam em `database/migrations/` (001: portes por zona).
+- **Na app:** cada placa de repositório escolhe o `Demo…` ou o `Api…` pelo `demoModeProvider`; o modo demo continua a funcionar sem servidor. Os erros da API chegam como `ApiException`, com a mensagem em português.
+
+Para correr no PC: `php -S localhost:8080 -t public` dentro de `api` (ou o `iniciar-api.bat`), e a app com `flutter run -d windows`.
+
+## 11. Estado das fatias
 
 | Fatia | O quê | Estado |
 |---:|---|:---:|
@@ -185,9 +212,9 @@ Correm com `flutter test`, dentro de `app/`.
 | 7 | Criar encomenda | ✅ |
 | 8 | Produção (kanban) | ✅ |
 | 9 | Dashboard com gráficos | ✅ |
-| 10 | Login e papéis | ✅ (contas demo; o login a sério vem com a API) |
-| 11 | Ligar à API real | ⬜ |
+| 10 | Login e papéis | ✅ |
+| 11 | Ligar à API real | ✅ (testada no PC; falta publicar no cPanel) |
 
-**Limitações conhecidas:** um filamento por variante no cartão de custo; ainda não se criam nem apagam variantes; nas encomendas manuais, os portes reais usam só a zona Portugal; a produção ainda não desconta filamento do stock nem regista falhas; na demo, os utilizadores juntados nas Definições não conseguem entrar (o login usa as contas fixas do DemoAuthRepository).
+**Limitações conhecidas:** um filamento por variante no cartão de custo; ainda não se criam nem apagam variantes; nas encomendas manuais, os portes reais usam só a zona Portugal; a produção ainda não desconta filamento do stock nem regista falhas; na API, as regras que ligam encomendas e produção (enviar para produção, encomenda pronta sozinha) ainda correm na app, pelo ProductionService.
 
-**Para fazer depois:** validar o telemóvel dos clientes; preencher a localidade a partir do código postal (reaproveitando a adaptação portuguesa feita no curso); na API, um tipo de erro próprio com mensagens em português para todos os ecrãs.
+**Para fazer depois:** validar o telemóvel dos clientes; preencher a localidade a partir do código postal (reaproveitando a adaptação portuguesa feita no curso); mudar a própria palavra-passe; terminar a sessão sozinho quando o token expira; publicar a API no cPanel; sincronização com a Etsy.

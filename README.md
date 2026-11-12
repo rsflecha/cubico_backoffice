@@ -4,7 +4,7 @@ Backoffice para gerir uma pequena loja de impressão 3D: produtos e variantes, *
 
 Feito em **Flutter** para **Windows** e Android. É um projeto real, para a minha loja, e o meu primeiro projeto de portfólio depois do curso de Flutter.
 
-> **Estado:** app completa em modo demo (dados de exemplo em memória). A API em PHP + MySQL é a fase seguinte.
+> **Estado:** app completa, com modo demo (sem servidor) e ligada à sua própria API em PHP + MariaDB. A publicação no alojamento e a sincronização com a Etsy são os passos seguintes.
 
 ![Ficha do produto com a calculadora de custo](docs/screenshots/produto-custos.png)
 
@@ -63,17 +63,20 @@ Feito em **Flutter** para **Windows** e Android. É um projeto real, para a minh
 | Modelos | Freezed + json_serializable |
 | Gráficos | fl_chart |
 | Testes | `flutter_test` |
-| Backend (próxima fase) | PHP 8 (Slim) · MySQL · cPanel |
+| API | PHP 8.4 · Slim 4 · JWT · PDO |
+| Base de dados | MariaDB 10.6 (alojamento cPanel) |
+| Pedidos HTTP | Dio, com interceptor do token |
 
 ## Arquitetura
 
 Organizada **por funcionalidade**, com três camadas em cada uma:
 
 - `domain/` — modelos, contratos dos repositórios e regras de negócio (lucro, atraso, fluxo de estados);
-- `data/` — repositórios (hoje dados demo em memória; na fase da API, chamadas HTTP);
+- `data/` — repositórios: `Demo…` (dados de exemplo em memória) e `Api…` (pedidos à API);
 - `presentation/` — ecrãs, widgets e providers.
 
-Os ecrãs nunca sabem de onde vêm os dados: trocar o modo demo pela API real é mudar uma linha por repositório.
+Os ecrãs nunca sabem de onde vêm os dados: cada repositório escolhe o modo demo ou a API conforme a sessão.
+A API protege os dados no servidor (o colaborador nunca recebe custos nem lucros) e refaz as contas oficiais de cada encomenda.
 As contas de custo vivem numa classe Dart pura (`CostCalculator`), coberta por testes.
 
 Mais detalhe em [`docs/architecture.md`](docs/architecture.md). Decisões, âmbito e esquema da base de dados em [`docs/cubico-backoffice.md`](docs/cubico-backoffice.md).
@@ -98,6 +101,18 @@ flutter test
 
 Também há uma versão Windows pronta a usar, em modo demo, nos [Releases](../../releases).
 
+API (precisa de PHP 8.4, Composer e MariaDB/MySQL):
+
+```bash
+cd api
+composer install
+cp .env.example .env    # preencher a base de dados e o JWT_SECRET
+php bin/create-user.php # criar o primeiro administrador
+php -S localhost:8080 -t public
+```
+
+A base de dados cria-se com `database/schema.sql` e `database/seed.sql`.
+
 ## Plano
 
 | | Fase | |
@@ -112,7 +127,9 @@ Também há uma versão Windows pronta a usar, em modo demo, nos [Releases](../.
 | ✅ | Dashboard com números do mês e gráfico de vendas e lucro | |
 | ✅ | Login com dois papéis: o colaborador não vê custos, lucros nem margens | |
 | ✅ | Clientes e Definições | |
-| ⬜ | API PHP + MySQL e sincronização com a Etsy | |
+| ✅ | API PHP + MariaDB: login com JWT, permissões no servidor, contas oficiais | |
+| ⬜ | Publicar a API no alojamento cPanel | |
+| ⬜ | Sincronização com a Etsy | |
 
 ## O que aprendi
 

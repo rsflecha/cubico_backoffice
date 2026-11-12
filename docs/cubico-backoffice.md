@@ -7,7 +7,7 @@
 |------|------|--------|
 | 1 | Âmbito, arquitetura e ecrãs | ✅ Concluída |
 | 2 | Esquema da base de dados | 🔍 Em validação |
-| 3 | API em PHP | ⏳ |
+| 3 | API em PHP | ✅ no PC (falta publicar) |
 | 4 | App Flutter em **modo demo**, por fatias (ver plano no fim) | ▶️ A começar |
 | 5 | Módulos da v1, um a um | ⏳ |
 
@@ -441,7 +441,7 @@ lucro    = recebido − custos
 | 8 ✅ | Produção (kanban) | Drag and drop, regras de estado |
 | 9 ✅ | Dashboard | fl_chart, estados de carregamento/erro |
 | 10 ✅ | Login e papéis (administrador/colaborador) | Rotas protegidas, redirecionamentos |
-| 11 | Ligar à API real | Dio, JWT, interceptores, tratamento de erros |
+| 11 ✅ | Ligar à API real | Dio, JWT, interceptores, tratamento de erros |
 
 ### Fatia 0 — tarefas
 
