@@ -439,26 +439,32 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                 );
               }),
             ),
-            Text(
-              _delivery == DeliveryMethod.carrier
-                  ? "Os portes entram no lucro: o que o cliente paga e o que custa enviar."
-                  : "Sem portes. Fica «Pronta» quando a produção terminar.",
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
             if (_delivery == DeliveryMethod.carrier) ...[
               const SizedBox(height: 12),
               SizedBox(
-                width: 220,
-                child: TextField(
-                  controller: _shippingCharged,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: AppTextStyles.mono,
-                  decoration: const InputDecoration(
-                    labelText: "Portes cobrados ao cliente",
-                    suffixText: "€",
-                  ),
-                  onChanged: (_) => setState(() {}),
-                ),
+                width: 260,
+                child: Builder(builder: (context) {
+                  // o peso e o preço dos CTT, para mostrar por baixo do campo
+                  final components = ref.watch(componentsProvider).value ?? <Component>[];
+                  final rates = ref.watch(shippingRatesProvider).value ?? <ShippingRate>[];
+                  final weight = _totalWeight(components);
+                  final ctt = _calc.shippingPrice(weightG: weight, zoneId: 1, rates: rates);
+
+                  return TextField(
+                    controller: _shippingCharged,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    style: AppTextStyles.mono,
+                    decoration: InputDecoration(
+                      labelText: "Portes cobrados ao cliente",
+                      suffixText: "€",
+                      helperText: ctt == null
+                          ? "$weight g: acima do limite do correio"
+                          : "CTT Registado, $weight g: ${euro(ctt)}",
+                    ),
+                    // a partir do momento em que escreves, o valor é teu
+                    onChanged: (_) => setState(() => _shippingEdited = true),
+                  );
+                }),
               ),
             ],
             const SizedBox(height: 12),
