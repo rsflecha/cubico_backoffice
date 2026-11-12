@@ -74,7 +74,18 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
   /// Escolhe um cliente com ficha e preenche o nome e o contacto.
   Future<void> _pickCustomer() async {
-    final customers = ref.read(customersProvider).value ?? <Customer>[];
+    // espera pela lista (se ainda não tiver chegado da API, vai buscá-la)
+    final List<Customer> customers;
+    try {
+      customers = await ref.read(customersProvider.future);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Não foi possível carregar os clientes: $error")),
+      );
+      return;
+    }
+    if (!mounted) return;
     final chosen = await showDialog<Customer>(
       context: context,
       builder: (context) => SimpleDialog(
@@ -414,30 +425,12 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                   ),
               ],
             ),
-            SizedBox(
-              width: 260,
-              child: Builder(builder: (context) {
-                // o peso e o preço dos CTT, para mostrar por baixo do campo
-                final components = ref.watch(componentsProvider).value ?? <Component>[];
-                final rates = ref.watch(shippingRatesProvider).value ?? <ShippingRate>[];
-                final weight = _totalWeight(components);
-                final ctt = _calc.shippingPrice(weightG: weight, zoneId: 1, rates: rates);
-
-                return TextField(
-                  controller: _shippingCharged,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: AppTextStyles.mono,
-                  decoration: InputDecoration(
-                    labelText: "Portes cobrados ao cliente",
-                    suffixText: "€",
-                    helperText: ctt == null
-                        ? "$weight g: acima do limite do correio"
-                        : "CTT Registado, $weight g: ${euro(ctt)}",
-                  ),
-                  // a partir do momento em que escreves, o valor é teu
-                  onChanged: (_) => setState(() => _shippingEdited = true),
-                );
-              }),
+            const SizedBox(height: 8),
+            Text(
+              _delivery == DeliveryMethod.carrier
+                  ? "Os portes entram no lucro: o que o cliente paga e o que custa enviar."
+                  : "Sem portes. Fica «Pronta» quando a produção terminar.",
+              style: Theme.of(context).textTheme.bodySmall,
             ),
             if (_delivery == DeliveryMethod.carrier) ...[
               const SizedBox(height: 12),
