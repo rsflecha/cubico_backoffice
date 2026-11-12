@@ -18,6 +18,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _password = TextEditingController();
   var _keepSession = true;
   var _loading = false;
+  var _showPassword = false; // o "olho": mostrar ou esconder a palavra-passe
   String? _error;
 
   @override
@@ -113,9 +114,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             const SizedBox(height: 16),
             TextField(
               controller: _password,
-              obscureText: true, // esconde o que se escreve
+              obscureText: !_showPassword, // escondida, a não ser que se carregue no olho
               autofillHints: const [AutofillHints.password],
-              decoration: const InputDecoration(labelText: "Palavra-passe"),
+              decoration: InputDecoration(
+                labelText: "Palavra-passe",
+                suffixIcon: IconButton(
+                  tooltip: _showPassword ? "Esconder a palavra-passe" : "Mostrar a palavra-passe",
+                  icon: Icon(_showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                  onPressed: () => setState(() => _showPassword = !_showPassword),
+                ),
+              ),
               onSubmitted: (_) => _signIn(),
             ),
             const SizedBox(height: 8),
