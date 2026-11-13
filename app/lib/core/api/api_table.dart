@@ -4,7 +4,7 @@ import 'package:dio/dio.dart';
 /// Os pedidos habituais de uma tabela simples da API: a lista, criar e mudar.
 /// É o par do tableRoutes() da API: escrito uma vez, usado por vários repositórios.
 ///
-/// O <T> é o modelo (Filament, Component…), e o fromJson diz como o construir a partir do JSON.
+/// O `T` é o modelo (Filament, Component…), e o fromJson diz como o construir a partir do JSON.
 class ApiTable<T> {
   ApiTable(this._dio, this._path, this._fromJson);
 

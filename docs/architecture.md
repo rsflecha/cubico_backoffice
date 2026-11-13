@@ -67,10 +67,11 @@ features/
 │   ├── domain/        Product, ProductCategory, Variant (+ VariantFilament, VariantComponent)
 │   │                  e os contratos ProductRepository, ProductCategoryRepository, VariantRepository
 │   ├── data/          DemoProductRepository, DemoProductCategoryRepository, DemoVariantRepository
-│   └── presentation/  products_screen      lista com filtro por categoria
-│                      product_form_screen  criar / editar produto (duas colunas no PC)
+│   │                  (no demo, a foto fica num "data:" URI, sem servidor)
+│   └── presentation/  products_screen      lista com filtro por categoria e miniatura da foto
+│                      product_form_screen  criar / editar produto (duas colunas no PC), com a foto
 │                      products_providers
-│                      widgets/  category_dialog · cost_card · variants_section
+│                      widgets/  category_dialog · cost_card · variants_section · product_photo
 ├── costs/
 │   ├── domain/        Filament, Component, SalesChannel, Printer, CostSettings,
 │   │                  CostCalculator e os contratos dos repositórios
@@ -111,6 +112,8 @@ features/
 ```
 
 Todas as secções do menu têm o seu ecrã.
+
+**Foto do produto:** uma por produto, **obrigatória ao criar** (os produtos antigos podem não ter; mostram um ícone). A app escolhe-a com o `file_picker` e reduz-a com `core/photos.dart` (`preparePhoto`: endireita pelo EXIF, 1600 px no lado maior, JPG) antes de enviar. Criar envia produto e foto juntos; trocar a foto é um pedido à parte. Não há "tirar a foto", só trocar.
 
 **Serviços:** quando uma regra mexe em vários repositórios ao mesmo tempo (enviar uma encomenda para produção cria tarefas **e** muda a encomenda), fica num serviço em `domain`, que recebe os contratos dos repositórios. Exemplo: `ProductionService`. Com a API, estas regras passam para o servidor.
 
@@ -160,6 +163,7 @@ Correm com `flutter test`, dentro de `app/`.
 | `test/features/costs/cost_calculator_test.dart` | €/kg com portes, custo de filamento e de impressão, taxas por canal, margem, preço sugerido, custo de componentes, peso de envio, portes por zona e escalão |
 | `test/features/orders/order_test.dart` | total, custo e lucro; canceladas contam 0; fluxo de estados |
 | `test/features/production/print_job_test.dart` | progresso da impressão e minutos que faltam, calculados pelo tempo |
+| `test/features/products/product_photo_test.dart` | a foto é reduzida a 1600 px (deitada e ao alto) e gravada em JPG, a pequena não cresce, um ficheiro que não é imagem é recusado; o repositório demo cria e troca a foto |
 
 ## 9. Convenções
 
@@ -180,8 +184,10 @@ api/
 ├── public/index.php   arranca a API e junta as rotas (o único ficheiro público)
 ├── src/               db (PDO, sempre utf8mb4) · helpers (json, fail, typed, token) · auth (os porteiros)
 │                      tables (pedidos habituais de tabelas simples) · costs (as contas oficiais)
+│                      photos (conferir e gravar as fotos dos produtos)
 ├── routes/            um ficheiro por módulo: auth, categories, costs, products, customers,
 │                      orders, production, users, health
+├── storage/products/  as fotos dos produtos (fora de public/; nunca vão para o Git)
 ├── bin/create-user.php   criar utilizadores na linha de comandos
 └── .env               segredos (base de dados, JWT); nunca vai para o Git — modelo em .env.example
 ```
@@ -193,6 +199,7 @@ api/
 - **Tipos:** o PHP lê `DECIMAL` como texto e `BOOLEAN` como 0/1; o `typed()` converte antes de responder.
 - **Segurança SQL:** os valores entram sempre por `?` (consultas preparadas).
 - **Transações** onde se grava em várias tabelas (variante + receita, cliente + moradas, encomenda + linhas).
+- **Fotos dos produtos:** `POST /api/products` é `multipart/form-data` (parte `product` com o JSON, parte `photo` com o ficheiro) e grava produto e foto numa transação; `POST /api/products/{id}/photo` troca-a. O tipo confirma-se pelo conteúdo (`finfo` + `getimagesize`): só JPG, PNG ou WebP, até 2 MB. O ficheiro fica em `storage/products/` com nome aleatório; `product_photos.url` guarda só esse nome, e a API responde com `photo_url` completo. `GET /api/photos/{ficheiro}` entrega a imagem, com CORS e sem sessão (o `Image.network` da web não envia o token). No servidor, a pasta `storage/products/` tem de existir com permissão de escrita.
 - **Migrações:** alterações a bases de dados já existentes ficam em `database/migrations/` (001: portes por zona).
 - **Na app:** cada placa de repositório escolhe o `Demo…` ou o `Api…` pelo `demoModeProvider`; o modo demo continua a funcionar sem servidor. Os erros da API chegam como `ApiException`, com a mensagem em português.
 

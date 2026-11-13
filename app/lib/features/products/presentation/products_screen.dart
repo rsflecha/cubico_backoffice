@@ -2,6 +2,7 @@ import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/core/api/api_exception.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
 import 'package:cubico_backoffice/features/products/presentation/widgets/category_dialog.dart';
+import 'package:cubico_backoffice/features/products/presentation/widgets/product_photo.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -73,6 +74,8 @@ class ProductsScreen extends ConsumerWidget {
 
                     // 2. se cancelou ou deixou vazio, não faz nada
                     if (name == null || name.trim().isEmpty) return;
+                    // depois do await da janela, o ecrã pode já ter fechado
+                    if (!context.mounted) return;
 
                     // 3. pede ao balcão para criar (se falhar, mostra o erro e pára)
                     final ok = await _tryCategory(
@@ -107,6 +110,7 @@ class ProductsScreen extends ConsumerWidget {
                         ),
                       );
                       if (name == null || name.trim().isEmpty) return;
+                      if (!context.mounted) return;
 
                       final ok = await _tryCategory(
                         context,
@@ -206,7 +210,7 @@ class ProductsScreen extends ConsumerWidget {
                   itemBuilder: (context, index) {
                     final product = visible[index];
                     return ListTile(
-                      leading: const Icon(Icons.folder_outlined),
+                      leading: ProductPhoto(url: product.photoUrl),
                       title: Text(product.name),
                       subtitle: Text(
                         product.baseSku,

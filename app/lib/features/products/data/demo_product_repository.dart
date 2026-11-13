@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:cubico_backoffice/features/products/domain/product.dart';
 import 'package:cubico_backoffice/features/products/domain/product_repository.dart';
 
@@ -46,6 +49,7 @@ class DemoProductRepository implements ProductRepository {
     required String name,
     required String baseSku,
     required int categoryId,
+    required Uint8List photo,
   }) async {
     await _latency();
     final now = DateTime.now();
@@ -54,6 +58,7 @@ class DemoProductRepository implements ProductRepository {
       name: name,
       baseSku: baseSku,
       categoryId: categoryId,
+      photoUrl: _dataUri(photo),
       createdAt: now,
       updatedAt: now,
     );
@@ -69,6 +74,20 @@ class DemoProductRepository implements ProductRepository {
     _items[index] = product;
     return product;
   }
+
+  @override
+  Future<Product> replacePhoto(int productId, Uint8List photo) async {
+    await _latency();
+    final index = _items.indexWhere((p) => p.id == productId);
+    if (index == -1) throw StateError("Produto $productId não existe.");
+    final updated = _items[index].copyWith(photoUrl: _dataUri(photo), updatedAt: DateTime.now());
+    _items[index] = updated;
+    return updated;
+  }
+
+  /// Sem servidor, a foto fica dentro do próprio texto do endereço (um "data:" URI).
+  /// O ProductPhoto sabe mostrá-la; quando a app fecha desaparece, como os outros dados demo.
+  String _dataUri(Uint8List photo) => "data:image/jpeg;base64,${base64Encode(photo)}";
 
   @override
   Future<void> delete(int id) async {

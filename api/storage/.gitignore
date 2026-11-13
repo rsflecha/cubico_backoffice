@@ -1,0 +1,3 @@
+# As fotos dos produtos: ficam no servidor, nunca no Git.
+*
+!.gitignore

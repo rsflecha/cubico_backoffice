@@ -11,6 +11,9 @@ abstract class Product with _$Product {
     required String baseSku,
     String? description,
     int? categoryId,
+    // o endereço da foto (obrigatória ao criar; os produtos antigos podem não ter → null)
+    // no modo demo é um "data:" URI, com a imagem dentro do próprio texto
+    String? photoUrl,
     required DateTime createdAt,
     required DateTime updatedAt,
 

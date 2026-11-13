@@ -15,6 +15,7 @@ require __DIR__ . '/../src/helpers.php';
 require __DIR__ . '/../src/auth.php'; // os porteiros: $requireAuth e $requireAdmin
 require __DIR__ . '/../src/tables.php'; // os pedidos habituais das tabelas simples
 require __DIR__ . '/../src/costs.php';  // as contas oficiais (custo, portes)
+require __DIR__ . '/../src/photos.php'; // as fotos dos produtos (gravar, conferir, endereço)
 require __DIR__ . '/../src/cors.php';   // quem pode usar a API a partir de um browser
 
 $app = AppFactory::create();

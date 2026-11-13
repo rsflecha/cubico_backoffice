@@ -109,7 +109,7 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
       createdAt: old?.createdAt ?? DateTime.now(),
       // a primeira morada é a do formulário; as outras (se houver) ficam como estavam
       addresses: [
-        if (address != null) address,
+        ?address, // o "?" só junta a morada se não for null
         ...?old?.addresses.skip(1),
       ],
     );

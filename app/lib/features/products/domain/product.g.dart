@@ -12,6 +12,7 @@ _Product _$ProductFromJson(Map<String, dynamic> json) => _Product(
   baseSku: json['base_sku'] as String,
   description: json['description'] as String?,
   categoryId: (json['category_id'] as num?)?.toInt(),
+  photoUrl: json['photo_url'] as String?,
   createdAt: DateTime.parse(json['created_at'] as String),
   updatedAt: DateTime.parse(json['updated_at'] as String),
   status:
@@ -27,6 +28,7 @@ Map<String, dynamic> _$ProductToJson(_Product instance) => <String, dynamic>{
   'base_sku': instance.baseSku,
   'description': instance.description,
   'category_id': instance.categoryId,
+  'photo_url': instance.photoUrl,
   'created_at': instance.createdAt.toIso8601String(),
   'updated_at': instance.updatedAt.toIso8601String(),
   'status': _$ProductStatusEnumMap[instance.status]!,

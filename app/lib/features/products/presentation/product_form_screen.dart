@@ -1,7 +1,13 @@
+import 'dart:typed_data';
+
+import 'package:cubico_backoffice/core/api/api_exception.dart';
+import 'package:cubico_backoffice/core/photos.dart';
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
 import 'package:cubico_backoffice/features/products/presentation/widgets/cost_card.dart';
+import 'package:cubico_backoffice/features/products/presentation/widgets/product_photo.dart';
 import 'package:cubico_backoffice/features/products/presentation/widgets/variants_section.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -25,6 +31,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   int? _categoryId;
   var _submitted = false;
   var _saving = false;
+  var _preparingPhoto = false; // a reduzir a foto escolhida
+  Uint8List? _newPhoto; // a foto escolhida agora, já reduzida (ainda não gravada)
   Product? _original; // o produto tal como estava, quando se edita
   int? _selectedVariantId; // a variante escolhida na tabela
 
@@ -51,37 +59,123 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     }
   }
 
+  /// Um produto novo tem de ter foto; um que já existe fica com a que tinha.
+  bool get _missingPhoto => _original == null && _newPhoto == null;
+
+  void _showMessage(String text) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
+  /// Abre o seletor de ficheiros, e reduz a imagem escolhida antes de a guardar no ecrã.
+  Future<void> _pickPhoto() async {
+    final file = await FilePicker.pickFile(type: FileType.image);
+    if (file == null) return; // fechou a janela sem escolher
+
+    setState(() => _preparingPhoto = true);
+    Uint8List? photo;
+    try {
+      photo = await preparePhoto(await file.readAsBytes());
+    } catch (_) {
+      photo = null; // tratado logo abaixo, como uma imagem que não se consegue ler
+    }
+    if (!mounted) return;
+    setState(() => _preparingPhoto = false);
+
+    if (photo == null) {
+      _showMessage("Não consegui ler esta imagem. Usa uma foto JPG, PNG ou WebP.");
+      return;
+    }
+    setState(() => _newPhoto = photo);
+  }
+
   Future<void> _save() async {
     setState(() => _submitted = true);
     final isValid = _formKey.currentState!.validate();
-    if (!isValid) return;
+    // a foto não é um campo do Form, por isso confere-se à parte (o aviso aparece por baixo dela)
+    if (!isValid || _missingPhoto) return;
 
     setState(() => _saving = true);
 
     final repository = ref.read(productRepositoryProvider);
     final name = _nameController.text.trim();
     final sku = _skuController.text.trim().toUpperCase();
+    final photo = _newPhoto;
 
-    if (_original == null) {
-      await repository.create(
-        name: name,
-        baseSku: sku,
-        categoryId: _categoryId!,
-      );
-    } else {
-      await repository.update(
-        _original!.copyWith(
+    try {
+      if (_original == null) {
+        await repository.create(
           name: name,
           baseSku: sku,
-          categoryId: _categoryId,
-          updatedAt: DateTime.now(),
-        ),
+          categoryId: _categoryId!,
+          photo: photo!, // _missingPhoto já garantiu que existe
+        );
+      } else {
+        await repository.update(
+          _original!.copyWith(
+            name: name,
+            baseSku: sku,
+            categoryId: _categoryId,
+            updatedAt: DateTime.now(),
+          ),
+        );
+        // trocou a foto? vai num pedido à parte, depois dos dados
+        if (photo != null) await repository.replacePhoto(_original!.id, photo);
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      _showMessage(
+        error is ApiException ? error.message : "Não foi possível guardar. Tenta outra vez.",
       );
+      return;
+    } finally {
+      // mesmo que a foto tenha falhado, os dados podem ter sido gravados: a lista vai buscá-los outra vez
+      // (o "if (mounted)": depois de o ecrã fechar, o ref já não se pode usar)
+      if (mounted) ref.invalidate(productsProvider);
     }
-    ref.invalidate(productsProvider);
 
     if (!mounted) return;
     context.pop();
+  }
+
+  /// A foto no topo da ficha: a imagem, o botão para a escolher ou trocar, e o aviso se faltar.
+  Widget _photoField(bool canEdit) {
+    final colors = Theme.of(context).colorScheme;
+    final hasPhoto = _newPhoto != null || _original?.photoUrl != null;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        ProductPhoto(url: _original?.photoUrl, bytes: _newPhoto, size: 120),
+        if (canEdit) ...[
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _preparingPhoto || _saving ? null : _pickPhoto,
+                  icon: _preparingPhoto
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.add_photo_alternate_outlined),
+                  label: Text(hasPhoto ? "Trocar foto" : "Escolher foto"),
+                ),
+                const SizedBox(height: 8),
+                if (_submitted && _missingPhoto)
+                  Text(
+                    "A foto é obrigatória.",
+                    style: TextStyle(color: colors.error, fontSize: 12),
+                  )
+                else
+                  Text(
+                    "JPG, PNG ou WebP. É reduzida antes de enviar.",
+                    style: TextStyle(color: colors.onSurfaceVariant, fontSize: 12),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
   }
 
   Future<void> _delete() async {
@@ -132,6 +226,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         : null;
 
     final formFields = <Widget>[
+      _photoField(canSeeCosts),
+      const SizedBox(height: 24),
       TextFormField(
         controller: _nameController,
         enabled: canSeeCosts,

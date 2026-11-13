@@ -6,8 +6,10 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 // ═══════════════ Produtos ═══════════════
 // Todos com sessão veem a lista; só o administrador cria, muda e apaga.
+// Cada produto tem UMA foto (a linha de product_photos com sort_order 0), obrigatória ao criar.
+// Já não usa o tableRoutes(): a lista junta a foto, e criar recebe um ficheiro.
 
-tableRoutes($app, '/api/products', 'products', [
+const PRODUCT_TYPES = [
     'id' => 'int',
     'name' => 'string',
     'base_sku' => 'string',
@@ -18,14 +20,166 @@ tableRoutes($app, '/api/products', 'products', [
     'is_pack' => 'bool',
     'created_at' => 'string',
     'updated_at' => 'string',
-], required: ['name', 'base_sku'], canCreate: true, orderBy: 'name',
-   requireAuth: $requireAuth, requireAdmin: $requireAdmin, everyoneCanList: true);
+];
 
-// DELETE /api/products/{id} → apagar (as variantes vão com ele)
+/** As colunas que a app pode escrever (todas menos o id e as datas automáticas). */
+const PRODUCT_WRITABLE = ['name', 'base_sku', 'description', 'category_id', 'status', 'is_customizable', 'is_pack'];
+
+/** Os produtos (todos, ou só um), cada um com o nome do ficheiro da sua foto em "photo". */
+function readProducts(?int $id = null): array
+{
+    // LEFT JOIN: um produto sem foto (dos antigos) aparece na mesma, com photo = NULL
+    $sql = 'SELECT p.*, ph.url AS photo
+              FROM products p
+              LEFT JOIN product_photos ph ON ph.product_id = p.id AND ph.sort_order = 0'
+        . ($id !== null ? ' WHERE p.id = ?' : '')
+        . ' ORDER BY p.name';
+    $stmt = db()->prepare($sql);
+    $stmt->execute($id !== null ? [$id] : []);
+    return $stmt->fetchAll();
+}
+
+/** Um produto pronto para a app: os tipos certos e o endereço completo da foto. */
+function productJson(Request $request, array $row): array
+{
+    return typed($row, PRODUCT_TYPES) + ['photo_url' => photoUrl($request, $row['photo'] ?? null)];
+}
+
+/** Os valores das colunas que vieram no pedido, prontos para o SQL. */
+function productValues(array $body): array
+{
+    $columns = array_values(array_filter(PRODUCT_WRITABLE, fn ($c) => array_key_exists($c, $body)));
+    $values = array_map(fn ($c) => dbValue($body[$c], PRODUCT_TYPES[$c]), $columns);
+    return [$columns, $values];
+}
+
+// GET /api/products → a lista (todos com sessão)
+$app->get('/api/products', function (Request $request, Response $response) {
+    return json($response, array_map(fn ($row) => productJson($request, $row), readProducts()));
+})->add($requireAuth);
+
+// POST /api/products → criar, COM a foto
+// O pedido é "multipart/form-data" (o formato dos formulários com ficheiros), com duas partes:
+//   product → o JSON do produto, como texto
+//   photo   → o ficheiro da imagem
+// O JSON vai inteiro numa parte porque num formulário tudo é texto: "false" seria lido como verdadeiro.
+$app->post('/api/products', function (Request $request, Response $response) {
+    $body = json_decode((string) (body($request)['product'] ?? ''), true);
+    if (!is_array($body)) {
+        return fail($response, 'O pedido não traz os dados do produto.', 422);
+    }
+    foreach (['name', 'base_sku'] as $column) {
+        if (!isset($body[$column]) || trim((string) $body[$column]) === '') {
+            return fail($response, "Falta preencher: $column.", 422);
+        }
+    }
+
+    // primeiro a foto: se estiver mal, não se cria nada
+    try {
+        $photo = storePhoto($request->getUploadedFiles()['photo'] ?? null);
+    } catch (PhotoError $e) {
+        return fail($response, $e->getMessage(), 422);
+    }
+
+    [$columns, $values] = productValues($body);
+    $marks = implode(', ', array_fill(0, count($columns), '?'));
+    $pdo = db();
+    try {
+        // produto e foto gravam-se juntos: ou ficam os dois, ou nenhum
+        $pdo->beginTransaction();
+        $pdo->prepare('INSERT INTO products (' . implode(', ', $columns) . ") VALUES ($marks)")->execute($values);
+        $id = (int) $pdo->lastInsertId();
+        $pdo->prepare('INSERT INTO product_photos (product_id, url, sort_order) VALUES (?, ?, 0)')->execute([$id, $photo]);
+        $pdo->commit();
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        deletePhotoFile($photo); // o produto não ficou: a foto também não fica
+        if (isDuplicate($e)) {
+            return fail($response, 'Já existe um produto com este SKU.', 409);
+        }
+        throw $e;
+    }
+    return json($response, productJson($request, readProducts($id)[0]), 201);
+})->add($requireAdmin)->add($requireAuth);
+
+// PUT /api/products/{id} → mudar os dados (JSON normal; a foto muda-se na rota de baixo)
+$app->put('/api/products/{id}', function (Request $request, Response $response, array $args) {
+    $id = (int) $args['id'];
+    if (readProducts($id) === []) {
+        return fail($response, 'Este produto já não existe.', 404);
+    }
+    [$columns, $values] = productValues(body($request));
+    if ($columns === []) {
+        return fail($response, 'Não há nada para mudar.', 422);
+    }
+    $sets = implode(', ', array_map(fn ($c) => "$c = ?", $columns));
+    $values[] = $id;
+    try {
+        db()->prepare("UPDATE products SET $sets WHERE id = ?")->execute($values);
+    } catch (PDOException $e) {
+        if (isDuplicate($e)) {
+            return fail($response, 'Já existe um produto com este SKU.', 409);
+        }
+        throw $e;
+    }
+    return json($response, productJson($request, readProducts($id)[0]));
+})->add($requireAdmin)->add($requireAuth);
+
+// POST /api/products/{id}/photo → trocar a foto (multipart, só a parte "photo")
+// Não há rota para TIRAR a foto: é obrigatória, por isso só se troca.
+$app->post('/api/products/{id}/photo', function (Request $request, Response $response, array $args) {
+    $id = (int) $args['id'];
+    $found = readProducts($id);
+    if ($found === []) {
+        return fail($response, 'Este produto já não existe.', 404);
+    }
+    $old = $found[0]['photo'];
+
+    try {
+        $photo = storePhoto($request->getUploadedFiles()['photo'] ?? null);
+    } catch (PhotoError $e) {
+        return fail($response, $e->getMessage(), 422);
+    }
+
+    $pdo = db();
+    try {
+        $pdo->beginTransaction();
+        $pdo->prepare('DELETE FROM product_photos WHERE product_id = ? AND sort_order = 0')->execute([$id]);
+        $pdo->prepare('INSERT INTO product_photos (product_id, url, sort_order) VALUES (?, ?, 0)')->execute([$id, $photo]);
+        $pdo->commit();
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        deletePhotoFile($photo);
+        throw $e;
+    }
+    deletePhotoFile($old); // só depois de a nova estar gravada
+    return json($response, productJson($request, readProducts($id)[0]));
+})->add($requireAdmin)->add($requireAuth);
+
+// GET /api/photos/{file} → a imagem em si
+// Sem sessão de propósito: o Image.network da versão web não consegue enviar o token.
+// O nome é aleatório (32 letras), por isso não se adivinha; e são fotos de produtos que vão para a Etsy.
+$app->get('/api/photos/{file}', function (Request $request, Response $response, array $args) {
+    $name = (string) $args['file'];
+    $path = photoDir() . '/' . $name;
+    if (!isValidPhotoName($name) || !is_file($path)) {
+        return fail($response, 'Esta foto não existe.', 404);
+    }
+    $mime = array_search(pathinfo($name, PATHINFO_EXTENSION), PHOTO_TYPES, true);
+    $response->getBody()->write((string) file_get_contents($path));
+    return $response
+        ->withHeader('Content-Type', $mime)
+        // o nome muda sempre que a foto muda, por isso o browser pode guardá-la para sempre
+        ->withHeader('Cache-Control', 'public, max-age=31536000, immutable');
+});
+
+// DELETE /api/products/{id} → apagar (as variantes e a linha da foto vão com ele; o ficheiro apaga-se aqui)
 $app->delete('/api/products/{id}', function (Request $request, Response $response, array $args) {
+    $id = (int) $args['id'];
+    $found = readProducts($id);
     try {
         $stmt = db()->prepare('DELETE FROM products WHERE id = ?');
-        $stmt->execute([(int) $args['id']]);
+        $stmt->execute([$id]);
     } catch (PDOException $e) {
         // uma variante deste produto já foi vendida: as encomendas guardam-na
         if ($e->getCode() === '23000') {
@@ -33,6 +187,7 @@ $app->delete('/api/products/{id}', function (Request $request, Response $respons
         }
         throw $e;
     }
+    deletePhotoFile($found[0]['photo'] ?? null);
     return $response->withStatus(204);
 })->add($requireAdmin)->add($requireAuth);
 
