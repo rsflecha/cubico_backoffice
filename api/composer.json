@@ -3,13 +3,16 @@
     "description": "API do backoffice CubicoDesign3D (PHP 8 + Slim 4)",
     "type": "project",
     "require": {
-        "php": "^8.4",
+        "php": "^8.3",
         "firebase/php-jwt": "^7.2",
         "slim/psr7": "^1.7",
         "slim/slim": "^4.14",
         "vlucas/phpdotenv": "^5.6"
     },
     "config": {
-        "sort-packages": true
+        "sort-packages": true,
+        "platform": {
+            "php": "8.3.0"
+        }
     }
 }
