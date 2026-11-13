@@ -120,3 +120,8 @@ flutter_launcher_icons:
     generate: true
     image_path: "design/icons/icone-master.png"
     icon_size: 256
+  web:
+    generate: true
+    image_path: "design/icons/icone-master.png"
+    background_color: "#18181B"
+    theme_color: "#18181B"
