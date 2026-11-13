@@ -166,3 +166,17 @@ $app->put('/api/settings', function (Request $request, Response $response) {
     }
     return json($response, readSettings());
 })->add($requireAdmin)->add($requireAuth);
+
+// ─────────── Custos fixos mensais (Etsy Plus, alojamento…) ───────────
+tableRoutes($app, '/api/fixed-costs', 'fixed_costs', [
+    'id' => 'int',
+    'name' => 'string',
+    'monthly_value' => 'float',
+], required: ['name', 'monthly_value'], canCreate: true, orderBy: 'name',
+   requireAuth: $requireAuth, requireAdmin: $requireAdmin);
+
+// DELETE /api/fixed-costs/{id} → apagar (não está ligado a nada: apaga-se sempre)
+$app->delete('/api/fixed-costs/{id}', function (Request $request, Response $response, array $args) {
+    db()->prepare('DELETE FROM fixed_costs WHERE id = ?')->execute([(int) $args['id']]);
+    return $response->withStatus(204);
+})->add($requireAdmin)->add($requireAuth);

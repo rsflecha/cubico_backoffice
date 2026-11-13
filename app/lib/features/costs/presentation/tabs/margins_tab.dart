@@ -2,6 +2,7 @@ import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/core/formatting.dart';
 import 'package:cubico_backoffice/features/costs/domain/cost_settings.dart';
 import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
+import 'package:cubico_backoffice/features/costs/presentation/widgets/fixed_costs_card.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -144,6 +145,11 @@ class _MarginsFormState extends ConsumerState<_MarginsForm> {
               ),
             ],
           ),
+        ),
+        const SizedBox(height: 24),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: const FixedCostsCard(),
         ),
       ],
     );

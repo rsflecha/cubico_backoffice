@@ -1,3 +1,7 @@
+import 'package:cubico_backoffice/features/costs/data/api_fixed_cost_repository.dart';
+import 'package:cubico_backoffice/features/costs/data/demo_fixed_cost_repository.dart';
+import 'package:cubico_backoffice/features/costs/domain/fixed_cost.dart';
+import 'package:cubico_backoffice/features/costs/domain/fixed_cost_repository.dart';
 import 'package:cubico_backoffice/core/api/api_client.dart';
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
 import 'package:cubico_backoffice/features/costs/data/api_component_repository.dart';
@@ -113,4 +117,14 @@ final shippingRateRepositoryProvider = Provider<ShippingRateRepository>((ref) {
 
 final shippingRatesProvider = FutureProvider<List<ShippingRate>>((ref) {
   return ref.watch(shippingRateRepositoryProvider).fetchAll();
+});
+/// Qual é o repositório dos custos fixos mensais.
+final fixedCostRepositoryProvider = Provider<FixedCostRepository>((ref) {
+  if (ref.watch(demoModeProvider)) return DemoFixedCostRepository();
+  return ApiFixedCostRepository(ref.watch(dioProvider));
+});
+
+/// Os custos fixos mensais (Etsy Plus, alojamento…).
+final fixedCostsProvider = FutureProvider<List<FixedCost>>((ref) {
+  return ref.watch(fixedCostRepositoryProvider).fetchAll();
 });

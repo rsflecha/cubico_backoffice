@@ -9,6 +9,8 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
+import 'package:cubico_backoffice/features/costs/domain/fixed_cost.dart';
+import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -41,6 +43,12 @@ class DashboardScreen extends ConsumerWidget {
               .toList();
           final sales = month.fold(0.0, (sum, o) => sum + o.total);
           final profit = month.fold(0.0, (sum, o) => sum + o.profit);
+          // os custos fixos do mês (Etsy Plus…), tirados ao lucro das encomendas.
+          // Só o administrador os pede (ao colaborador, a API responderia 403).
+          // null = ainda não chegaram ou falharam: mostra-se "—", nunca um 0 € que parece verdade.
+          final List<FixedCost>? fixedList = canSeeCosts ? ref.watch(fixedCostsProvider).value : null;
+          final double? fixedCosts = fixedList?.fold<double>(0.0, (sum, c) => sum + c.monthlyValue);
+          final double? netProfit = fixedCosts == null ? null : profit - fixedCosts;
           final pending = list.where((o) =>
           o.status == OrderStatus.pending || o.status == OrderStatus.inProduction).toList();
           final overdue = list.where((o) => o.isOverdue).toList();
@@ -59,6 +67,17 @@ class DashboardScreen extends ConsumerWidget {
                     "Lucro do mês",
                     euro(profit),
                     color: profit >= 0 ? const Color(0xFF15803D) : const Color(0xFFB91C1C),
+                  ),
+                  _kpi(context, "Custos fixos do mês", fixedCosts == null ? "—" : euro(fixedCosts)),
+                  _kpi(
+                    context,
+                    "Lucro depois dos fixos",
+                    netProfit == null ? "—" : euro(netProfit),
+                    color: netProfit == null
+                        ? null
+                        : netProfit >= 0
+                            ? const Color(0xFF15803D)
+                            : const Color(0xFFB91C1C),
                   ),
                   _kpi(context, "Encomendas do mês", "${month.length}"),
                 ],
