@@ -47,12 +47,14 @@ class OrderDetailScreen extends ConsumerWidget {
       if (next == OrderStatus.inProduction) {
         // enviar para produção: cria as tarefas no quadro
         final variants = ref.read(allVariantsProvider).value ?? <Variant>[];
-        await ref.read(productionServiceProvider).sendToProduction(order, variants);
+        await ref
+            .read(productionServiceProvider)
+            .sendToProduction(order, variants);
         ref.invalidate(printJobsProvider);
       } else {
-        await ref.read(orderRepositoryProvider).update(
-          order.copyWith(status: next, updatedAt: DateTime.now()),
-        );
+        await ref
+            .read(orderRepositoryProvider)
+            .update(order.copyWith(status: next, updatedAt: DateTime.now()));
       }
       ref.invalidate(ordersProvider);
     }
@@ -234,7 +236,12 @@ class OrderDetailScreen extends ConsumerWidget {
   }
 
   /// O cartão com o recebido (à esquerda) e os custos com o lucro (à direita, só para quem pode ver).
-  Widget _moneyCard(BuildContext context, Order order, String channelName, bool canSeeCosts) {
+  Widget _moneyCard(
+    BuildContext context,
+    Order order,
+    String channelName,
+    bool canSeeCosts,
+  ) {
     final marginPct = order.total > 0 ? order.profit / order.total * 100 : 0;
     final title = Theme.of(context).textTheme.titleMedium;
 
@@ -262,7 +269,10 @@ class OrderDetailScreen extends ConsumerWidget {
         Row(
           children: [
             const Expanded(
-              child: Text("Lucro", style: TextStyle(fontWeight: FontWeight.w700)),
+              child: Text(
+                "Lucro",
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
             Text(
               "${euro(order.profit)} · ${marginPct.toStringAsFixed(0)}%",
@@ -506,7 +516,9 @@ class OrderDetailScreen extends ConsumerWidget {
                             "${i + 1}",
                             style: TextStyle(
                               fontSize: 12,
-                              color: i <= current ? Colors.white : Colors.black54,
+                              color: i <= current
+                                  ? Colors.white
+                                  : Colors.black54,
                             ),
                           ),
                   ),

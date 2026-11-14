@@ -37,17 +37,31 @@ class OrdersScreen extends ConsumerWidget {
           (o.externalRef ?? "").contains(text);
     }
 
+    // no telemóvel: tabela → cartões, estados numa fila que desliza, botão "+" redondo
+    final isPhone = MediaQuery.sizeOf(context).width < 600;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Encomendas"),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: FilledButton.icon(
-              onPressed: () => context.push("/orders/new"),
-              icon: const Icon(Icons.add),
-              label: const Text("Criar encomenda"),
-            ),
+            child: isPhone
+                ? IconButton.filled(
+                    tooltip: "Criar encomenda",
+                    onPressed: () => context.push("/orders/new"),
+                    // a cor vai no próprio ícone: a AppBar pinta os ícones das
+                    // actions de escuro, e ficava escuro sobre o fundo escuro
+                    icon: Icon(
+                      Icons.add,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  )
+                : FilledButton.icon(
+                    onPressed: () => context.push("/orders/new"),
+                    icon: const Icon(Icons.add),
+                    label: const Text("Criar encomenda"),
+                  ),
           ),
         ],
       ),
@@ -58,37 +72,49 @@ class OrdersScreen extends ConsumerWidget {
           // só as do estado escolhido (ou todas)
           final visible = list.where(matches).toList();
 
+          final chips = [
+            ChoiceChip(
+              label: Text("Todas · ${list.length}"),
+              selected: selected == null,
+              onSelected: (_) =>
+                  ref.read(selectedOrderStatusProvider.notifier).select(null),
+            ),
+            for (final status in OrderStatus.values)
+              ChoiceChip(
+                label: Text(
+                  "${status.pluralLabel} · "
+                  "${list.where((o) => o.status == status).length}",
+                ),
+                selected: selected == status,
+                onSelected: (_) => ref
+                    .read(selectedOrderStatusProvider.notifier)
+                    .select(status),
+              ),
+          ];
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // os separadores
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    ChoiceChip(
-                      label: Text("Todas · ${list.length}"),
-                      selected: selected == null,
-                      onSelected: (_) => ref
-                          .read(selectedOrderStatusProvider.notifier)
-                          .select(null),
-                    ),
-                    for (final status in OrderStatus.values)
-                      ChoiceChip(
-                        label: Text(
-                          "${status.pluralLabel} · "
-                          "${list.where((o) => o.status == status).length}",
-                        ),
-                        selected: selected == status,
-                        onSelected: (_) => ref
-                            .read(selectedOrderStatusProvider.notifier)
-                            .select(status),
-                      ),
-                  ],
+              // os separadores: no telemóvel, numa só fila que desliza para o lado
+              // (em Wrap ocupavam 4 linhas e empurravam a lista para fora do ecrã)
+              if (isPhone)
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Row(
+                    children: [
+                      for (final chip in chips) ...[
+                        chip,
+                        const SizedBox(width: 8),
+                      ],
+                    ],
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Wrap(spacing: 8, runSpacing: 8, children: chips),
                 ),
-              ),
 
               // pesquisa e filtro por canal
               Padding(
@@ -133,6 +159,18 @@ class OrdersScreen extends ConsumerWidget {
                           "Nenhuma encomenda corresponde aos filtros.",
                         ),
                       )
+                    : isPhone
+                    ? ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: visible.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 8),
+                        itemBuilder: (context, i) => _OrderCard(
+                          order: visible[i],
+                          channelName: channelName(visible[i].channelId),
+                          canSeeCosts: canSeeCosts,
+                          deadline: _deadline(visible[i]),
+                        ),
+                      )
                     : LayoutBuilder(
                         builder: (context, constraints) => SingleChildScrollView(
                           padding: const EdgeInsets.all(16),
@@ -151,12 +189,22 @@ class OrdersScreen extends ConsumerWidget {
                                   const DataColumn(label: Text("Data")),
                                   const DataColumn(label: Text("Cliente")),
                                   const DataColumn(label: Text("Canal")),
-                                  const DataColumn(label: Text("Artigos"), numeric: true),
+                                  const DataColumn(
+                                    label: Text("Artigos"),
+                                    numeric: true,
+                                  ),
                                   const DataColumn(label: Text("Estado")),
                                   const DataColumn(label: Text("Pagamento")),
                                   const DataColumn(label: Text("Prazo")),
-                                  const DataColumn(label: Text("Total"), numeric: true),
-                                  if (canSeeCosts) const DataColumn(label: Text("Lucro"), numeric: true),
+                                  const DataColumn(
+                                    label: Text("Total"),
+                                    numeric: true,
+                                  ),
+                                  if (canSeeCosts)
+                                    const DataColumn(
+                                      label: Text("Lucro"),
+                                      numeric: true,
+                                    ),
                                 ],
                                 rows: [
                                   for (final o in visible)
@@ -210,10 +258,15 @@ class OrdersScreen extends ConsumerWidget {
                                           ),
                                         ),
                                         if (canSeeCosts)
-                                          DataCell(Text(
-                                            euro(o.profit),
-                                            style: AppTextStyles.mono.copyWith(color: profitColor(o)),
-                                          )),
+                                          DataCell(
+                                            Text(
+                                              euro(o.profit),
+                                              style: AppTextStyles.mono
+                                                  .copyWith(
+                                                    color: profitColor(o),
+                                                  ),
+                                            ),
+                                          ),
                                       ],
                                     ),
                                 ],
@@ -244,6 +297,122 @@ class OrdersScreen extends ConsumerWidget {
       );
     }
     return Text(shortDate(deadline));
+  }
+}
+
+/// Uma encomenda em cartão (telemóvel): o mesmo que uma linha da tabela, em 3 linhas.
+///   #1042  Ana Martins                 40,00 €
+///   13 nov · Etsy · 2 artigos     lucro 25,40 €
+///   [Pendente]  Pago                 Prazo 17 nov
+class _OrderCard extends StatelessWidget {
+  const _OrderCard({
+    required this.order,
+    required this.channelName,
+    required this.canSeeCosts,
+    required this.deadline,
+  });
+
+  final Order order;
+  final String channelName;
+  final bool canSeeCosts;
+  final Widget deadline;
+
+  @override
+  Widget build(BuildContext context) {
+    final o = order;
+    final small = Theme.of(context).textTheme.bodySmall;
+    final cancelled = o.status == OrderStatus.cancelled;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      // as atrasadas ficam com o fundo avermelhado, como na tabela
+      color: o.isOverdue
+          ? Color.alphaBlend(
+              Colors.red.withValues(alpha: 0.06),
+              Theme.of(context).cardColor,
+            )
+          : null,
+      clipBehavior:
+          Clip.antiAlias, // o efeito do toque fica dentro dos cantos redondos
+      child: InkWell(
+        onTap: () => context.push("/orders/${o.id}"),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    "#${o.orderNumber}",
+                    style: AppTextStyles.mono.copyWith(
+                      color: AppColors.orange,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      o.customerName,
+                      overflow: TextOverflow
+                          .ellipsis, // nomes compridos acabam em "…"
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  Text(
+                    euro(o.total),
+                    style: AppTextStyles.mono.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: cancelled ? const Color(0xFF71717A) : null,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      "${shortDate(o.createdAt)} · $channelName · "
+                      "${o.itemCount} ${o.itemCount == 1 ? "artigo" : "artigos"}",
+                      style: small,
+                    ),
+                  ),
+                  if (canSeeCosts)
+                    Text(
+                      "lucro ${euro(o.profit)}",
+                      style: AppTextStyles.mono.copyWith(
+                        fontSize: 12,
+                        color: profitColor(o),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  _StatusBadge(o.status),
+                  const SizedBox(width: 8),
+                  Text(
+                    o.paymentStatus.label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: o.paymentStatus.color,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (o.shipByDate != null)
+                    DefaultTextStyle.merge(
+                      style: const TextStyle(fontSize: 12),
+                      child: Row(children: [const Text("Prazo "), deadline]),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
