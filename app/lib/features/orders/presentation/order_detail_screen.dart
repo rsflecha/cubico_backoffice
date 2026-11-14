@@ -34,7 +34,28 @@ class OrderDetailScreen extends ConsumerWidget {
     final variants = ref.watch(allVariantsProvider).value ?? <Variant>[];
     final canSeeCosts = ref.watch(sessionProvider)?.canSeeCosts ?? false;
 
-    final isWide = MediaQuery.sizeOf(context).width >= 1100;
+    final width = MediaQuery.sizeOf(context).width;
+    final isWide = width >= 1100;
+    // no telemóvel, o botão do próximo estado sai da barra de cima (tapava o estado)
+    // e passa para uma barra fixa em baixo, à largura toda
+    final isPhone = width < 600;
+    final gap = isPhone ? 16.0 : 24.0;
+
+    /// Passa a encomenda para o estado seguinte.
+    Future<void> advance() async {
+      final next = order.nextStatus!;
+      if (next == OrderStatus.inProduction) {
+        // enviar para produção: cria as tarefas no quadro
+        final variants = ref.read(allVariantsProvider).value ?? <Variant>[];
+        await ref.read(productionServiceProvider).sendToProduction(order, variants);
+        ref.invalidate(printJobsProvider);
+      } else {
+        await ref.read(orderRepositoryProvider).update(
+          order.copyWith(status: next, updatedAt: DateTime.now()),
+        );
+      }
+      ref.invalidate(ordersProvider);
+    }
 
     // coluna da esquerda: o que se vendeu e as contas
     final leftCards = <Widget>[
@@ -74,33 +95,31 @@ class OrderDetailScreen extends ConsumerWidget {
           ],
         ),
         actions: [
-          if (order.nextStatus != null)
+          if (order.nextStatus != null && !isPhone)
             Padding(
               padding: const EdgeInsets.only(right: 12),
               child: FilledButton(
-                onPressed: () async {
-                  final next = order.nextStatus!;
-                  if (next == OrderStatus.inProduction) {
-                    // enviar para produção: cria as tarefas no quadro
-                    final variants = ref.read(allVariantsProvider).value ?? <Variant>[];
-                    await ref.read(productionServiceProvider).sendToProduction(order, variants);
-                    ref.invalidate(printJobsProvider);
-                  } else {
-                    await ref.read(orderRepositoryProvider).update(
-                      order.copyWith(status: next, updatedAt: DateTime.now()),
-                    );
-                  }
-                  ref.invalidate(ordersProvider);
-                },
+                onPressed: advance,
                 child: Text(order.nextStatus!.actionLabel),
               ),
             ),
         ],
       ),
+      bottomNavigationBar: order.nextStatus != null && isPhone
+          ? SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: FilledButton(
+                  onPressed: advance,
+                  child: Text(order.nextStatus!.actionLabel),
+                ),
+              ),
+            )
+          : null,
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+            padding: EdgeInsets.fromLTRB(gap, 16, gap, 0),
             child: _statusSteps(context, order),
           ),
           Expanded(
@@ -130,9 +149,9 @@ class OrderDetailScreen extends ConsumerWidget {
                       ),
                     ],
                   )
-                // a tua Row das duas colunas, igual
+                // estreito (telemóvel e iPad ao alto): tudo numa coluna
                 : ListView(
-                    padding: const EdgeInsets.all(24),
+                    padding: EdgeInsets.all(gap),
                     children: [
                       subtitle,
                       const SizedBox(height: 16),
@@ -140,7 +159,7 @@ class OrderDetailScreen extends ConsumerWidget {
                       const SizedBox(height: 16),
                       ...rightCards,
                     ],
-                  ), // o teu ListView do telemóvel, igual
+                  ),
           ),
         ],
       ),
@@ -163,6 +182,13 @@ class OrderDetailScreen extends ConsumerWidget {
                   final variant = variants
                       .where((v) => v.id == line.variantId)
                       .firstOrNull;
+                  final quantityText = Text(
+                    "${line.quantity} × ${euro(line.unitPrice)}",
+                    style: AppTextStyles.mono,
+                  );
+                  // num cartão estreito, "2 × 12,00 €" passa para baixo do SKU
+                  // e o nome fica com mais espaço
+                  final narrow = MediaQuery.sizeOf(context).width < 600;
                   return Row(
                     children: [
                       Expanded(
@@ -179,6 +205,7 @@ class OrderDetailScreen extends ConsumerWidget {
                               "SKU ${variant?.sku ?? "—"}",
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
+                            if (narrow) quantityText,
                             if (line.customization != null)
                               Text(
                                 "Personalização: «${line.customization}»",
@@ -187,11 +214,8 @@ class OrderDetailScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      Text(
-                        "${line.quantity} × ${euro(line.unitPrice)}",
-                        style: AppTextStyles.mono,
-                      ),
-                      const SizedBox(width: 24),
+                      if (!narrow) ...[quantityText, const SizedBox(width: 24)],
+                      if (narrow) const SizedBox(width: 12),
                       Text(
                         euro(line.quantity * line.unitPrice - line.discount),
                         style: AppTextStyles.mono.copyWith(
@@ -214,56 +238,68 @@ class OrderDetailScreen extends ConsumerWidget {
     final marginPct = order.total > 0 ? order.profit / order.total * 100 : 0;
     final title = Theme.of(context).textTheme.titleMedium;
 
+    final received = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("Recebido", style: title),
+        const SizedBox(height: 8),
+        _moneyRow("Artigos", order.itemsTotal),
+        _moneyRow("Portes cobrados", order.shippingCharged),
+        const Divider(),
+        _moneyRow("Total", order.total, bold: true),
+      ],
+    );
+
+    final costs = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("Custos", style: title),
+        const SizedBox(height: 8),
+        _moneyRow("Produção", order.productionCost),
+        _moneyRow("Taxas $channelName", order.channelFees),
+        _moneyRow("Portes pagos", order.shippingPaid),
+        const Divider(),
+        Row(
+          children: [
+            const Expanded(
+              child: Text("Lucro", style: TextStyle(fontWeight: FontWeight.w700)),
+            ),
+            Text(
+              "${euro(order.profit)} · ${marginPct.toStringAsFixed(0)}%",
+              style: AppTextStyles.mono.copyWith(
+                fontWeight: FontWeight.w700,
+                color: profitColor(order),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Recebido", style: title),
-                  const SizedBox(height: 8),
-                  _moneyRow("Artigos", order.itemsTotal),
-                  _moneyRow("Portes cobrados", order.shippingCharged),
-                  const Divider(),
-                  _moneyRow("Total", order.total, bold: true),
-                ],
-              ),
-            ),
-            if (canSeeCosts) ...[
-              const SizedBox(width: 32),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Custos", style: title),
-                    const SizedBox(height: 8),
-                    _moneyRow("Produção", order.productionCost),
-                    _moneyRow("Taxas $channelName", order.channelFees),
-                    _moneyRow("Portes pagos", order.shippingPaid),
-                    const Divider(),
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text("Lucro", style: TextStyle(fontWeight: FontWeight.w700)),
-                        ),
-                        Text(
-                          "${euro(order.profit)} · ${marginPct.toStringAsFixed(0)}%",
-                          style: AppTextStyles.mono.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: profitColor(order),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
+        // LayoutBuilder diz quanto espaço o cartão tem (não o ecrã todo).
+        // Abaixo de 520 px, lado a lado não cabe ("Lucro" ficava na vertical):
+        // Recebido fica em cima e Custos em baixo.
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            if (!canSeeCosts) return received;
+            if (constraints.maxWidth < 520) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [received, const SizedBox(height: 24), costs],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: received),
+                const SizedBox(width: 32),
+                Expanded(child: costs),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -449,37 +485,58 @@ class OrderDetailScreen extends ConsumerWidget {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            for (var i = 0; i < flow.length; i++) ...[
-              if (i > 0)
-                const Expanded(child: Divider(indent: 8, endIndent: 8)),
-              CircleAvatar(
-                radius: 13,
-                backgroundColor: i <= current
-                    ? AppColors.orange
-                    : Colors.grey.withValues(alpha: 0.2),
-                child: i < current
-                    ? const Icon(Icons.check, size: 14, color: Colors.white)
-                    : Text(
-                        "${i + 1}",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: i <= current ? Colors.white : Colors.black54,
-                        ),
+        // com pouco espaço, os 5 nomes não cabem: mostram-se só as bolinhas
+        // e o nome do passo atual por baixo
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 640;
+            final steps = Row(
+              children: [
+                for (var i = 0; i < flow.length; i++) ...[
+                  if (i > 0)
+                    const Expanded(child: Divider(indent: 8, endIndent: 8)),
+                  CircleAvatar(
+                    radius: 13,
+                    backgroundColor: i <= current
+                        ? AppColors.orange
+                        : Colors.grey.withValues(alpha: 0.2),
+                    child: i < current
+                        ? const Icon(Icons.check, size: 14, color: Colors.white)
+                        : Text(
+                            "${i + 1}",
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: i <= current ? Colors.white : Colors.black54,
+                            ),
+                          ),
+                  ),
+                  if (!compact) ...[
+                    const SizedBox(width: 6),
+                    Text(
+                      flow[i].label,
+                      style: TextStyle(
+                        fontWeight: i == current
+                            ? FontWeight.w700
+                            : FontWeight.normal,
                       ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                flow[i].label,
-                style: TextStyle(
-                  fontWeight: i == current
-                      ? FontWeight.w700
-                      : FontWeight.normal,
+                    ),
+                  ],
+                ],
+              ],
+            );
+            if (!compact) return steps;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                steps,
+                const SizedBox(height: 8),
+                Text(
+                  "Passo ${current + 1} de ${flow.length} · ${flow[current].label}",
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
-              ),
-            ],
-          ],
+              ],
+            );
+          },
         ),
       ),
     );
