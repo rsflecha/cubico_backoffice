@@ -314,61 +314,69 @@ class _PrintingBannerState extends State<_PrintingBanner> {
       ),
       child: job == null
           ? const Text("Bambu Lab A1 · livre. Arrasta uma tarefa para «A imprimir».", style: muted)
-          : Builder(builder: (context) {
+          // LayoutBuilder: diz quanto espaço o cartão tem de facto (não o ecrã inteiro)
+          : LayoutBuilder(builder: (context, constraints) {
         final now = DateTime.now();
         final progress = job.progressAt(now);
         final left = job.minutesLeftAt(now);
+
+        final info = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Bambu Lab A1 · a imprimir", style: muted),
+            const SizedBox(height: 4),
+            Text(
+              widget.title,
+              style: white.copyWith(fontSize: 20, fontWeight: FontWeight.w700),
+            ),
+            Text(
+              job.orderNumber == null
+                  ? "Tarefa manual"
+                  : "Encomenda #${job.orderNumber}",
+              style: muted,
+            ),
+          ],
+        );
+        final bar = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Text("${(progress * 100).round()}%",
+                    style: white.copyWith(fontWeight: FontWeight.w700)),
+                const Spacer(),
+                Text(
+                  left == 0
+                      ? "deve ter acabado"
+                      : "faltam ${left ~/ 60} h ${left % 60} min",
+                  style: muted,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            LinearProgressIndicator(
+              value: progress,
+              minHeight: 8,
+              color: AppColors.orange,
+              backgroundColor: Colors.white24,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ],
+        );
+
+        // estreito (telemóvel): um por baixo do outro. Antes, ficavam lado a lado e a barra
+        // tinha 260 px fixos: num ecrã de 375 px o texto ficava sem espaço e partia letra a letra.
+        if (constraints.maxWidth < 560) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [info, const SizedBox(height: 16), bar],
+          );
+        }
         return Row(
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Bambu Lab A1 · a imprimir", style: muted),
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.title,
-                    style: white.copyWith(fontSize: 20, fontWeight: FontWeight.w700),
-                  ),
-                  Text(
-                    job.orderNumber == null
-                        ? "Tarefa manual"
-                        : "Encomenda #${job.orderNumber}",
-                    style: muted,
-                  ),
-                ],
-              ),
-            ),
+            Expanded(child: info),
             const SizedBox(width: 24),
-            SizedBox(
-              width: 260,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Text("${(progress * 100).round()}%",
-                          style: white.copyWith(fontWeight: FontWeight.w700)),
-                      const Spacer(),
-                      Text(
-                        left == 0
-                            ? "deve ter acabado"
-                            : "faltam ${left ~/ 60} h ${left % 60} min",
-                        style: muted,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 8,
-                    color: AppColors.orange,
-                    backgroundColor: Colors.white24,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ],
-              ),
-            ),
+            SizedBox(width: 260, child: bar),
           ],
         );
       }),
