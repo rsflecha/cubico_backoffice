@@ -15,8 +15,8 @@ class ComponentsTab extends ConsumerStatefulWidget {
 }
 
 class _ComponentsTabState extends ConsumerState<ComponentsTab> {
-  var _formOpen = false;  // o formulário está aberto?
-  Component? _editing;    // null = novo; senão, o que se está a editar
+  var _formOpen = false; // o formulário está aberto?
+  Component? _editing; // null = novo; senão, o que se está a editar
 
   void _openNew() => setState(() {
     _formOpen = true;
@@ -41,7 +41,10 @@ class _ComponentsTabState extends ConsumerState<ComponentsTab> {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stack) => Center(child: Text("Erro: $error")),
       data: (list) => ListView(
-        padding: const EdgeInsets.all(24),
+        // no telemóvel, menos margem: sobra mais espaço para os campos
+        padding: EdgeInsets.all(
+          MediaQuery.sizeOf(context).width < 600 ? 12 : 24,
+        ),
         children: [
           Card(
             child: Padding(
@@ -98,45 +101,88 @@ class _ComponentsTabState extends ConsumerState<ComponentsTab> {
     const calc = CostCalculator();
 
     return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minWidth: constraints.maxWidth),
-          child: DataTable(
-            columnSpacing: 24,
-            horizontalMargin: 8,
-            showCheckboxColumn: false,
-            columns: const [
-              DataColumn(label: Text("Nome")),
-              DataColumn(label: Text("Tipo")),
-              DataColumn(label: Text("Tamanho")),
-              DataColumn(label: Text("Peso"), numeric: true),
-              DataColumn(label: Text("Preço do pack"), numeric: true),
-              DataColumn(label: Text("Unidades"), numeric: true),
-              DataColumn(label: Text("Custo por unidade"), numeric: true),
-            ],
-            rows: [
-              for (final c in list)
-                DataRow(
-                  selected: _editing?.id == c.id,
-                  onSelectChanged: (_) => _openEdit(c),
-                  cells: [
-                    DataCell(Text(c.name)),
-                    DataCell(Text(c.kind.label)),
-                    DataCell(Text(c.sizeLabel ?? "—")),
-                    DataCell(Text("${c.weightG} g")),
-                    DataCell(Text(euro(c.packPrice), style: AppTextStyles.mono)),
-                    DataCell(Text("${c.unitsPerPack}")),
-                    DataCell(Text(
-                      euroPer(calc.componentUnitCost(c), "un.", decimals: 3),
-                      style: AppTextStyles.mono.copyWith(fontWeight: FontWeight.w700),
-                    )),
+      builder: (context, constraints) => constraints.maxWidth < 560
+          ? _list(list, calc)
+          : SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                child: DataTable(
+                  columnSpacing: 24,
+                  horizontalMargin: 8,
+                  showCheckboxColumn: false,
+                  columns: const [
+                    DataColumn(label: Text("Nome")),
+                    DataColumn(label: Text("Tipo")),
+                    DataColumn(label: Text("Tamanho")),
+                    DataColumn(label: Text("Peso"), numeric: true),
+                    DataColumn(label: Text("Preço do pack"), numeric: true),
+                    DataColumn(label: Text("Unidades"), numeric: true),
+                    DataColumn(label: Text("Custo por unidade"), numeric: true),
+                  ],
+                  rows: [
+                    for (final c in list)
+                      DataRow(
+                        selected: _editing?.id == c.id,
+                        onSelectChanged: (_) => _openEdit(c),
+                        cells: [
+                          DataCell(Text(c.name)),
+                          DataCell(Text(c.kind.label)),
+                          DataCell(Text(c.sizeLabel ?? "—")),
+                          DataCell(Text("${c.weightG} g")),
+                          DataCell(
+                            Text(euro(c.packPrice), style: AppTextStyles.mono),
+                          ),
+                          DataCell(Text("${c.unitsPerPack}")),
+                          DataCell(
+                            Text(
+                              euroPer(
+                                calc.componentUnitCost(c),
+                                "un.",
+                                decimals: 3,
+                              ),
+                              style: AppTextStyles.mono.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
-            ],
+              ),
+            ),
+    );
+  }
+
+  /// No telemóvel, a tabela de 7 colunas não cabe (o custo por unidade nem
+  /// se via): cada peça é uma linha com o essencial e o custo à direita.
+  Widget _list(List<Component> list, CostCalculator calc) {
+    final small = Theme.of(context).textTheme.bodySmall;
+    return Column(
+      children: [
+        for (final c in list) ...[
+          const Divider(height: 1),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+            selected:
+                _editing?.id == c.id, // o que está a ser editado fica destacado
+            onTap: () => _openEdit(c),
+            title: Text(
+              c.sizeLabel == null ? c.name : "${c.name} · ${c.sizeLabel}",
+            ),
+            subtitle: Text(
+              "${c.kind.label} · ${c.weightG} g · pack de ${c.unitsPerPack} "
+              "por ${euro(c.packPrice)}",
+              style: small,
+            ),
+            trailing: Text(
+              euroPer(calc.componentUnitCost(c), "un.", decimals: 3),
+              style: AppTextStyles.mono.copyWith(fontWeight: FontWeight.w700),
+            ),
           ),
-        ),
-      ),
+        ],
+      ],
     );
   }
 }
@@ -145,8 +191,9 @@ class _ComponentsTabState extends ConsumerState<ComponentsTab> {
 class _ComponentForm extends ConsumerStatefulWidget {
   const _ComponentForm({super.key, this.initial, required this.onClose});
 
-  final Component? initial;    // null = novo
-  final VoidCallback onClose;  // chamada para fechar (ao cancelar ou depois de guardar)
+  final Component? initial; // null = novo
+  final VoidCallback
+  onClose; // chamada para fechar (ao cancelar ou depois de guardar)
 
   @override
   ConsumerState<_ComponentForm> createState() => _ComponentFormState();
@@ -157,11 +204,18 @@ class _ComponentFormState extends ConsumerState<_ComponentForm> {
 
   late var _kind = widget.initial?.kind ?? ComponentKind.component;
   late final _name = TextEditingController(text: widget.initial?.name ?? "");
-  late final _sizeLabel = TextEditingController(text: widget.initial?.sizeLabel ?? "");
-  late final _weight = TextEditingController(text: "${widget.initial?.weightG ?? 0}");
+  late final _sizeLabel = TextEditingController(
+    text: widget.initial?.sizeLabel ?? "",
+  );
+  late final _weight = TextEditingController(
+    text: "${widget.initial?.weightG ?? 0}",
+  );
   late final _packPrice = TextEditingController(
-      text: widget.initial == null ? "" : decimalField(widget.initial!.packPrice));
-  late final _units = TextEditingController(text: "${widget.initial?.unitsPerPack ?? 1}");
+    text: widget.initial == null ? "" : decimalField(widget.initial!.packPrice),
+  );
+  late final _units = TextEditingController(
+    text: "${widget.initial?.unitsPerPack ?? 1}",
+  );
 
   var _saving = false;
 
@@ -228,7 +282,9 @@ class _ComponentFormState extends ConsumerState<_ComponentForm> {
   Widget build(BuildContext context) {
     final draft = _draft();
     final problem = _problem(draft);
-    final unitCost = draft.unitsPerPack > 0 ? _calc.componentUnitCost(draft) : 0.0;
+    final unitCost = draft.unitsPerPack > 0
+        ? _calc.componentUnitCost(draft)
+        : 0.0;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -243,86 +299,117 @@ class _ComponentFormState extends ConsumerState<_ComponentForm> {
             children: [
               Expanded(
                 child: Text(
-                  widget.initial == null ? "Novo componente" : "Editar componente",
+                  widget.initial == null
+                      ? "Novo componente"
+                      : "Editar componente",
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-              IconButton(onPressed: widget.onClose, icon: const Icon(Icons.close)),
+              IconButton(
+                onPressed: widget.onClose,
+                icon: const Icon(Icons.close),
+              ),
             ],
           ),
           const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: SegmentedButton<ComponentKind>(
-              segments: const [
-                ButtonSegment(value: ComponentKind.component, label: Text("Componente")),
-                ButtonSegment(value: ComponentKind.packaging, label: Text("Embalagem")),
-              ],
-              selected: {_kind},
-              onSelectionChanged: (selection) => setState(() => _kind = selection.first),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 2,
-                child: _text(_name, "Nome", hint: "Ex.: Íman de neodímio, Caixa"),
-              ),
-              const SizedBox(width: 12),
-              Expanded(child: _text(_sizeLabel, "Tamanho", hint: "Ex.: 25 mm, S, A5")),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _number(_weight, "Peso de uma unidade", "g",
-                    hint: "Conta para os portes."),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _number(_packPrice, "Preço do pack", "€",
-                    hint: "O que pagaste pelo pack inteiro."),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _number(_units, "Unidades no pack", "",
-                    hint: "Quantas peças traz o pack."),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                const Text("Custo por unidade "),
-                Text(
-                  euroPer(unitCost, "un.", decimals: 3),
-                  style: AppTextStyles.mono.copyWith(fontSize: 18, fontWeight: FontWeight.w700),
-                ),
-                const Spacer(),
-                TextButton(onPressed: widget.onClose, child: const Text("Cancelar")),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: _saving || problem != null ? null : _save,
-                  child: _saving
-                      ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                      : Text(widget.initial == null ? "Adicionar à lista" : "Guardar"),
-                ),
-              ],
-            ),
+          // LayoutBuilder: com pouco espaço (telemóvel), um campo por linha;
+          // lado a lado, os campos ficavam com ~60 px e os nomes cortados
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final narrow = constraints.maxWidth < 560;
+
+              final name = _text(
+                _name,
+                "Nome",
+                hint: "Ex.: Íman de neodímio, Caixa",
+              );
+              final size = _text(
+                _sizeLabel,
+                "Tamanho",
+                hint: "Ex.: 25 mm, S, A5",
+              );
+              final weight = _number(
+                _weight,
+                "Peso de uma unidade",
+                "g",
+                hint: "Conta para os portes.",
+              );
+              final packPrice = _number(
+                _packPrice,
+                "Preço do pack",
+                "€",
+                hint: "O que pagaste pelo pack inteiro.",
+              );
+              final units = _number(
+                _units,
+                "Unidades no pack",
+                "",
+                hint: "Quantas peças traz o pack.",
+              );
+
+              final kind = SegmentedButton<ComponentKind>(
+                // sem o "visto" no telemóvel: ocupava espaço e partia "Componente" ao meio
+                showSelectedIcon: !narrow,
+                segments: const [
+                  ButtonSegment(
+                    value: ComponentKind.component,
+                    label: Text("Componente"),
+                  ),
+                  ButtonSegment(
+                    value: ComponentKind.packaging,
+                    label: Text("Embalagem"),
+                  ),
+                ],
+                selected: {_kind},
+                onSelectionChanged: (selection) =>
+                    setState(() => _kind = selection.first),
+              );
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (narrow)
+                    kind
+                  else
+                    Align(alignment: Alignment.centerLeft, child: kind),
+                  const SizedBox(height: 16),
+                  if (narrow) ...[
+                    for (final (i, field) in [
+                      name,
+                      size,
+                      weight,
+                      packPrice,
+                      units,
+                    ].indexed) ...[
+                      if (i > 0) const SizedBox(height: 12),
+                      field,
+                    ],
+                  ] else ...[
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(flex: 2, child: name),
+                        const SizedBox(width: 12),
+                        Expanded(child: size),
+                        const SizedBox(width: 12),
+                        Expanded(child: weight),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: packPrice),
+                        const SizedBox(width: 12),
+                        Expanded(child: units),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  _summary(unitCost, problem, narrow),
+                ],
+              );
+            },
           ),
           if (problem != null) ...[
             const SizedBox(height: 8),
@@ -330,6 +417,65 @@ class _ComponentFormState extends ConsumerState<_ComponentForm> {
           ],
         ],
       ),
+    );
+  }
+
+  /// O custo por unidade (enquanto se escreve) e os botões.
+  /// No telemóvel, os botões passam para uma linha própria, por baixo.
+  Widget _summary(double unitCost, String? problem, bool narrow) {
+    final cost = Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        const Text("Custo por unidade "),
+        Text(
+          euroPer(unitCost, "un.", decimals: 3),
+          style: AppTextStyles.mono.copyWith(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+
+    final buttons = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextButton(onPressed: widget.onClose, child: const Text("Cancelar")),
+        const SizedBox(width: 8),
+        FilledButton(
+          onPressed: _saving || problem != null ? null : _save,
+          child: _saving
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(widget.initial == null ? "Adicionar à lista" : "Guardar"),
+        ),
+      ],
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: narrow
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                cost,
+                const SizedBox(height: 8),
+                Align(alignment: Alignment.centerRight, child: buttons),
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(child: cost),
+                buttons,
+              ],
+            ),
     );
   }
 
@@ -343,7 +489,12 @@ class _ComponentFormState extends ConsumerState<_ComponentForm> {
   }
 
   /// Um campo de número, com a unidade à direita.
-  Widget _number(TextEditingController c, String label, String unit, {String? hint}) {
+  Widget _number(
+    TextEditingController c,
+    String label,
+    String unit, {
+    String? hint,
+  }) {
     return TextField(
       controller: c,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),

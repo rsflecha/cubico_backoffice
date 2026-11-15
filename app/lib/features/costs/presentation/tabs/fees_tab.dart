@@ -25,7 +25,10 @@ class _FeesTabState extends ConsumerState<FeesTab> {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stack) => Center(child: Text("Erro: $error")),
       data: (list) => ListView(
-        padding: const EdgeInsets.all(24),
+        // no telemóvel, menos margem: sobra mais espaço para os campos
+        padding: EdgeInsets.all(
+          MediaQuery.sizeOf(context).width < 600 ? 12 : 24,
+        ),
         children: [
           Card(
             child: Padding(
@@ -33,12 +36,14 @@ class _FeesTabState extends ConsumerState<FeesTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Taxas dos canais de venda",
-                      style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    "Taxas dos canais de venda",
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     "O que cada canal fica de uma venda. Toca num canal para mudar as taxas. "
-                        "As encomendas já feitas guardam as taxas da altura e não mudam.",
+                    "As encomendas já feitas guardam as taxas da altura e não mudam.",
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   if (_editing != null) ...[
@@ -65,50 +70,121 @@ class _FeesTabState extends ConsumerState<FeesTab> {
 
     String pct(double v) => "${v.toStringAsFixed(1).replaceAll(".", ",")}%";
 
+    /// O que o canal fica numa venda de 20 € (o exemplo da última coluna).
+    double onTwenty(SalesChannel c) => calc.channelFees(
+      price: 20,
+      transactionPct: c.transactionFee,
+      processingPct: c.processingFee,
+      flatFee: c.flatFee,
+      listingFee: c.listingFee,
+    );
+
     return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minWidth: constraints.maxWidth),
-          child: DataTable(
-            columnSpacing: 24,
-            horizontalMargin: 8,
-            showCheckboxColumn: false,
-            columns: const [
-              DataColumn(label: Text("Canal")),
-              DataColumn(label: Text("Transação"), numeric: true),
-              DataColumn(label: Text("Processamento"), numeric: true),
-              DataColumn(label: Text("Fixo por venda"), numeric: true),
-              DataColumn(label: Text("Listagem"), numeric: true),
-              DataColumn(label: Text("Numa venda de 20 €"), numeric: true),
-            ],
-            rows: [
-              for (final c in list)
-                DataRow(
-                  selected: _editing?.id == c.id,
-                  onSelectChanged: (_) => setState(() => _editing = c),
-                  cells: [
-                    DataCell(Text(c.name, style: const TextStyle(fontWeight: FontWeight.w600))),
-                    DataCell(Text(pct(c.transactionFee), style: AppTextStyles.mono)),
-                    DataCell(Text(pct(c.processingFee), style: AppTextStyles.mono)),
-                    DataCell(Text(euro(c.flatFee), style: AppTextStyles.mono)),
-                    DataCell(Text(euro(c.listingFee), style: AppTextStyles.mono)),
-                    DataCell(Text(
-                      euro(calc.channelFees(
-                        price: 20,
-                        transactionPct: c.transactionFee,
-                        processingPct: c.processingFee,
-                        flatFee: c.flatFee,
-                        listingFee: c.listingFee,
-                      )),
-                      style: AppTextStyles.mono.copyWith(fontWeight: FontWeight.w700),
-                    )),
+      builder: (context, constraints) => constraints.maxWidth < 560
+          // telemóvel: as 6 colunas não cabem; cada canal é uma linha com as
+          // taxas por baixo do nome e o exemplo dos 20 € à direita
+          ? Column(
+              children: [
+                for (final c in list) ...[
+                  const Divider(height: 1),
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    selected: _editing?.id == c.id,
+                    onTap: () => setState(() => _editing = c),
+                    title: Text(
+                      c.name,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      "Transação ${pct(c.transactionFee)} · processamento ${pct(c.processingFee)}"
+                      " · fixo ${euro(c.flatFee)} · listagem ${euro(c.listingFee)}",
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          euro(onTwenty(c)),
+                          style: AppTextStyles.mono.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          "em 20 €",
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            )
+          : SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                child: DataTable(
+                  columnSpacing: 24,
+                  horizontalMargin: 8,
+                  showCheckboxColumn: false,
+                  columns: const [
+                    DataColumn(label: Text("Canal")),
+                    DataColumn(label: Text("Transação"), numeric: true),
+                    DataColumn(label: Text("Processamento"), numeric: true),
+                    DataColumn(label: Text("Fixo por venda"), numeric: true),
+                    DataColumn(label: Text("Listagem"), numeric: true),
+                    DataColumn(
+                      label: Text("Numa venda de 20 €"),
+                      numeric: true,
+                    ),
+                  ],
+                  rows: [
+                    for (final c in list)
+                      DataRow(
+                        selected: _editing?.id == c.id,
+                        onSelectChanged: (_) => setState(() => _editing = c),
+                        cells: [
+                          DataCell(
+                            Text(
+                              c.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          DataCell(
+                            Text(
+                              pct(c.transactionFee),
+                              style: AppTextStyles.mono,
+                            ),
+                          ),
+                          DataCell(
+                            Text(
+                              pct(c.processingFee),
+                              style: AppTextStyles.mono,
+                            ),
+                          ),
+                          DataCell(
+                            Text(euro(c.flatFee), style: AppTextStyles.mono),
+                          ),
+                          DataCell(
+                            Text(euro(c.listingFee), style: AppTextStyles.mono),
+                          ),
+                          DataCell(
+                            Text(
+                              euro(onTwenty(c)),
+                              style: AppTextStyles.mono.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
-            ],
-          ),
-        ),
-      ),
+              ),
+            ),
     );
   }
 }
@@ -127,10 +203,18 @@ class _FeesForm extends ConsumerStatefulWidget {
 class _FeesFormState extends ConsumerState<_FeesForm> {
   static const _calc = CostCalculator();
 
-  late final _transaction = TextEditingController(text: _decimal(widget.channel.transactionFee));
-  late final _processing = TextEditingController(text: _decimal(widget.channel.processingFee));
-  late final _flat = TextEditingController(text: decimalField(widget.channel.flatFee));
-  late final _listing = TextEditingController(text: decimalField(widget.channel.listingFee));
+  late final _transaction = TextEditingController(
+    text: _decimal(widget.channel.transactionFee),
+  );
+  late final _processing = TextEditingController(
+    text: _decimal(widget.channel.processingFee),
+  );
+  late final _flat = TextEditingController(
+    text: decimalField(widget.channel.flatFee),
+  );
+  late final _listing = TextEditingController(
+    text: decimalField(widget.channel.listingFee),
+  );
 
   var _saving = false;
 
@@ -155,7 +239,10 @@ class _FeesFormState extends ConsumerState<_FeesForm> {
   );
 
   String? _problem(SalesChannel d) {
-    if (d.transactionFee < 0 || d.processingFee < 0 || d.flatFee < 0 || d.listingFee < 0) {
+    if (d.transactionFee < 0 ||
+        d.processingFee < 0 ||
+        d.flatFee < 0 ||
+        d.listingFee < 0) {
       return "As taxas não podem ser negativas.";
     }
     if (d.transactionFee + d.processingFee >= 100) {
@@ -205,66 +292,140 @@ class _FeesFormState extends ConsumerState<_FeesForm> {
           Row(
             children: [
               Expanded(
-                child: Text("Taxas · ${widget.channel.name}",
-                    style: Theme.of(context).textTheme.titleMedium),
+                child: Text(
+                  "Taxas · ${widget.channel.name}",
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
               ),
-              IconButton(onPressed: widget.onClose, icon: const Icon(Icons.close)),
+              IconButton(
+                onPressed: widget.onClose,
+                icon: const Icon(Icons.close),
+              ),
             ],
           ),
           const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _number(_transaction, "Taxa de transação", "%",
-                    hint: "Sobre o preço de venda."),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _number(_processing, "Taxa de processamento", "%",
-                    hint: "O pagamento, também sobre o preço."),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _number(_flat, "Fixo por venda", "€",
-                    hint: "Cobrado em cada venda."),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _number(_listing, "Listagem", "€",
-                    hint: "O custo de pôr o anúncio."),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                const Text("Numa venda de 20 €, o canal fica com "),
-                Text(
-                  euro(example),
-                  style: AppTextStyles.mono.copyWith(fontSize: 18, fontWeight: FontWeight.w700),
+          // com pouco espaço: um campo por linha; no meio: dois; largo: quatro
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final narrow = width < 560;
+              final perRow = narrow ? 1 : (width < 900 ? 2 : 4);
+
+              final fields = [
+                _number(
+                  _transaction,
+                  "Taxa de transação",
+                  "%",
+                  hint: "Sobre o preço de venda.",
                 ),
-                const Spacer(),
-                TextButton(onPressed: widget.onClose, child: const Text("Cancelar")),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: _saving || problem != null ? null : _save,
-                  child: _saving
-                      ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                      : const Text("Guardar"),
+                _number(
+                  _processing,
+                  "Taxa de processamento",
+                  "%",
+                  hint: "O pagamento, também sobre o preço.",
                 ),
-              ],
-            ),
+                _number(
+                  _flat,
+                  "Fixo por venda",
+                  "€",
+                  hint: "Cobrado em cada venda.",
+                ),
+                _number(
+                  _listing,
+                  "Listagem",
+                  "€",
+                  hint: "O custo de pôr o anúncio.",
+                ),
+              ];
+
+              final cost = Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  const Text("Numa venda de 20 €, o canal fica com "),
+                  Text(
+                    euro(example),
+                    style: AppTextStyles.mono.copyWith(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              );
+              final buttons = Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextButton(
+                    onPressed: widget.onClose,
+                    child: const Text("Cancelar"),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: _saving || problem != null ? null : _save,
+                    child: _saving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text("Guardar"),
+                  ),
+                ],
+              );
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // os campos, em linhas de `perRow`
+                  for (
+                    var start = 0;
+                    start < fields.length;
+                    start += perRow
+                  ) ...[
+                    if (start > 0) const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (
+                          var i = start;
+                          i < start + perRow && i < fields.length;
+                          i++
+                        ) ...[
+                          if (i > start) const SizedBox(width: 12),
+                          Expanded(child: fields[i]),
+                        ],
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    // no telemóvel, os botões passam para uma linha própria
+                    child: narrow
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              cost,
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: buttons,
+                              ),
+                            ],
+                          )
+                        : Row(
+                            children: [
+                              Expanded(child: cost),
+                              buttons,
+                            ],
+                          ),
+                  ),
+                ],
+              );
+            },
           ),
           if (problem != null) ...[
             const SizedBox(height: 8),
@@ -275,12 +436,21 @@ class _FeesFormState extends ConsumerState<_FeesForm> {
     );
   }
 
-  Widget _number(TextEditingController c, String label, String unit, {String? hint}) {
+  Widget _number(
+    TextEditingController c,
+    String label,
+    String unit, {
+    String? hint,
+  }) {
     return TextField(
       controller: c,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       style: AppTextStyles.mono,
-      decoration: InputDecoration(labelText: label, suffixText: unit, helperText: hint),
+      decoration: InputDecoration(
+        labelText: label,
+        suffixText: unit,
+        helperText: hint,
+      ),
       onChanged: (_) => setState(() {}),
     );
   }

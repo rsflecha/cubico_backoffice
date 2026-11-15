@@ -19,7 +19,8 @@ class EnergyTab extends ConsumerWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final printer = printers.where((p) => p.isDefault).firstOrNull ?? printers.firstOrNull;
+    final printer =
+        printers.where((p) => p.isDefault).firstOrNull ?? printers.firstOrNull;
     if (printer == null) {
       return const Center(child: Text("Ainda não há impressoras."));
     }
@@ -40,19 +41,35 @@ class _EnergyForm extends ConsumerStatefulWidget {
 }
 
 class _EnergyFormState extends ConsumerState<_EnergyForm> {
-
-  late final _kwh = TextEditingController(text: "${widget.settings.kwhPrice}".replaceAll(".", ","));
+  late final _kwh = TextEditingController(
+    text: "${widget.settings.kwhPrice}".replaceAll(".", ","),
+  );
   late final _power = TextEditingController(text: "${widget.printer.powerW}");
-  late final _purchase = TextEditingController(text: decimalField(widget.printer.purchasePrice));
-  late final _lifespan = TextEditingController(text: "${widget.printer.lifespanHours}");
-  late final _maintenance = TextEditingController(text: decimalField(widget.printer.yearlyMaintenance));
-  late final _yearlyHours = TextEditingController(text: "${widget.printer.yearlyHours}");
+  late final _purchase = TextEditingController(
+    text: decimalField(widget.printer.purchasePrice),
+  );
+  late final _lifespan = TextEditingController(
+    text: "${widget.printer.lifespanHours}",
+  );
+  late final _maintenance = TextEditingController(
+    text: decimalField(widget.printer.yearlyMaintenance),
+  );
+  late final _yearlyHours = TextEditingController(
+    text: "${widget.printer.yearlyHours}",
+  );
 
   var _saving = false;
 
   @override
   void dispose() {
-    for (final c in [_kwh, _power, _purchase, _lifespan, _maintenance, _yearlyHours]) {
+    for (final c in [
+      _kwh,
+      _power,
+      _purchase,
+      _lifespan,
+      _maintenance,
+      _yearlyHours,
+    ]) {
       c.dispose();
     }
     super.dispose();
@@ -61,25 +78,29 @@ class _EnergyFormState extends ConsumerState<_EnergyForm> {
   Future<void> _save() async {
     setState(() => _saving = true);
 
-    await ref.read(costSettingsRepositoryProvider).save(
-      widget.settings.copyWith(kwhPrice: parseDecimal(_kwh.text)),
-    );
-    await ref.read(printerRepositoryProvider).update(
-      widget.printer.copyWith(
-        powerW: parseDecimal(_power.text).round(),
-        purchasePrice: parseDecimal(_purchase.text),
-        lifespanHours: parseDecimal(_lifespan.text).round(),
-        yearlyMaintenance: parseDecimal(_maintenance.text),
-        yearlyHours: parseDecimal(_yearlyHours.text).round(),
-      ),
-    );
+    await ref
+        .read(costSettingsRepositoryProvider)
+        .save(widget.settings.copyWith(kwhPrice: parseDecimal(_kwh.text)));
+    await ref
+        .read(printerRepositoryProvider)
+        .update(
+          widget.printer.copyWith(
+            powerW: parseDecimal(_power.text).round(),
+            purchasePrice: parseDecimal(_purchase.text),
+            lifespanHours: parseDecimal(_lifespan.text).round(),
+            yearlyMaintenance: parseDecimal(_maintenance.text),
+            yearlyHours: parseDecimal(_yearlyHours.text).round(),
+          ),
+        );
     ref.invalidate(costSettingsProvider);
     ref.invalidate(printersProvider);
 
     if (!mounted) return;
     setState(() => _saving = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Valores guardados. A calculadora já os usa.")),
+      const SnackBar(
+        content: Text("Valores guardados. A calculadora já os usa."),
+      ),
     );
   }
 
@@ -93,10 +114,38 @@ class _EnergyFormState extends ConsumerState<_EnergyForm> {
 
     final electricity = power / 1000 * kwh;
     final wear = lifespan > 0 ? parseDecimal(_purchase.text) / lifespan : 0.0;
-    final maintenance = yearlyHours > 0 ? parseDecimal(_maintenance.text) / yearlyHours : 0.0;
+    final maintenance = yearlyHours > 0
+        ? parseDecimal(_maintenance.text) / yearlyHours
+        : 0.0;
     final total = electricity + wear + maintenance;
 
-    final isWide = MediaQuery.sizeOf(context).width >= 1100;
+    final width = MediaQuery.sizeOf(context).width;
+    final isWide = width >= 1100;
+    final isPhone = width < 600;
+
+    /// Uma linha de campos lado a lado; no telemóvel, um por baixo do outro
+    /// (lado a lado ficavam com ~140 px e os nomes cortados).
+    Widget fieldRow(List<Widget> fields) {
+      if (isPhone) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final (i, field) in fields.indexed) ...[
+              if (i > 0) const SizedBox(height: 12),
+              field,
+            ],
+          ],
+        );
+      }
+      return Row(
+        children: [
+          for (final (i, field) in fields.indexed) ...[
+            if (i > 0) const SizedBox(width: 16),
+            Expanded(child: field),
+          ],
+        ],
+      );
+    }
 
     final fields = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -104,31 +153,28 @@ class _EnergyFormState extends ConsumerState<_EnergyForm> {
         _card(
           title: "Eletricidade",
           children: [
-            _field(_kwh, "Preço do kWh no contrato", "€/kWh",
-                hint: "Está na tua fatura da luz, com IVA."),
+            _field(
+              _kwh,
+              "Preço do kWh no contrato",
+              "€/kWh",
+              hint: "Está na tua fatura da luz, com IVA.",
+            ),
           ],
         ),
         const SizedBox(height: 16),
         _card(
           title: widget.printer.name,
           children: [
-            Row(
-              children: [
-                Expanded(child: _field(_power, "Consumo médio a imprimir", "W")),
-                const SizedBox(width: 16),
-                Expanded(child: _field(_purchase, "Preço de compra", "€")),
-              ],
-            ),
+            fieldRow([
+              _field(_power, "Consumo médio a imprimir", "W"),
+              _field(_purchase, "Preço de compra", "€"),
+            ]),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(child: _field(_lifespan, "Vida útil estimada", "h")),
-                const SizedBox(width: 16),
-                Expanded(child: _field(_maintenance, "Manutenção por ano", "€")),
-                const SizedBox(width: 16),
-                Expanded(child: _field(_yearlyHours, "Horas de impressão por ano", "h")),
-              ],
-            ),
+            fieldRow([
+              _field(_lifespan, "Vida útil estimada", "h"),
+              _field(_maintenance, "Manutenção por ano", "€"),
+              _field(_yearlyHours, "Horas de impressão por ano", "h"),
+            ]),
           ],
         ),
         const SizedBox(height: 16),
@@ -138,10 +184,10 @@ class _EnergyFormState extends ConsumerState<_EnergyForm> {
             onPressed: _saving ? null : _save,
             child: _saving
                 ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
                 : const Text("Guardar"),
           ),
         ),
@@ -151,7 +197,7 @@ class _EnergyFormState extends ConsumerState<_EnergyForm> {
     final summary = _summary(electricity, wear + maintenance, total);
 
     return ListView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isPhone ? 12 : 24),
       children: [
         if (isWide)
           Row(
@@ -189,12 +235,21 @@ class _EnergyFormState extends ConsumerState<_EnergyForm> {
   }
 
   /// Um campo de número, com a unidade à direita e uma ajuda opcional por baixo.
-  Widget _field(TextEditingController controller, String label, String unit, {String? hint}) {
+  Widget _field(
+    TextEditingController controller,
+    String label,
+    String unit, {
+    String? hint,
+  }) {
     return TextField(
       controller: controller,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       style: AppTextStyles.mono,
-      decoration: InputDecoration(labelText: label, suffixText: unit, helperText: hint),
+      decoration: InputDecoration(
+        labelText: label,
+        suffixText: unit,
+        helperText: hint,
+      ),
       onChanged: (_) => setState(() {}),
     );
   }
@@ -236,7 +291,10 @@ class _EnergyFormState extends ConsumerState<_EnergyForm> {
               const Expanded(
                 child: Text(
                   "Total",
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               Text(
@@ -252,7 +310,7 @@ class _EnergyFormState extends ConsumerState<_EnergyForm> {
           const SizedBox(height: 8),
           Text(
             "Uma impressão de 9 h custa ${euro(total * 9)} em luz e desgaste. "
-                "Este valor entra sozinho na calculadora de cada produto.",
+            "Este valor entra sozinho na calculadora de cada produto.",
             style: light,
           ),
         ],
