@@ -326,7 +326,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     final draft = _draftOrder(channel, filaments, components, perHour, rates);
     final problem = _problem(draft, channel, components, rates);
 
-    final isWide = MediaQuery.sizeOf(context).width >= 1100;
+    final width = MediaQuery.sizeOf(context).width;
+    final isWide = width >= 1100;
+    final isPhone = width < 600;
 
     final form = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -355,11 +357,14 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 12),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            // no telemóvel um por baixo do outro (lado a lado, as etiquetas ficavam cortadas)
+            Flex(
+              direction: isPhone ? Axis.vertical : Axis.horizontal,
+              crossAxisAlignment: isPhone ? CrossAxisAlignment.stretch : CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: TextField(
+                _flexible(
+                  isPhone,
+                  TextField(
                     controller: _customerName,
                     decoration: const InputDecoration(
                       labelText: "Nome ou referência",
@@ -368,9 +373,10 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                     onChanged: (_) => setState(() {}),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
+                const SizedBox(width: 12, height: 12),
+                _flexible(
+                  isPhone,
+                  TextField(
                     controller: _customerContact,
                     decoration: const InputDecoration(
                       labelText: "Contacto (opcional)",
@@ -521,7 +527,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text("Criar encomenda")),
       body: ListView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(isPhone ? 12 : 24),
         children: [
           Text(
             "Para vendas feitas pessoalmente, pelo Instagram ou pelo Facebook. As da Etsy entram sozinhas.",
@@ -545,6 +551,10 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       ),
     );
   }
+
+  /// Dentro de um Flex: lado a lado, cada campo ocupa a sua parte (Expanded);
+  /// empilhado, fica com a altura natural (um Expanded na vertical rebentava).
+  Widget _flexible(bool stacked, Widget child) => stacked ? child : Expanded(child: child);
 
   /// Uma secção numerada do formulário.
   Widget _section(String title, List<Widget> children) {
@@ -577,56 +587,73 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         border: Border.all(color: const Color(0xFFE4E4E7)),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      product?.name ?? "Produto",
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    Text(
-                      "Variante: ${line.variant.name} · ${line.variant.sku}",
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
+      child: LayoutBuilder(builder: (context, constraints) {
+        // abaixo de 420 px, os dois campos (80 + 120) e o botão comiam o espaço todo
+        // e o nome do produto ficava com meia dúzia de pixels: passam para baixo
+        final narrow = constraints.maxWidth < 420;
+
+        final name = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              product?.name ?? "Produto",
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            Text(
+              "Variante: ${line.variant.name} · ${line.variant.sku}",
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        );
+        final quantity = TextField(
+          controller: line.quantity,
+          keyboardType: TextInputType.number,
+          style: AppTextStyles.mono,
+          decoration: const InputDecoration(labelText: "Qtd."),
+          onChanged: (_) => setState(_suggestShipping),
+        );
+        final price = TextField(
+          controller: line.price,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          style: AppTextStyles.mono,
+          decoration: const InputDecoration(labelText: "Preço un.", suffixText: "€"),
+          onChanged: (_) => setState(() {}),
+        );
+        final remove = IconButton(
+          tooltip: "Tirar",
+          onPressed: () => _removeLine(line),
+          icon: const Icon(Icons.close),
+        );
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (narrow) ...[
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [Expanded(child: name), remove],
               ),
-              SizedBox(
-                width: 80,
-                child: TextField(
-                  controller: line.quantity,
-                  keyboardType: TextInputType.number,
-                  style: AppTextStyles.mono,
-                  decoration: const InputDecoration(labelText: "Qtd."),
-                  onChanged: (_) => setState(_suggestShipping),
-                ),
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 2, child: quantity),
+                  const SizedBox(width: 8),
+                  Expanded(flex: 3, child: price),
+                ],
               ),
-              const SizedBox(width: 8),
-              SizedBox(
-                width: 120,
-                child: TextField(
-                  controller: line.price,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: AppTextStyles.mono,
-                  decoration: const InputDecoration(labelText: "Preço un.", suffixText: "€"),
-                  onChanged: (_) => setState(() {}),
-                ),
+            ] else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: name),
+                  SizedBox(width: 80, child: quantity),
+                  const SizedBox(width: 8),
+                  SizedBox(width: 120, child: price),
+                  remove,
+                ],
               ),
-              IconButton(
-                tooltip: "Tirar",
-                onPressed: () => _removeLine(line),
-                icon: const Icon(Icons.close),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
+            const SizedBox(height: 8),
           TextField(
             controller: line.customization,
             decoration: const InputDecoration(
@@ -634,8 +661,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               hintText: "Ex.: CARLA, NUNO",
             ),
           ),
-        ],
-      ),
+          ],
+        );
+      }),
     );
   }
 

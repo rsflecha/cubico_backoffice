@@ -53,67 +53,89 @@ class DashboardScreen extends ConsumerWidget {
           o.status == OrderStatus.pending || o.status == OrderStatus.inProduction).toList();
           final overdue = list.where((o) => o.isOverdue).toList();
 
+          final isPhone = MediaQuery.sizeOf(context).width < 600;
+
           return ListView(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(isPhone ? 12 : 24),
             children: [
-            Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: [
-                if (canSeeCosts) ...[
-                  _kpi(context, "Vendas do mês", euro(sales)),
-                  _kpi(
-                    context,
-                    "Lucro do mês",
-                    euro(profit),
-                    color: profit >= 0 ? const Color(0xFF15803D) : const Color(0xFFB91C1C),
-                  ),
-                  _kpi(context, "Custos fixos do mês", fixedCosts == null ? "—" : euro(fixedCosts)),
-                  _kpi(
-                    context,
-                    "Lucro depois dos fixos",
-                    netProfit == null ? "—" : euro(netProfit),
-                    color: netProfit == null
-                        ? null
-                        : netProfit >= 0
-                            ? const Color(0xFF15803D)
-                            : const Color(0xFFB91C1C),
-                  ),
-                  _kpi(context, "Encomendas do mês", "${month.length}"),
-                ],
-                _kpi(context, "Por fazer", "${pending.length}"),
-                _kpi(
-                  context,
-                  "Atrasadas",
-                  "${overdue.length}",
-                  color: overdue.isEmpty ? null : const Color(0xFFB91C1C),
-                  ),
-                ],
-              ),
-              if (canSeeCosts)
-              const SizedBox(height: 24),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 24, 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Vendas e lucro · últimos 14 dias",
-                          style: Theme.of(context).textTheme.titleMedium),
-                      const SizedBox(height: 16),
-                      SizedBox(height: 240, child: _chart(list)),
-                      const SizedBox(height: 8),
-                      const Row(
-                        children: [
-                          _Legend(color: AppColors.orange, label: "Vendas"),
-                          SizedBox(width: 16),
-                          _Legend(color: Color(0xFF15803D), label: "Lucro"),
-                        ],
+            // LayoutBuilder: no telemóvel, os cartões ficam 2 por linha
+            // (com 220 px fixos, cabia só 1 e o ecrã era só cartões)
+            LayoutBuilder(
+              builder: (context, constraints) {
+                const gap = 12.0;
+                final width = isPhone ? (constraints.maxWidth - gap) / 2 : 220.0;
+                return Wrap(
+                  spacing: isPhone ? gap : 16,
+                  runSpacing: isPhone ? gap : 16,
+                  children: [
+                    if (canSeeCosts) ...[
+                      _kpi(context, "Vendas do mês", euro(sales), width: width),
+                      _kpi(
+                        context,
+                        "Lucro do mês",
+                        euro(profit),
+                        width: width,
+                        color: profit >= 0 ? const Color(0xFF15803D) : const Color(0xFFB91C1C),
                       ),
+                      _kpi(
+                        context,
+                        "Custos fixos do mês",
+                        fixedCosts == null ? "—" : euro(fixedCosts),
+                        width: width,
+                      ),
+                      _kpi(
+                        context,
+                        "Lucro depois dos fixos",
+                        netProfit == null ? "—" : euro(netProfit),
+                        width: width,
+                        color: netProfit == null
+                            ? null
+                            : netProfit >= 0
+                                ? const Color(0xFF15803D)
+                                : const Color(0xFFB91C1C),
+                      ),
+                      _kpi(context, "Encomendas do mês", "${month.length}", width: width),
                     ],
+                    _kpi(context, "Por fazer", "${pending.length}", width: width),
+                    _kpi(
+                      context,
+                      "Atrasadas",
+                      "${overdue.length}",
+                      width: width,
+                      color: overdue.isEmpty ? null : const Color(0xFFB91C1C),
+                    ),
+                  ],
+                );
+              },
+            ),
+              // o gráfico tem o lucro: só para quem pode ver custos.
+              // `...[ ]` põe os DOIS (espaço e cartão) dentro do if; sem ele,
+              // o if só apanhava o SizedBox e o colaborador via o gráfico.
+              if (canSeeCosts) ...[
+                const SizedBox(height: 24),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 24, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Vendas e lucro · últimos 14 dias",
+                            style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: 16),
+                        SizedBox(height: 240, child: _chart(list, compact: isPhone)),
+                        const SizedBox(height: 8),
+                        const Row(
+                          children: [
+                            _Legend(color: AppColors.orange, label: "Vendas"),
+                            SizedBox(width: 16),
+                            _Legend(color: Color(0xFF15803D), label: "Lucro"),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
+              ],
               const SizedBox(height: 24),
               Text("Precisam de atenção", style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
@@ -161,20 +183,36 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   /// Um cartão com um número grande.
-  Widget _kpi(BuildContext context, String label, String value, {Color? color}) {
+  Widget _kpi(
+    BuildContext context,
+    String label,
+    String value, {
+    Color? color,
+    double width = 220,
+  }) {
     return SizedBox(
-      width: 220,
+      width: width,
       child: Card(
+        margin: EdgeInsets.zero, // o espaço entre cartões é o do Wrap
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: Theme.of(context).textTheme.bodySmall),
+              // o nome pode ir a 2 linhas ("Lucro depois dos fixos")
+              Text(label, style: Theme.of(context).textTheme.bodySmall, maxLines: 2),
               const SizedBox(height: 6),
-              Text(value,
+              // FittedBox: se o valor não couber (ex.: "1 234,56 €" num cartão
+              // estreito), encolhe a letra em vez de partir ou cortar
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
                   style: AppTextStyles.mono
-                      .copyWith(fontSize: 24, fontWeight: FontWeight.w700, color: color)),
+                      .copyWith(fontSize: 24, fontWeight: FontWeight.w700, color: color),
+                ),
+              ),
             ],
           ),
         ),
@@ -222,7 +260,8 @@ class DashboardScreen extends ConsumerWidget {
   }
 
   /// O gráfico: um ponto por dia, das vendas e do lucro.
-  Widget _chart(List<Order> orders) {
+  /// [compact]: telemóvel, com menos espaço para as datas por baixo.
+  Widget _chart(List<Order> orders, {bool compact = false}) {
     final today = DateTime.now();
     final start = DateTime(today.year, today.month, today.day).subtract(const Duration(days: 13));
 
@@ -286,7 +325,9 @@ class DashboardScreen extends ConsumerWidget {
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              interval: 2, // um dia sim, um dia não, para os textos não se atropelarem
+              // um dia sim, um dia não, para os textos não se atropelarem;
+              // no telemóvel, de 4 em 4 dias (7 datas não cabiam em ~300 px)
+              interval: compact ? 4 : 2,
               getTitlesWidget: (value, meta) => Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
