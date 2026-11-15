@@ -13,11 +13,12 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(sessionProvider);
+    final isPhone = MediaQuery.sizeOf(context).width < 600;
 
     return Scaffold(
       appBar: AppBar(title: const Text("Definições")),
       body: ListView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(isPhone ? 12 : 24),
         children: [
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720),
