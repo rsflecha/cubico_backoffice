@@ -32,7 +32,6 @@ class _CostCardState extends ConsumerState<CostCard> {
   final Map<int, int> _componentQty = {};
   var _savingVariant = false; // desliga o botão enquanto grava
 
-
   final _gramsController = TextEditingController(text: "180");
   final _minutesController = TextEditingController(text: "540");
   final _priceController = TextEditingController(text: "29");
@@ -44,8 +43,12 @@ class _CostCardState extends ConsumerState<CostCard> {
   @override
   void dispose() {
     for (final c in [
-      _gramsController, _minutesController, _priceController,
-      _nameController, _skuController, _weightController,
+      _gramsController,
+      _minutesController,
+      _priceController,
+      _nameController,
+      _skuController,
+      _weightController,
     ]) {
       c.dispose();
     }
@@ -88,14 +91,18 @@ class _CostCardState extends ConsumerState<CostCard> {
         ?.where((f) => f.id == filamentId)
         .firstOrNull
         ?.displayName;
-    final name = (typedName.isEmpty || typedName == "Nova variante") && filamentName != null
+    final name =
+        (typedName.isEmpty || typedName == "Nova variante") &&
+            filamentName != null
         ? filamentName
         : typedName;
     final sku = _skuController.text.trim();
     if (name.isEmpty || sku.isEmpty) {
       setState(() => _savingVariant = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("A variante precisa de um nome e de um SKU.")),
+        const SnackBar(
+          content: Text("A variante precisa de um nome e de um SKU."),
+        ),
       );
       return;
     }
@@ -109,11 +116,11 @@ class _CostCardState extends ConsumerState<CostCard> {
       filaments: filamentId == null
           ? []
           : [
-        VariantFilament(
-          filamentId: filamentId,
-          grams: _read(_gramsController).round(),
-        ),
-      ],
+              VariantFilament(
+                filamentId: filamentId,
+                grams: _read(_gramsController).round(),
+              ),
+            ],
       components: [
         for (final entry in _componentQty.entries)
           if (entry.value > 0)
@@ -137,9 +144,9 @@ class _CostCardState extends ConsumerState<CostCard> {
 
     if (!mounted) return;
     setState(() => _savingVariant = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Variante \"$name\" guardada.")),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text("Variante \"$name\" guardada.")));
   }
 
   /// Lê um número de um campo. Aceita vírgula ("29,90") e devolve 0 se estiver vazio.
@@ -149,18 +156,21 @@ class _CostCardState extends ConsumerState<CostCard> {
 
   @override
   Widget build(BuildContext context) {
-
     final filaments = ref.watch(filamentsProvider).value ?? [];
-    final filament = filaments.where((f) => f.id == _filamentId).firstOrNull
-        ?? filaments.firstOrNull;
+    final filament =
+        filaments.where((f) => f.id == _filamentId).firstOrNull ??
+        filaments.firstOrNull;
     final channels = ref.watch(salesChannelsProvider).value ?? [];
-    final channel = channels.where((c) => c.id == _channelId).firstOrNull
-        ?? channels.firstOrNull;
+    final channel =
+        channels.where((c) => c.id == _channelId).firstOrNull ??
+        channels.firstOrNull;
     final allComponents = ref.watch(componentsProvider).value ?? [];
-    final components =
-    allComponents.where((c) => c.kind == ComponentKind.component).toList();
-    final packaging =
-    allComponents.where((c) => c.kind == ComponentKind.packaging).toList();
+    final components = allComponents
+        .where((c) => c.kind == ComponentKind.component)
+        .toList();
+    final packaging = allComponents
+        .where((c) => c.kind == ComponentKind.packaging)
+        .toList();
     final settings = ref.watch(costSettingsProvider).value;
     final target = settings?.targetMarginPct ?? 60;
     final minimum = settings?.minMarginPct ?? 35;
@@ -199,7 +209,11 @@ class _CostCardState extends ConsumerState<CostCard> {
       flatFee: channel?.flatFee ?? 0,
       listingFee: channel?.listingFee ?? 0,
     );
-    final margin = _calc.marginPct(price: price, productionCost: production, fees: fees);
+    final margin = _calc.marginPct(
+      price: price,
+      productionCost: production,
+      fees: fees,
+    );
     final profit = price - production - fees;
     final suggested = _calc.suggestedPrice(
       productionCost: production,
@@ -212,7 +226,9 @@ class _CostCardState extends ConsumerState<CostCard> {
     );
     // a barra vai até ao dobro do sugerido, ou 50% acima do preço guardado (o maior dos dois)
     final savedPrice = widget.variant?.salePrice ?? 0;
-    final sliderMax = math.max(suggested * 2, savedPrice * 1.5).clamp(10.0, 1000.0);
+    final sliderMax = math
+        .max(suggested * 2, savedPrice * 1.5)
+        .clamp(10.0, 1000.0);
 
     // 3. mostrar
     return Card(
@@ -230,48 +246,71 @@ class _CostCardState extends ConsumerState<CostCard> {
             const SizedBox(height: 16),
             // o nome, o SKU e o peso da variante
             if (widget.variant != null) ...[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: TextField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: "Nome da variante",
-                        hintText: "Ex.: Preto mate",
-                      ),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final name = TextField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      labelText: "Nome da variante",
+                      hintText: "Ex.: Preto mate",
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: TextField(
-                      controller: _skuController,
-                      style: AppTextStyles.mono,
-                      decoration: const InputDecoration(labelText: "SKU"),
+                  );
+                  final sku = TextField(
+                    controller: _skuController,
+                    style: AppTextStyles.mono,
+                    decoration: const InputDecoration(labelText: "SKU"),
+                  );
+                  final weight = TextField(
+                    controller: _weightController,
+                    keyboardType: TextInputType.number,
+                    style: AppTextStyles.mono,
+                    decoration: const InputDecoration(
+                      labelText: "Peso",
+                      suffixText: "g",
+                      helperText: "Para os portes.",
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _weightController,
-                      keyboardType: TextInputType.number,
-                      style: AppTextStyles.mono,
-                      decoration: const InputDecoration(
-                        labelText: "Peso",
-                        suffixText: "g",
-                        helperText: "Para os portes.",
-                      ),
-                    ),
-                  ),
-                ],
+                  );
+
+                  // com pouco espaço, os 3 lado a lado não cabiam (o peso ficava
+                  // com ~20 px): o nome fica sozinho, SKU e peso por baixo
+                  if (constraints.maxWidth < 520) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        name,
+                        const SizedBox(height: 12),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(flex: 3, child: sku),
+                            const SizedBox(width: 12),
+                            Expanded(flex: 2, child: weight),
+                          ],
+                        ),
+                      ],
+                    );
+                  }
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(flex: 3, child: name),
+                      const SizedBox(width: 12),
+                      Expanded(flex: 2, child: sku),
+                      const SizedBox(width: 12),
+                      Expanded(child: weight),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 16),
             ],
-            DropdownButton<int>(
-              value: filament?.id,
+            // o filamento, com etiqueta e caixa como os outros campos
+            DropdownButtonFormField<int>(
+              // a key muda com o filamento: o menu acompanha quando muda por fora
+              key: ValueKey(filament?.id),
+              initialValue: filament?.id,
               isExpanded: true,
+              decoration: const InputDecoration(labelText: "Filamento"),
               hint: const Text("A carregar filamentos…"),
               items: [
                 for (final f in filaments)
@@ -283,14 +322,18 @@ class _CostCardState extends ConsumerState<CostCard> {
                   ),
               ],
               onChanged: (id) => setState(() {
-                final previous = filaments.where((f) => f.id == _filamentId).firstOrNull;
+                final previous = filaments
+                    .where((f) => f.id == _filamentId)
+                    .firstOrNull;
                 final next = filaments.where((f) => f.id == id).firstOrNull;
                 _filamentId = id;
 
                 // o nome segue o filamento, enquanto não lhe deres um nome teu
                 final name = _nameController.text.trim();
                 if (next != null &&
-                    (name.isEmpty || name == "Nova variante" || name == previous?.displayName)) {
+                    (name.isEmpty ||
+                        name == "Nova variante" ||
+                        name == previous?.displayName)) {
                   _nameController.text = next.displayName;
                 }
               }),
@@ -301,7 +344,12 @@ class _CostCardState extends ConsumerState<CostCard> {
                 Expanded(
                   child: TextField(
                     controller: _gramsController,
-                    decoration: const InputDecoration(labelText: "Filamento (g)"),
+                    style: AppTextStyles.mono,
+                    // etiquetas curtas e a unidade à direita: cabem inteiras no telemóvel
+                    decoration: const InputDecoration(
+                      labelText: "Filamento usado",
+                      suffixText: "g",
+                    ),
                     keyboardType: TextInputType.number,
                     onChanged: (_) => setState(() {}),
                   ),
@@ -310,7 +358,11 @@ class _CostCardState extends ConsumerState<CostCard> {
                 Expanded(
                   child: TextField(
                     controller: _minutesController,
-                    decoration: const InputDecoration(labelText: "Impressão (minutos)"),
+                    style: AppTextStyles.mono,
+                    decoration: const InputDecoration(
+                      labelText: "Impressão",
+                      suffixText: "min",
+                    ),
                     keyboardType: TextInputType.number,
                     onChanged: (_) => setState(() {}),
                   ),
@@ -346,7 +398,9 @@ class _CostCardState extends ConsumerState<CostCard> {
               children: [
                 for (final p in packaging)
                   FilterChip(
-                    label: Text("${p.name} · ${euro(_calc.componentUnitCost(p))}"),
+                    label: Text(
+                      "${p.name} · ${euro(_calc.componentUnitCost(p))}",
+                    ),
                     selected: (_componentQty[p.id] ?? 0) > 0,
                     onSelected: (selected) => setState(() {
                       if (selected) {
@@ -366,10 +420,15 @@ class _CostCardState extends ConsumerState<CostCard> {
             Row(
               children: [
                 SizedBox(
-                  width: 140,
+                  width: 150,
                   child: TextField(
                     controller: _priceController,
-                    decoration: const InputDecoration(labelText: "Preço de venda (€)"),
+                    style: AppTextStyles.mono,
+                    // o € como sufixo: a etiqueta curta cabe inteira no telemóvel
+                    decoration: const InputDecoration(
+                      labelText: "Preço de venda",
+                      suffixText: "€",
+                    ),
                     keyboardType: TextInputType.number,
                     onChanged: (_) => setState(() {}),
                   ),
@@ -390,17 +449,22 @@ class _CostCardState extends ConsumerState<CostCard> {
             const SizedBox(height: 16),
             _marginBox(profit, margin, target, minimum),
             const SizedBox(height: 12),
-            _row("Preço sugerido (margem ${target.toStringAsFixed(0)}%)", suggested),
+            _row(
+              "Preço sugerido (margem ${target.toStringAsFixed(0)}%)",
+              suggested,
+            ),
             if (widget.variant != null) ...[
               const SizedBox(height: 12),
               FilledButton(
-                onPressed: _savingVariant ? null : () => _saveVariant(filament?.id),
+                onPressed: _savingVariant
+                    ? null
+                    : () => _saveVariant(filament?.id),
                 child: _savingVariant
                     ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : const Text("Guardar variante"),
               ),
             ],
@@ -413,7 +477,7 @@ class _CostCardState extends ConsumerState<CostCard> {
   /// Uma linha com o nome à esquerda e o valor em € à direita.
   Widget _row(String label, double value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),   // era 4
+      padding: const EdgeInsets.symmetric(vertical: 2), // era 4
       child: Row(
         children: [
           Expanded(child: Text(label)),
@@ -429,13 +493,17 @@ class _CostCardState extends ConsumerState<CostCard> {
     return Row(
       children: [
         Expanded(
-          child: Text("${c.name} · ${euroPer(_calc.componentUnitCost(c), "un.", decimals: 3)}"),
+          child: Text(
+            "${c.name} · ${euroPer(_calc.componentUnitCost(c), "un.", decimals: 3)}",
+          ),
         ),
         IconButton(
           icon: const Icon(Icons.remove),
           iconSize: 18,
           visualDensity: VisualDensity.compact,
-          onPressed: qty == 0 ? null : () => setState(() => _componentQty[c.id] = qty - 1),
+          onPressed: qty == 0
+              ? null
+              : () => setState(() => _componentQty[c.id] = qty - 1),
         ),
         Text("$qty", style: AppTextStyles.mono),
         IconButton(
@@ -448,7 +516,12 @@ class _CostCardState extends ConsumerState<CostCard> {
     );
   }
 
-  Widget _marginBox(double profit, double margin, double target, double minimum) {
+  Widget _marginBox(
+    double profit,
+    double margin,
+    double target,
+    double minimum,
+  ) {
     final Color color;
     final String message;
     if (margin >= target) {
@@ -465,7 +538,9 @@ class _CostCardState extends ConsumerState<CostCard> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10), // a mesma cor, muito clara, no fundo
+        color: color.withValues(
+          alpha: 0.10,
+        ), // a mesma cor, muito clara, no fundo
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(

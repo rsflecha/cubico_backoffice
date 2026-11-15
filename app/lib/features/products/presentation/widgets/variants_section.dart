@@ -47,15 +47,27 @@ class VariantsSection extends ConsumerWidget {
   }
 
   /// Pergunta, e apaga a variante.
-  Future<void> _deleteVariant(BuildContext context, WidgetRef ref, Variant v) async {
+  Future<void> _deleteVariant(
+    BuildContext context,
+    WidgetRef ref,
+    Variant v,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text("Apagar \"${v.name}\"?"),
-        content: const Text("A variante e a receita dela desaparecem. Não dá para desfazer."),
+        content: const Text(
+          "A variante e a receita dela desaparecem. Não dá para desfazer.",
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancelar")),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text("Apagar")),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancelar"),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Apagar"),
+          ),
         ],
       ),
     );
@@ -65,7 +77,9 @@ class VariantsSection extends ConsumerWidget {
       await ref.read(variantRepositoryProvider).delete(v.id);
     } catch (error) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$error")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("$error")));
       }
       return;
     }
@@ -93,7 +107,10 @@ class VariantsSection extends ConsumerWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text("Variantes", style: Theme.of(context).textTheme.titleMedium),
+                  child: Text(
+                    "Variantes",
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ),
                 if (isAdmin)
                   TextButton.icon(
@@ -111,71 +128,142 @@ class VariantsSection extends ConsumerWidget {
                 if (list.isEmpty) {
                   return const Text("Este produto ainda não tem variantes.");
                 }
+
+                /// O custo de produção de uma variante.
+                double costOf(Variant v) => calc.variantProductionCost(
+                  variant: v,
+                  filaments: filaments,
+                  components: components,
+                  costPerHour: perHour,
+                );
+
                 return LayoutBuilder(
-                  builder: (context, constraints) => SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minWidth: constraints.maxWidth,
-                      ),
-                      child: DataTable(
-                        showCheckboxColumn: false,
-                        columnSpacing: 32, // espaço entre colunas (era 56)
-                        horizontalMargin: 16, // espaço nas pontas (era 24)
-                        columns: [
-                          const DataColumn(label: Text("Variante")),
-                          const DataColumn(label: Text("SKU")),
-                          const DataColumn(label: Text("Tempo")),
-                          if (canSeeCosts) const DataColumn(label: Text("Custo*"), numeric: true),
-                          const DataColumn(label: Text("Preço"), numeric: true),
-                          if (isAdmin) const DataColumn(label: Text("")),
-                        ],
-                        rows: [
-                          for (final v in list)
-                            DataRow(
-                              selected: v.id == selectedVariantId,
-                              onSelectChanged: (_) => onSelect?.call(v),
-                              cells: [
-                                DataCell(Text(v.name)),
-                                DataCell(
-                                  Text(v.sku, style: AppTextStyles.mono),
+                  builder: (context, constraints) => constraints.maxWidth < 560
+                      // telemóvel: as 6 colunas não cabem (o custo e o preço nem se
+                      // viam); cada variante é uma linha, com os valores à direita
+                      ? Column(
+                          children: [
+                            for (final v in list) ...[
+                              const Divider(height: 1),
+                              ListTile(
+                                contentPadding: const EdgeInsets.only(left: 4),
+                                selected: v.id == selectedVariantId,
+                                onTap: () => onSelect?.call(v),
+                                title: Text(v.name),
+                                subtitle: Text(
+                                  "${v.sku} · ${_formatHours(v.printTimeMin)}",
+                                  style: AppTextStyles.mono.copyWith(
+                                    fontSize: 12,
+                                  ),
                                 ),
-                                DataCell(Text(_formatHours(v.printTimeMin))),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          euro(v.salePrice),
+                                          style: AppTextStyles.mono.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        if (canSeeCosts)
+                                          Text(
+                                            "custo ${euro(costOf(v))}*",
+                                            style: AppTextStyles.mono.copyWith(
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    if (isAdmin)
+                                      IconButton(
+                                        tooltip: "Apagar variante",
+                                        icon: const Icon(Icons.delete_outline),
+                                        onPressed: () =>
+                                            _deleteVariant(context, ref, v),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        )
+                      : SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minWidth: constraints.maxWidth,
+                            ),
+                            child: DataTable(
+                              showCheckboxColumn: false,
+                              columnSpacing:
+                                  32, // espaço entre colunas (era 56)
+                              horizontalMargin:
+                                  16, // espaço nas pontas (era 24)
+                              columns: [
+                                const DataColumn(label: Text("Variante")),
+                                const DataColumn(label: Text("SKU")),
+                                const DataColumn(label: Text("Tempo")),
                                 if (canSeeCosts)
-                                  DataCell(
-                                    Text(
-                                      euro(
-                                        calc.variantProductionCost(
-                                          variant: v,
-                                          filaments: filaments,
-                                          components: components,
-                                          costPerHour: perHour,
+                                  const DataColumn(
+                                    label: Text("Custo*"),
+                                    numeric: true,
+                                  ),
+                                const DataColumn(
+                                  label: Text("Preço"),
+                                  numeric: true,
+                                ),
+                                if (isAdmin) const DataColumn(label: Text("")),
+                              ],
+                              rows: [
+                                for (final v in list)
+                                  DataRow(
+                                    selected: v.id == selectedVariantId,
+                                    onSelectChanged: (_) => onSelect?.call(v),
+                                    cells: [
+                                      DataCell(Text(v.name)),
+                                      DataCell(
+                                        Text(v.sku, style: AppTextStyles.mono),
+                                      ),
+                                      DataCell(
+                                        Text(_formatHours(v.printTimeMin)),
+                                      ),
+                                      if (canSeeCosts)
+                                        DataCell(
+                                          Text(
+                                            euro(costOf(v)),
+                                            style: AppTextStyles.mono,
+                                          ),
+                                        ),
+                                      DataCell(
+                                        Text(
+                                          euro(v.salePrice),
+                                          style: AppTextStyles.mono,
                                         ),
                                       ),
-                                      style: AppTextStyles.mono,
-                                    ),
-                                  ),
-                                DataCell(
-                                  Text(
-                                    euro(v.salePrice),
-                                    style: AppTextStyles.mono,
-                                  ),
-                                ),
-                                // o caixote, só para o administrador (a coluna também tem o mesmo if)
-                                if (isAdmin)
-                                  DataCell(
-                                    IconButton(
-                                      tooltip: "Apagar variante",
-                                      icon: const Icon(Icons.delete_outline),
-                                      onPressed: () => _deleteVariant(context, ref, v),
-                                    ),
+                                      // o caixote, só para o administrador (a coluna também tem o mesmo if)
+                                      if (isAdmin)
+                                        DataCell(
+                                          IconButton(
+                                            tooltip: "Apagar variante",
+                                            icon: const Icon(
+                                              Icons.delete_outline,
+                                            ),
+                                            onPressed: () =>
+                                                _deleteVariant(context, ref, v),
+                                          ),
+                                        ),
+                                    ],
                                   ),
                               ],
                             ),
-                        ],
-                      ),
-                    ),
-                  ),
+                          ),
+                        ),
                 );
               },
             ),
@@ -197,6 +285,7 @@ class VariantsSection extends ConsumerWidget {
   String _formatHours(int minutes) {
     final h = minutes ~/ 60;
     final m = minutes % 60;
-    return m == 0 ? "$h h" : "$h h $m";
+    //   é um espaço que não deixa partir a linha: "2 h" fica sempre junto
+    return m == 0 ? "$h h" : "$h h $m";
   }
 }
