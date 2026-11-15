@@ -60,7 +60,9 @@ class ProductionScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final jobs = ref.watch(printJobsProvider);
     final variants = ref.watch(allVariantsProvider).value ?? <Variant>[];
-    final isWide = MediaQuery.sizeOf(context).width >= 1100;
+    final width = MediaQuery.sizeOf(context).width;
+    final isWide = width >= 1100;
+    final isTablet = !isWide && width >= 600;
 
     return Scaffold(
       appBar: AppBar(title: const Text("Produção")),
@@ -91,7 +93,57 @@ class ProductionScreen extends ConsumerWidget {
             title: printingVariant?.name ?? "",
           );
 
-          // PC: 4 colunas lado a lado. Telemóvel: colunas a deslizar para o lado.
+          // PC: 4 colunas lado a lado. iPad: 2 por linha, em grelha. Telemóvel: a deslizar.
+          final Widget board;
+          if (isWide) {
+            board = SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var i = 0; i < columns.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 16),
+                    Expanded(child: columns[i]),
+                  ],
+                ],
+              ),
+            );
+          } else if (isTablet) {
+            // no iPad ao alto cabiam 2 colunas e meia de 280 px: a 3.ª ficava cortada e
+            // nada dizia que dava para deslizar. Em grelha 2×2 vê-se tudo sem deslizar.
+            board = SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  for (var i = 0; i < columns.length; i += 2) ...[
+                    if (i > 0) const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: columns[i]),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: i + 1 < columns.length ? columns[i + 1] : const SizedBox(),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            );
+          } else {
+            board = ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.all(16),
+              children: [
+                for (var i = 0; i < columns.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 12),
+                  SizedBox(width: 280, child: SingleChildScrollView(child: columns[i])),
+                ],
+              ],
+            );
+          }
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -99,31 +151,7 @@ class ProductionScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
                 child: banner,
               ),
-              Expanded(
-                child: isWide
-                    ? SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      for (var i = 0; i < columns.length; i++) ...[
-                        if (i > 0) const SizedBox(width: 16),
-                        Expanded(child: columns[i]),
-                      ],
-                    ],
-                  ),
-                )
-                    : ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    for (var i = 0; i < columns.length; i++) ...[
-                      if (i > 0) const SizedBox(width: 12),
-                      SizedBox(width: 280, child: SingleChildScrollView(child: columns[i])),
-                    ],
-                  ],
-                ),
-              ),
+              Expanded(child: board),
             ],
           );
         },

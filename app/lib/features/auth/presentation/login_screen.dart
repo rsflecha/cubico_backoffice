@@ -101,6 +101,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           shrinkWrap: true,
           padding: const EdgeInsets.all(32),
           children: [
+            // sem o painel preto (ecrãs estreitos), a marca aparece aqui, em versão escura
+            if (!isWide) ...[
+              Row(
+                children: [
+                  Image.asset("assets/brand/icon-preto.png", height: 40),
+                  const SizedBox(width: 10),
+                  Text("CubicoDesign3D", style: AppTextStyles.brand.copyWith(fontSize: 20)),
+                ],
+              ),
+              const SizedBox(height: 32),
+            ],
             Text("Entrar", style: AppTextStyles.brand.copyWith(fontSize: 28)),
             const SizedBox(height: 4),
             const Text("Acede ao backoffice da tua loja."),

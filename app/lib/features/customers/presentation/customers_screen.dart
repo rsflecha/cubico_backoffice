@@ -100,7 +100,8 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
         ),
       ),
       title: Text(c.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(contact ?? "Sem contacto"),
+      // uma linha só: um email comprido partia a meio ("exem / plo.pt")
+      subtitle: Text(contact ?? "Sem contacto", maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,

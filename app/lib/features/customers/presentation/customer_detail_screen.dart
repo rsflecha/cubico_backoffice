@@ -83,7 +83,7 @@ class CustomerDetailScreen extends ConsumerWidget {
         ],
       )
           : ListView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(MediaQuery.sizeOf(context).width < 600 ? 12 : 24),
         children: [...left, const SizedBox(height: 16), ...right],
       ),
     );
@@ -114,9 +114,15 @@ class CustomerDetailScreen extends ConsumerWidget {
         children: [
           Text(label, style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: AppTextStyles.mono.copyWith(fontSize: 20, fontWeight: FontWeight.w700),
+          // no telemóvel cada número tem ~95 px: se não couber, encolhe em vez de
+          // encostar ao do lado ("40,00 € 1")
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: AppTextStyles.mono.copyWith(fontSize: 20, fontWeight: FontWeight.w700),
+            ),
           ),
         ],
       ),
@@ -126,9 +132,12 @@ class CustomerDetailScreen extends ConsumerWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             number("Total gasto", euro(spent)),
+            const SizedBox(width: 12),
             number("Encomendas", "$count"),
+            const SizedBox(width: 12),
             number("Cliente desde", shortDate(c.createdAt)),
           ],
         ),
