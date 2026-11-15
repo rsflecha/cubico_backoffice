@@ -17,8 +17,8 @@ class FilamentsTab extends ConsumerStatefulWidget {
 
 class _FilamentsTabState extends ConsumerState<FilamentsTab> {
   // NOVO: o que o formulário está a mostrar
-  var _formOpen = false;   // o formulário está aberto?
-  Filament? _editing;      // null = filamento novo; senão, o que se está a editar
+  var _formOpen = false; // o formulário está aberto?
+  Filament? _editing; // null = filamento novo; senão, o que se está a editar
 
   void _openNew() => setState(() {
     _formOpen = true;
@@ -43,7 +43,10 @@ class _FilamentsTabState extends ConsumerState<FilamentsTab> {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stack) => Center(child: Text("Erro: $error")),
       data: (list) => ListView(
-        padding: const EdgeInsets.all(24),
+        // no telemóvel, menos margem: sobra mais espaço para os campos
+        padding: EdgeInsets.all(
+          MediaQuery.sizeOf(context).width < 600 ? 12 : 24,
+        ),
         children: [
           Card(
             child: Padding(
@@ -54,7 +57,10 @@ class _FilamentsTabState extends ConsumerState<FilamentsTab> {
                   Row(
                     children: [
                       Expanded(
-                        child: Text("Filamentos", style: Theme.of(context).textTheme.titleMedium),
+                        child: Text(
+                          "Filamentos",
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
                       ),
                       // NOVO: o botão para criar
                       OutlinedButton.icon(
@@ -67,7 +73,7 @@ class _FilamentsTabState extends ConsumerState<FilamentsTab> {
                   const SizedBox(height: 4),
                   Text(
                     "A app usa sempre o preço que pagaste, mais a parte dos portes de cada rolo. "
-                        "O preço normal fica como referência, para veres quanto poupaste.",
+                    "O preço normal fica como referência, para veres quanto poupaste.",
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   // NOVO: o formulário, quando está aberto
@@ -100,78 +106,147 @@ class _FilamentsTabState extends ConsumerState<FilamentsTab> {
     const calc = CostCalculator();
 
     return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minWidth: constraints.maxWidth),
-          child: DataTable(
-            columnSpacing: 24,
-            horizontalMargin: 8,
-            showCheckboxColumn: false,
-            columns: const [
-              DataColumn(label: Text("Tipo")),
-              DataColumn(label: Text("Marca")),
-              DataColumn(label: Text("Cor")),
-              DataColumn(label: Text("Rolo"), numeric: true),
-              DataColumn(label: Text("Preço normal"), numeric: true),
-              DataColumn(label: Text("Preço pago"), numeric: true),
-              DataColumn(label: Text("Portes por rolo"), numeric: true),
-              DataColumn(label: Text("€/kg"), numeric: true),
-            ],
-            rows: [
-              for (final f in list)
-                DataRow(
-                  // NOVO: a linha em edição fica pintada, e tocar numa linha abre-a
-                  selected: _editing?.id == f.id,
-                  onSelectChanged: (_) => _openEdit(f),
-                  cells: [
-                    DataCell(Text(f.material)),
-                    DataCell(Text(f.brand ?? "—")),
-                    DataCell(Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircleAvatar(radius: 6, backgroundColor: colorFromHex(f.colorHex)),
-                        const SizedBox(width: 8),
-                        Text(f.colorName),
-                      ],
-                    )),
-                    DataCell(Text(_spoolLabel(f.spoolWeightG))),
-                    DataCell(Text(
-                      euro(f.listPrice),
-                      style: AppTextStyles.mono.copyWith(
-                        color: const Color(0xFF71717A),
-                        decoration: f.discountPct > 0 ? TextDecoration.lineThrough : null,
-                      ),
-                    )),
-                    DataCell(Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (f.discountPct > 0) ...[
-                          _DiscountBadge(f.discountPct),
-                          const SizedBox(width: 8),
+      builder: (context, constraints) => constraints.maxWidth < 560
+          ? _list(list, calc)
+          : SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                child: DataTable(
+                  columnSpacing: 24,
+                  horizontalMargin: 8,
+                  showCheckboxColumn: false,
+                  columns: const [
+                    DataColumn(label: Text("Tipo")),
+                    DataColumn(label: Text("Marca")),
+                    DataColumn(label: Text("Cor")),
+                    DataColumn(label: Text("Rolo"), numeric: true),
+                    DataColumn(label: Text("Preço normal"), numeric: true),
+                    DataColumn(label: Text("Preço pago"), numeric: true),
+                    DataColumn(label: Text("Portes por rolo"), numeric: true),
+                    DataColumn(label: Text("€/kg"), numeric: true),
+                  ],
+                  rows: [
+                    for (final f in list)
+                      DataRow(
+                        // NOVO: a linha em edição fica pintada, e tocar numa linha abre-a
+                        selected: _editing?.id == f.id,
+                        onSelectChanged: (_) => _openEdit(f),
+                        cells: [
+                          DataCell(Text(f.material)),
+                          DataCell(Text(f.brand ?? "—")),
+                          DataCell(
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircleAvatar(
+                                  radius: 6,
+                                  backgroundColor: colorFromHex(f.colorHex),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(f.colorName),
+                              ],
+                            ),
+                          ),
+                          DataCell(Text(_spoolLabel(f.spoolWeightG))),
+                          DataCell(
+                            Text(
+                              euro(f.listPrice),
+                              style: AppTextStyles.mono.copyWith(
+                                color: const Color(0xFF71717A),
+                                decoration: f.discountPct > 0
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                              ),
+                            ),
+                          ),
+                          DataCell(
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (f.discountPct > 0) ...[
+                                  _DiscountBadge(f.discountPct),
+                                  const SizedBox(width: 8),
+                                ],
+                                Text(
+                                  euro(f.paidPrice),
+                                  style: AppTextStyles.mono.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          DataCell(
+                            Text(
+                              euro(f.shippingCost / f.spoolsInOrder),
+                              style: AppTextStyles.mono.copyWith(
+                                color: f.shippingCost == 0
+                                    ? const Color(0xFF71717A)
+                                    : null,
+                              ),
+                            ),
+                          ),
+                          DataCell(
+                            Text(
+                              euro(calc.filamentPricePerKg(f)),
+                              style: AppTextStyles.mono.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
                         ],
-                        Text(
-                          euro(f.paidPrice),
-                          style: AppTextStyles.mono.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                      ],
-                    )),
-                    DataCell(Text(
-                      euro(f.shippingCost / f.spoolsInOrder),
-                      style: AppTextStyles.mono.copyWith(
-                        color: f.shippingCost == 0 ? const Color(0xFF71717A) : null,
                       ),
-                    )),
-                    DataCell(Text(
-                      euro(calc.filamentPricePerKg(f)),
-                      style: AppTextStyles.mono.copyWith(fontWeight: FontWeight.w700),
-                    )),
                   ],
                 ),
-            ],
+              ),
+            ),
+    );
+  }
+
+  /// No telemóvel, a tabela de 8 colunas não cabe: cada rolo é uma linha com
+  /// o essencial (cor, tipo e marca, preço pago, portes) e o €/kg à direita.
+  Widget _list(List<Filament> list, CostCalculator calc) {
+    final small = Theme.of(context).textTheme.bodySmall;
+    return Column(
+      children: [
+        for (final f in list) ...[
+          const Divider(height: 1),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+            selected:
+                _editing?.id == f.id, // o que está a ser editado fica destacado
+            onTap: () => _openEdit(f),
+            leading: CircleAvatar(
+              radius: 12,
+              backgroundColor: colorFromHex(f.colorHex),
+            ),
+            title: Text(
+              "${f.colorName} · ${f.material}${f.brand == null ? "" : " · ${f.brand}"}",
+            ),
+            subtitle: Wrap(
+              spacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  "${_spoolLabel(f.spoolWeightG)} · pago ${euro(f.paidPrice)}",
+                  style: small,
+                ),
+                if (f.discountPct > 0) _DiscountBadge(f.discountPct),
+                if (f.shippingCost > 0)
+                  Text(
+                    "· portes ${euro(f.shippingCost / f.spoolsInOrder)}",
+                    style: small,
+                  ),
+              ],
+            ),
+            trailing: Text(
+              euroPer(calc.filamentPricePerKg(f), "kg"),
+              style: AppTextStyles.mono.copyWith(fontWeight: FontWeight.w700),
+            ),
           ),
-        ),
-      ),
+        ],
+      ],
     );
   }
 }
@@ -187,8 +262,9 @@ String _spoolLabel(int grams) {
 class _FilamentForm extends ConsumerStatefulWidget {
   const _FilamentForm({super.key, this.initial, required this.onClose});
 
-  final Filament? initial;     // null = novo
-  final VoidCallback onClose;  // chamada para fechar (ao cancelar ou depois de guardar)
+  final Filament? initial; // null = novo
+  final VoidCallback
+  onClose; // chamada para fechar (ao cancelar ou depois de guardar)
 
   @override
   ConsumerState<_FilamentForm> createState() => _FilamentFormState();
@@ -197,26 +273,46 @@ class _FilamentForm extends ConsumerStatefulWidget {
 class _FilamentFormState extends ConsumerState<_FilamentForm> {
   static const _calc = CostCalculator();
 
-  late final _material = TextEditingController(text: widget.initial?.material ?? "");
+  late final _material = TextEditingController(
+    text: widget.initial?.material ?? "",
+  );
   late final _brand = TextEditingController(text: widget.initial?.brand ?? "");
-  late final _colorName = TextEditingController(text: widget.initial?.colorName ?? "");
-  late final _colorHex = TextEditingController(text: widget.initial?.colorHex ?? "");
-  late final _weight = TextEditingController(text: "${widget.initial?.spoolWeightG ?? 1000}");
+  late final _colorName = TextEditingController(
+    text: widget.initial?.colorName ?? "",
+  );
+  late final _colorHex = TextEditingController(
+    text: widget.initial?.colorHex ?? "",
+  );
+  late final _weight = TextEditingController(
+    text: "${widget.initial?.spoolWeightG ?? 1000}",
+  );
   late final _listPrice = TextEditingController(
-      text: widget.initial == null ? "" : decimalField(widget.initial!.listPrice));
+    text: widget.initial == null ? "" : decimalField(widget.initial!.listPrice),
+  );
   late final _paidPrice = TextEditingController(
-      text: widget.initial == null ? "" : decimalField(widget.initial!.paidPrice));
+    text: widget.initial == null ? "" : decimalField(widget.initial!.paidPrice),
+  );
   late final _shipping = TextEditingController(
-      text: decimalField(widget.initial?.shippingCost ?? 0));
-  late final _spools = TextEditingController(text: "${widget.initial?.spoolsInOrder ?? 1}");
+    text: decimalField(widget.initial?.shippingCost ?? 0),
+  );
+  late final _spools = TextEditingController(
+    text: "${widget.initial?.spoolsInOrder ?? 1}",
+  );
 
   var _saving = false;
 
   @override
   void dispose() {
     for (final c in [
-      _material, _brand, _colorName, _colorHex,
-      _weight, _listPrice, _paidPrice, _shipping, _spools,
+      _material,
+      _brand,
+      _colorName,
+      _colorHex,
+      _weight,
+      _listPrice,
+      _paidPrice,
+      _shipping,
+      _spools,
     ]) {
       c.dispose();
     }
@@ -238,7 +334,9 @@ class _FilamentFormState extends ConsumerState<_FilamentForm> {
       colorName: _colorName.text.trim(),
       colorHex: hex.isEmpty ? null : hex,
       spoolWeightG: parseDecimal(_weight.text).round(),
-      listPrice: list > 0 ? list : paid, // sem preço normal, conta como sem desconto
+      listPrice: list > 0
+          ? list
+          : paid, // sem preço normal, conta como sem desconto
       paidPrice: paid,
       shippingCost: parseDecimal(_shipping.text),
       spoolsInOrder: spools < 1 ? 1 : spools,
@@ -287,8 +385,9 @@ class _FilamentFormState extends ConsumerState<_FilamentForm> {
   Widget build(BuildContext context) {
     final draft = _draft();
     final problem = _problem(draft);
-    final pricePerKg =
-    draft.spoolWeightG > 0 && draft.paidPrice > 0 ? _calc.filamentPricePerKg(draft) : 0.0;
+    final pricePerKg = draft.spoolWeightG > 0 && draft.paidPrice > 0
+        ? _calc.filamentPricePerKg(draft)
+        : 0.0;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -303,98 +402,113 @@ class _FilamentFormState extends ConsumerState<_FilamentForm> {
             children: [
               Expanded(
                 child: Text(
-                  widget.initial == null ? "Novo filamento" : "Editar filamento",
+                  widget.initial == null
+                      ? "Novo filamento"
+                      : "Editar filamento",
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-              IconButton(onPressed: widget.onClose, icon: const Icon(Icons.close)),
+              IconButton(
+                onPressed: widget.onClose,
+                icon: const Icon(Icons.close),
+              ),
             ],
           ),
           const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _text(_material, "Tipo", hint: "Ex.: PLA, PLA Silk, PETG, TPU")),
-              const SizedBox(width: 12),
-              Expanded(child: _text(_brand, "Marca")),
-              const SizedBox(width: 12),
-              Expanded(child: _text(_colorName, "Cor")),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 130,
-                child: _text(
-                  _colorHex,
-                  "Amostra",
-                  hint: "Ex.: #1F2937",
-                  prefix: CircleAvatar(radius: 7, backgroundColor: colorFromHex(_colorHex.text)),
+          // LayoutBuilder: quanto espaço tem o formulário. Com pouco, os campos
+          // não podem ficar 4 lado a lado (no telemóvel ficavam com ~60 px e
+          // não se percebia o que era cada um).
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final narrow = width < 560;
+
+              final material = _text(
+                _material,
+                "Tipo",
+                hint: "Ex.: PLA, PLA Silk, PETG, TPU",
+              );
+              final brand = _text(_brand, "Marca");
+              final colorName = _text(_colorName, "Cor");
+              final colorHex = _text(
+                _colorHex,
+                "Amostra",
+                hint: "Ex.: #1F2937",
+                prefix: CircleAvatar(
+                  radius: 7,
+                  backgroundColor: colorFromHex(_colorHex.text),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: _number(_weight, "Peso do rolo", "g")),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _number(_listPrice, "Preço normal", "€",
-                    hint: "O preço de tabela, sem promoção."),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _number(_paidPrice, "Preço pago", "€",
-                    hint: "O que pagaste, com desconto."),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _number(_shipping, "Portes da compra", "€",
-                    hint: "O total que pagaste de envio."),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _number(_spools, "Rolos nessa compra", "",
-                    hint: "Os portes são repartidos por todos."),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // o resumo: custo real e poupança, enquanto se escreve
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                const Text("Custo real "),
-                Text(
-                  euroPer(pricePerKg, "kg"),
-                  style: AppTextStyles.mono.copyWith(fontSize: 18, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(width: 12),
-                if (draft.discountPct > 0) _DiscountBadge(draft.discountPct, saved: true),
-                const Spacer(),
-                TextButton(onPressed: widget.onClose, child: const Text("Cancelar")),
-                const SizedBox(width: 8),
-                FilledButton(
-                  onPressed: _saving || problem != null ? null : _save,
-                  child: _saving
-                      ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                      : Text(widget.initial == null ? "Adicionar à lista" : "Guardar"),
-                ),
-              ],
-            ),
+              );
+              final weight = _number(_weight, "Peso do rolo", "g");
+              final listPrice = _number(
+                _listPrice,
+                "Preço normal",
+                "€",
+                hint: "O preço de tabela, sem promoção.",
+              );
+              final paidPrice = _number(
+                _paidPrice,
+                "Preço pago",
+                "€",
+                hint: "O que pagaste, com desconto.",
+              );
+              final shipping = _number(
+                _shipping,
+                "Portes da compra",
+                "€",
+                hint: "O total que pagaste de envio.",
+              );
+              final spools = _number(
+                _spools,
+                "Rolos nessa compra",
+                "",
+                hint: "Os portes são repartidos por todos.",
+              );
+
+              final List<List<Widget>> rows;
+              if (narrow) {
+                // telemóvel: um campo por linha
+                rows = [
+                  [material],
+                  [brand],
+                  [colorName],
+                  [colorHex],
+                  [weight],
+                  [listPrice],
+                  [paidPrice],
+                  [shipping],
+                  [spools],
+                ];
+              } else if (width < 900) {
+                // iPad: dois por linha
+                rows = [
+                  [material, brand],
+                  [colorName, colorHex],
+                  [weight, listPrice],
+                  [paidPrice, shipping],
+                  [spools],
+                ];
+              } else {
+                // computador: como estava
+                rows = [
+                  [material, brand, colorName, colorHex],
+                  [weight, listPrice, paidPrice],
+                  [shipping, spools],
+                ];
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final (i, row) in rows.indexed) ...[
+                    if (i > 0) const SizedBox(height: 12),
+                    _fieldRow(row),
+                  ],
+                  const SizedBox(height: 16),
+                  _summary(draft, problem, pricePerKg, narrow),
+                ],
+              );
+            },
           ),
           if (problem != null) ...[
             const SizedBox(height: 8),
@@ -405,8 +519,100 @@ class _FilamentFormState extends ConsumerState<_FilamentForm> {
     );
   }
 
+  /// Uma linha de campos, todos com a mesma largura.
+  Widget _fieldRow(List<Widget> fields) {
+    if (fields.length == 1) return fields.first;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final (i, field) in fields.indexed) ...[
+          if (i > 0) const SizedBox(width: 12),
+          Expanded(child: field),
+        ],
+      ],
+    );
+  }
+
+  /// O resumo (custo real e poupança, enquanto se escreve) e os botões.
+  /// No telemóvel, os botões passam para uma linha própria, por baixo.
+  Widget _summary(
+    Filament draft,
+    String? problem,
+    double pricePerKg,
+    bool narrow,
+  ) {
+    final cost = Wrap(
+      spacing: 12,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Custo real "),
+            Text(
+              euroPer(pricePerKg, "kg"),
+              style: AppTextStyles.mono.copyWith(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        if (draft.discountPct > 0)
+          _DiscountBadge(draft.discountPct, saved: true),
+      ],
+    );
+
+    final buttons = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextButton(onPressed: widget.onClose, child: const Text("Cancelar")),
+        const SizedBox(width: 8),
+        FilledButton(
+          onPressed: _saving || problem != null ? null : _save,
+          child: _saving
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(widget.initial == null ? "Adicionar à lista" : "Guardar"),
+        ),
+      ],
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: narrow
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                cost,
+                const SizedBox(height: 8),
+                Align(alignment: Alignment.centerRight, child: buttons),
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(child: cost),
+                buttons,
+              ],
+            ),
+    );
+  }
+
   /// Um campo de texto.
-  Widget _text(TextEditingController c, String label, {String? hint, Widget? prefix}) {
+  Widget _text(
+    TextEditingController c,
+    String label, {
+    String? hint,
+    Widget? prefix,
+  }) {
     return TextField(
       controller: c,
       decoration: InputDecoration(
@@ -421,7 +627,12 @@ class _FilamentFormState extends ConsumerState<_FilamentForm> {
   }
 
   /// Um campo de número, com a unidade à direita.
-  Widget _number(TextEditingController c, String label, String unit, {String? hint}) {
+  Widget _number(
+    TextEditingController c,
+    String label,
+    String unit, {
+    String? hint,
+  }) {
     return TextField(
       controller: c,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -453,8 +664,14 @@ class _DiscountBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        saved ? "Poupaste ${pct.toStringAsFixed(0)}%" : "-${pct.toStringAsFixed(0)}%",
-        style: const TextStyle(color: green, fontSize: 12, fontWeight: FontWeight.w700),
+        saved
+            ? "Poupaste ${pct.toStringAsFixed(0)}%"
+            : "-${pct.toStringAsFixed(0)}%",
+        style: const TextStyle(
+          color: green,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

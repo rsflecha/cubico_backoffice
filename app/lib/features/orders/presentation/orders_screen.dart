@@ -95,61 +95,122 @@ class OrdersScreen extends ConsumerWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // os separadores: no telemóvel, numa só fila que desliza para o lado
-              // (em Wrap ocupavam 4 linhas e empurravam a lista para fora do ecrã)
-              if (isPhone)
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
+              // no telemóvel: Estado e Canal em dois menus de escolha, lado a lado,
+              // e a pesquisa por baixo, à largura toda
+              // (os chips ocupavam 4 linhas, ou uma fila escondida para o lado)
+              if (isPhone) ...[
+                Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                   child: Row(
                     children: [
-                      for (final chip in chips) ...[
-                        chip,
-                        const SizedBox(width: 8),
-                      ],
+                      Expanded(
+                        child: DropdownButtonFormField<OrderStatus?>(
+                          // a key muda com o filtro: se mudar noutro sítio, o menu acompanha
+                          key: ValueKey(selected),
+                          initialValue: selected,
+                          isExpanded:
+                              true, // textos compridos acabam em "…" em vez de transbordar
+                          decoration: const InputDecoration(
+                            labelText: "Estado",
+                          ),
+                          items: [
+                            DropdownMenuItem(
+                              value: null,
+                              child: Text("Todas · ${list.length}"),
+                            ),
+                            for (final status in OrderStatus.values)
+                              DropdownMenuItem(
+                                value: status,
+                                child: Text(
+                                  "${status.pluralLabel} · "
+                                  "${list.where((o) => o.status == status).length}",
+                                ),
+                              ),
+                          ],
+                          onChanged: (status) => ref
+                              .read(selectedOrderStatusProvider.notifier)
+                              .select(status),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<int?>(
+                          key: ValueKey(channelFilter),
+                          initialValue: channelFilter,
+                          isExpanded: true,
+                          decoration: const InputDecoration(labelText: "Canal"),
+                          items: [
+                            const DropdownMenuItem(
+                              value: null,
+                              child: Text("Todos"),
+                            ),
+                            for (final c in channels)
+                              DropdownMenuItem(
+                                value: c.id,
+                                child: Text(c.name),
+                              ),
+                          ],
+                          onChanged: (id) => ref
+                              .read(orderChannelFilterProvider.notifier)
+                              .select(id),
+                        ),
+                      ),
                     ],
                   ),
-                )
-              else
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  child: TextFormField(
+                    initialValue: search,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.search),
+                      hintText: "Nº, cliente ou referência Etsy",
+                    ),
+                    onChanged: (text) =>
+                        ref.read(orderSearchProvider.notifier).set(text),
+                  ),
+                ),
+              ] else ...[
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                   child: Wrap(spacing: 8, runSpacing: 8, children: chips),
                 ),
 
-              // pesquisa e filtro por canal
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        initialValue: search,
-                        decoration: const InputDecoration(
-                          prefixIcon: Icon(Icons.search),
-                          hintText: "Nº, cliente ou referência Etsy",
+                // pesquisa e filtro por canal
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          initialValue: search,
+                          decoration: const InputDecoration(
+                            prefixIcon: Icon(Icons.search),
+                            hintText: "Nº, cliente ou referência Etsy",
+                          ),
+                          onChanged: (text) =>
+                              ref.read(orderSearchProvider.notifier).set(text),
                         ),
-                        onChanged: (text) =>
-                            ref.read(orderSearchProvider.notifier).set(text),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    DropdownButton<int?>(
-                      value: channelFilter,
-                      items: [
-                        const DropdownMenuItem(
-                          value: null,
-                          child: Text("Canal: todos"),
-                        ),
-                        for (final c in channels)
-                          DropdownMenuItem(value: c.id, child: Text(c.name)),
-                      ],
-                      onChanged: (id) => ref
-                          .read(orderChannelFilterProvider.notifier)
-                          .select(id),
-                    ),
-                  ],
+                      const SizedBox(width: 12),
+                      DropdownButton<int?>(
+                        value: channelFilter,
+                        items: [
+                          const DropdownMenuItem(
+                            value: null,
+                            child: Text("Canal: todos"),
+                          ),
+                          for (final c in channels)
+                            DropdownMenuItem(value: c.id, child: Text(c.name)),
+                        ],
+                        onChanged: (id) => ref
+                            .read(orderChannelFilterProvider.notifier)
+                            .select(id),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
 
               // a tabela, ou uma mensagem se não houver nenhuma
               Expanded(

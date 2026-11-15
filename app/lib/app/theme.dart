@@ -28,10 +28,30 @@ ThemeData buildTheme() {
     inputDecorationTheme: const InputDecorationTheme(
       // a etiqueta fica sempre por cima, esteja o campo vazio ou não
       floatingLabelBehavior: FloatingLabelBehavior.always,
+      // fundo branco: o campo destaca-se do cartão (antes era transparente
+      // sobre o rosado do cartão, e no telemóvel quase não se via)
+      filled: true,
+      fillColor: Colors.white,
       // caixas com cantos arredondados, como nos desenhos
       border: OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(8)),
       ),
+      // borda cinzenta-escura bem visível (contraste ≥ 3:1 com o branco)
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+        borderSide: BorderSide(color: Color(0xFF78716C)),
+      ),
+      // no campo onde se está a escrever, a borda fica laranja e mais grossa
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(8)),
+        borderSide: BorderSide(color: AppColors.orange, width: 2),
+      ),
+      // a etiqueta ("Preço pago", "Cor"…) a escuro e mais forte
+      labelStyle: TextStyle(color: AppColors.black, fontWeight: FontWeight.w600),
+      floatingLabelStyle: TextStyle(color: AppColors.black, fontWeight: FontWeight.w600),
+      // as ajudas por baixo podem ocupar até 3 linhas, em vez de serem cortadas
+      helperMaxLines: 3,
+      errorMaxLines: 3,
       isDense: true,
     ),
   );

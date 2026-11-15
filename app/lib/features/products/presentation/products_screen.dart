@@ -18,6 +18,114 @@ class ProductsScreen extends ConsumerWidget {
     final categories = ref.watch(productCategoriesProvider).value ?? [];
     final selected = ref.watch(selectedCategoryProvider);
     final canSeeCosts = ref.watch(sessionProvider)?.canSeeCosts ?? false;
+    final isPhone = MediaQuery.sizeOf(context).width < 600;
+
+    // As três ações das categorias. Estão aqui, em funções, para servirem
+    // tanto aos chips (computador) como aos botões ao lado do menu (telemóvel).
+
+    /// Cria uma categoria nova.
+    Future<void> newCategory() async {
+      // 1. abre a janela e espera pela resposta
+      final name = await showDialog<String>(
+        context: context,
+        builder: (context) => const CategoryDialog(),
+      );
+
+      // 2. se cancelou ou deixou vazio, não faz nada
+      if (name == null || name.trim().isEmpty) return;
+      // depois do await da janela, o ecrã pode já ter fechado
+      if (!context.mounted) return;
+
+      // 3. pede ao balcão para criar (se falhar, mostra o erro e pára)
+      final ok = await _tryCategory(
+        context,
+        () => ref
+            .read(productCategoryRepositoryProvider)
+            .create(name: name.trim()),
+      );
+      if (!ok) return;
+
+      // 4. diz ao Riverpod que a lista mudou, para a ir buscar outra vez
+      ref.invalidate(productCategoriesProvider);
+    }
+
+    /// Muda o nome da categoria escolhida.
+    Future<void> editCategory() async {
+      // a categoria escolhida, completa
+      final category = categories.firstWhere((c) => c.id == selected);
+
+      final name = await showDialog<String>(
+        context: context,
+        builder: (context) => CategoryDialog(
+          title: "Editar categoria",
+          confirmLabel: "Guardar",
+          initialName: category.name,
+        ),
+      );
+      if (name == null || name.trim().isEmpty) return;
+      if (!context.mounted) return;
+
+      final ok = await _tryCategory(
+        context,
+        () => ref
+            .read(productCategoryRepositoryProvider)
+            .update(category.copyWith(name: name.trim())),
+      );
+      if (!ok) return;
+      ref.invalidate(productCategoriesProvider);
+    }
+
+    /// Apaga a categoria escolhida (só se não tiver produtos).
+    Future<void> deleteCategory() async {
+      final category = categories.firstWhere((c) => c.id == selected);
+
+      // quantos produtos tem esta categoria?
+      final allProducts = ref.read(productsProvider).value ?? [];
+      final count = allProducts.where((p) => p.categoryId == selected).length;
+
+      if (count > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "\"${category.name}\" tem $count produto(s). "
+              "Muda-os de categoria antes de a apagar.",
+            ),
+          ),
+        );
+        return;
+      }
+
+      // pedir confirmação
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Apagar categoria?"),
+          content: Text("A categoria \"${category.name}\" vai ser apagada."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Cancelar"),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text("Apagar"),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+
+      if (!context.mounted) return;
+      final ok = await _tryCategory(
+        context,
+        () => ref.read(productCategoryRepositoryProvider).delete(category.id),
+      );
+      if (!ok) return;
+      ref
+          .read(selectedCategoryProvider.notifier)
+          .select(null); // volta a "Todas"
+      ref.invalidate(productCategoriesProvider);
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -38,159 +146,106 @@ class ProductsScreen extends ConsumerWidget {
 
       body: Column(
         children: [
-          // 1. a fila de botões
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                ChoiceChip(
-                  label: const Text("Todas"),
-                  selected: selected == null,
-                  onSelected: (_) =>
-                      ref.read(selectedCategoryProvider.notifier).select(null),
-                ),
-                for (final category in categories) ...[
-                  const SizedBox(width: 8),
+          // 1. o filtro das categorias
+          if (isPhone)
+            // telemóvel: um menu de escolha, e as ações em botões de ícone ao lado
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<int?>(
+                      key: ValueKey(selected),
+                      initialValue: selected,
+                      isExpanded: true,
+                      decoration: const InputDecoration(labelText: "Categoria"),
+                      items: [
+                        const DropdownMenuItem(
+                          value: null,
+                          child: Text("Todas"),
+                        ),
+                        for (final category in categories)
+                          DropdownMenuItem(
+                            value: category.id,
+                            child: Text(category.name),
+                          ),
+                      ],
+                      onChanged: (id) => ref
+                          .read(selectedCategoryProvider.notifier)
+                          .select(id),
+                    ),
+                  ),
+                  if (canSeeCosts) ...[
+                    IconButton(
+                      tooltip: "Nova categoria",
+                      onPressed: newCategory,
+                      icon: const Icon(Icons.add),
+                    ),
+                    if (selected != null) ...[
+                      IconButton(
+                        tooltip: "Editar categoria",
+                        onPressed: editCategory,
+                        icon: const Icon(Icons.edit_outlined),
+                      ),
+                      IconButton(
+                        tooltip: "Apagar categoria",
+                        onPressed: deleteCategory,
+                        icon: const Icon(Icons.delete_outline),
+                      ),
+                    ],
+                  ],
+                ],
+              ),
+            )
+          else
+            // computador e iPad: a fila de botões, como estava
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
                   ChoiceChip(
-                    label: Text(category.name),
-                    selected: selected == category.id,
+                    label: const Text("Todas"),
+                    selected: selected == null,
                     onSelected: (_) => ref
                         .read(selectedCategoryProvider.notifier)
-                        .select(category.id),
+                        .select(null),
                   ),
-                ],
-                if (canSeeCosts) ...[
-                const SizedBox(width: 8),
-                ActionChip(
-                  avatar: const Icon(Icons.add, size: 18),
-                  label: const Text("Nova"),
-                  onPressed: () async {
-                    // 1. abre a janela e espera pela resposta
-                    final name = await showDialog<String>(
-                      context: context,
-                      builder: (context) => const CategoryDialog(),
-                    );
-
-                    // 2. se cancelou ou deixou vazio, não faz nada
-                    if (name == null || name.trim().isEmpty) return;
-                    // depois do await da janela, o ecrã pode já ter fechado
-                    if (!context.mounted) return;
-
-                    // 3. pede ao balcão para criar (se falhar, mostra o erro e pára)
-                    final ok = await _tryCategory(
-                      context,
-                      () => ref
-                          .read(productCategoryRepositoryProvider)
-                          .create(name: name.trim()),
-                    );
-                    if (!ok) return;
-
-                    // 4. diz ao Riverpod que a lista mudou, para a ir buscar outra vez
-                    ref.invalidate(productCategoriesProvider);
-                  },
-                ),
-                if (selected != null) ...[
-                  const SizedBox(width: 8),
-                  ActionChip(
-                    avatar: const Icon(Icons.edit_outlined, size: 18),
-                    label: const Text("Editar"),
-                    onPressed: () async {
-                      // a categoria escolhida, completa
-                      final category = categories.firstWhere(
-                        (c) => c.id == selected,
-                      );
-
-                      final name = await showDialog<String>(
-                        context: context,
-                        builder: (context) => CategoryDialog(
-                          title: "Editar categoria",
-                          confirmLabel: "Guardar",
-                          initialName: category.name,
-                        ),
-                      );
-                      if (name == null || name.trim().isEmpty) return;
-                      if (!context.mounted) return;
-
-                      final ok = await _tryCategory(
-                        context,
-                        () => ref
-                            .read(productCategoryRepositoryProvider)
-                            .update(category.copyWith(name: name.trim())),
-                      );
-                      if (!ok) return;
-                      ref.invalidate(productCategoriesProvider);
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  ActionChip(
-                    avatar: const Icon(Icons.delete_outline, size: 18),
-                    label: const Text("Apagar"),
-                    onPressed: () async {
-                      final category = categories.firstWhere(
-                        (c) => c.id == selected,
-                      );
-
-                      // quantos produtos tem esta categoria?
-                      final allProducts =
-                          ref.read(productsProvider).value ?? [];
-                      final count = allProducts
-                          .where((p) => p.categoryId == selected)
-                          .length;
-
-                      if (count > 0) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              "\"${category.name}\" tem $count produto(s). "
-                              "Muda-os de categoria antes de a apagar.",
-                            ),
-                          ),
-                        );
-                        return;
-                      }
-
-                      // pedir confirmação
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text("Apagar categoria?"),
-                          content: Text(
-                            "A categoria \"${category.name}\" vai ser apagada.",
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context, false),
-                              child: const Text("Cancelar"),
-                            ),
-                            FilledButton(
-                              onPressed: () => Navigator.pop(context, true),
-                              child: const Text("Apagar"),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirmed != true) return;
-
-                      if (!context.mounted) return;
-                      final ok = await _tryCategory(
-                        context,
-                        () => ref
-                            .read(productCategoryRepositoryProvider)
-                            .delete(category.id),
-                      );
-                      if (!ok) return;
-                      ref
+                  for (final category in categories) ...[
+                    const SizedBox(width: 8),
+                    ChoiceChip(
+                      label: Text(category.name),
+                      selected: selected == category.id,
+                      onSelected: (_) => ref
                           .read(selectedCategoryProvider.notifier)
-                          .select(null); // volta a "Todas"
-                      ref.invalidate(productCategoriesProvider);
-                    },
-                  ),
+                          .select(category.id),
+                    ),
+                  ],
+                  if (canSeeCosts) ...[
+                    const SizedBox(width: 8),
+                    ActionChip(
+                      avatar: const Icon(Icons.add, size: 18),
+                      label: const Text("Nova"),
+                      onPressed: newCategory,
+                    ),
+                    if (selected != null) ...[
+                      const SizedBox(width: 8),
+                      ActionChip(
+                        avatar: const Icon(Icons.edit_outlined, size: 18),
+                        label: const Text("Editar"),
+                        onPressed: editCategory,
+                      ),
+                      const SizedBox(width: 8),
+                      ActionChip(
+                        avatar: const Icon(Icons.delete_outline, size: 18),
+                        label: const Text("Apagar"),
+                        onPressed: deleteCategory,
+                      ),
+                    ],
+                  ],
                 ],
-              ],
-              ],
-            )
-          ),
+              ),
+            ),
           // 2. a lista, filtrada
           Expanded(
             child: products.when(
@@ -230,7 +285,10 @@ class ProductsScreen extends ConsumerWidget {
 }
 
 /// Corre uma gravação de categorias. Se falhar, mostra a mensagem e devolve false.
-Future<bool> _tryCategory(BuildContext context, Future<void> Function() action) async {
+Future<bool> _tryCategory(
+  BuildContext context,
+  Future<void> Function() action,
+) async {
   try {
     await action();
     return true;
