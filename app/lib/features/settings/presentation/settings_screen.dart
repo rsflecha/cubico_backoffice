@@ -1,5 +1,6 @@
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
 import 'package:cubico_backoffice/features/auth/presentation/change_password_dialog.dart';
+import 'package:cubico_backoffice/features/etsy/presentation/etsy_section.dart';
 import 'package:cubico_backoffice/features/settings/presentation/widgets/users_section.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -47,6 +48,8 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                 ]),
                 _section(context, "Utilizadores", const [UsersSection()]),
+                // a ligação à Etsy é coisa do administrador (a API também o exige)
+                if (user?.isAdmin == true) _section(context, "Lojas ligadas", const [EtsySection()]),
                 _section(context, "Atalhos", [
                   ListTile(
                     leading: const Icon(Icons.calculate_outlined),

@@ -188,8 +188,9 @@ api/
 ├── src/               db (PDO, sempre utf8mb4) · helpers (json, fail, typed, token) · auth (os porteiros)
 │                      tables (pedidos habituais de tabelas simples) · costs (as contas oficiais)
 │                      photos (conferir e gravar as fotos dos produtos) · sku (os SKU automáticos)
+│                      etsy (OAuth com PKCE, tokens cifrados, pedidos à Etsy)
 ├── routes/            um ficheiro por módulo: auth, categories, costs, products, customers,
-│                      orders, production, users, health
+│                      orders, production, users, etsy, health
 ├── storage/products/  as fotos dos produtos (fora de public/; nunca vão para o Git)
 ├── bin/create-user.php   criar utilizadores na linha de comandos
 └── .env               segredos (base de dados, JWT); nunca vai para o Git — modelo em .env.example
@@ -204,7 +205,8 @@ api/
 - **Segurança SQL:** os valores entram sempre por `?` (consultas preparadas).
 - **Transações** onde se grava em várias tabelas (variante + receita, cliente + moradas, encomenda + linhas).
 - **Fotos dos produtos:** `POST /api/products` é `multipart/form-data` (parte `product` com o JSON, parte `photo` com o ficheiro) e grava produto e foto numa transação; `POST /api/products/{id}/photo` troca-a. O tipo confirma-se pelo conteúdo (`finfo` + `getimagesize`): só JPG, PNG ou WebP, até 2 MB. O ficheiro fica em `storage/products/` com nome aleatório; `product_photos.url` guarda só esse nome, e a API responde com `photo_url` completo. `GET /api/photos/{ficheiro}` entrega a imagem, com CORS e sem sessão (o `Image.network` da web não envia o token). No servidor, a pasta `storage/products/` tem de existir com permissão de escrita.
-- **Migrações:** alterações a bases de dados já existentes ficam em `database/migrations/` (001: portes por zona).
+- **Migrações:** alterações a bases de dados já existentes ficam em `database/migrations/` (001: portes por zona; 002: SKU automático; 003: ligação à Etsy).
+- **Etsy (fase 1, a ligação):** o administrador carrega em "Ligar à Etsy" nas Definições → `POST /api/etsy/connect` guarda um `state` e um `code_verifier` (PKCE, 10 minutos, uso único) e devolve o endereço da Etsy → a Etsy volta a `GET /api/etsy/callback` (sem sessão; protegido pelo `state`), que troca o código pelos tokens e descobre a loja. Os tokens ficam cifrados (AES-256-GCM, chave tirada do `JWT_SECRET`) na tabela `etsy_connection`; o de acesso renova-se sozinho (`etsyAccessToken()`). A chave da app (`ETSY_KEYSTRING`, `ETSY_SHARED_SECRET`, `ETSY_REDIRECT_URI`) vive no `.env`. O callback tem de ser `https`, por isso a ligação só se faz no servidor; no PC testa-se com uma Etsy falsa (`$GLOBALS['etsyHttpFake']`).
 - **Na app:** cada placa de repositório escolhe o `Demo…` ou o `Api…` pelo `demoModeProvider`; o modo demo continua a funcionar sem servidor. Os erros da API chegam como `ApiException`, com a mensagem em português.
 
 Para correr no PC: `php -S localhost:8080 -t public` dentro de `api` (ou o `iniciar-api.bat`), e a app com `flutter run -d windows`.

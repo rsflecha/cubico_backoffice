@@ -17,6 +17,7 @@ require __DIR__ . '/../src/tables.php'; // os pedidos habituais das tabelas simp
 require __DIR__ . '/../src/costs.php';  // as contas oficiais (custo, portes)
 require __DIR__ . '/../src/photos.php'; // as fotos dos produtos (gravar, conferir, endereço)
 require __DIR__ . '/../src/sku.php';    // os SKU automáticos (CD3-SUP-01-HAMILTON)
+require __DIR__ . '/../src/etsy.php';   // a ligação à Etsy (OAuth e pedidos)
 require __DIR__ . '/../src/cors.php';   // quem pode usar a API a partir de um browser
 
 $app = AppFactory::create();
@@ -37,5 +38,6 @@ require __DIR__ . '/../routes/customers.php';
 require __DIR__ . '/../routes/orders.php';
 require __DIR__ . '/../routes/production.php';
 require __DIR__ . '/../routes/users.php';
+require __DIR__ . '/../routes/etsy.php';
 
 $app->run();

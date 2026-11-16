@@ -351,3 +351,28 @@ CREATE TABLE stock_movements (
   FOREIGN KEY (spool_id)     REFERENCES spools(id) ON DELETE CASCADE,
   FOREIGN KEY (print_job_id) REFERENCES print_jobs(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ───────────── Etsy ─────────────
+-- Ligação OAuth da loja (migração 003). Os tokens ficam cifrados; a chave da app vive no .env.
+
+CREATE TABLE etsy_connection (
+  id                 TINYINT UNSIGNED PRIMARY KEY,   -- só a linha 1: a loja ligada
+  etsy_user_id       BIGINT UNSIGNED NOT NULL,
+  shop_id            BIGINT UNSIGNED NOT NULL,
+  shop_name          VARCHAR(100) NOT NULL,
+  access_token       TEXT NOT NULL,                  -- cifrado, dura 1 hora
+  refresh_token      TEXT NOT NULL,                  -- cifrado, dura 90 dias
+  access_expires_at  DATETIME NOT NULL,
+  refresh_expires_at DATETIME NOT NULL,
+  connected_by       INT UNSIGNED,
+  connected_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (connected_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE etsy_oauth_states (                     -- pedidos de ligação a meio (10 min, uso único)
+  state         CHAR(43) PRIMARY KEY,
+  code_verifier VARCHAR(128) NOT NULL,
+  user_id       INT UNSIGNED NOT NULL,
+  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
