@@ -4,7 +4,7 @@ declare(strict_types=1);
 // Sincronização automática da Etsy: o mesmo que o botão "Sincronizar agora",
 // mas corrido pela tarefa agendada (cron) do cPanel, por exemplo a cada 15 minutos:
 //
-//   /usr/local/bin/php /home/<conta>/repositories/cubico_backoffice/api/bin/etsy-sync.php
+//   /opt/alt/php83/usr/bin/php -d extension=mbstring.so /home/<conta>/repositories/cubico_backoffice/api/bin/etsy-sync.php
 //
 // Só escreve quando há um erro (o cPanel manda por email o que a tarefa escrever,
 // e não queremos 96 emails por dia). Sai com 1 quando falha.
@@ -13,6 +13,16 @@ declare(strict_types=1);
 if (PHP_SAPI !== 'cli') {
     http_response_code(404);
     exit;
+}
+
+// o PHP da linha de comandos pode não ter as mesmas extensões do da API: no alojamento,
+// o alt-php83 vem sem mbstring, e o cron junta-a com "-d extension=mbstring.so".
+// Sem elas, avisa logo (em vez de rebentar a meio de uma encomenda).
+$missing = array_filter(['mbstring', 'pdo_mysql', 'curl', 'openssl'], fn ($e) => !extension_loaded($e));
+if ($missing !== []) {
+    fwrite(STDERR, date('Y-m-d H:i') . ' Faltam extensões do PHP: ' . implode(', ', $missing)
+        . ' (no cron: php -d extension=mbstring.so …)' . "\n");
+    exit(1);
 }
 
 require __DIR__ . '/../vendor/autoload.php';
