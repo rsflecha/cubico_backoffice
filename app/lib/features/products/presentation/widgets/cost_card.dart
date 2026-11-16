@@ -8,6 +8,7 @@ import 'package:cubico_backoffice/features/costs/presentation/costs_providers.da
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cubico_backoffice/features/costs/domain/component.dart';
+import 'package:cubico_backoffice/features/costs/domain/filament.dart';
 import 'package:cubico_backoffice/features/products/domain/variant.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
 
@@ -24,15 +25,15 @@ class CostCard extends ConsumerStatefulWidget {
 class _CostCardState extends ConsumerState<CostCard> {
   static const _calc = CostCalculator();
 
-  // Filamento escolhido na lista (null = usa o primeiro).
-  int? _filamentId;
+  // As cores da peça: uma linha por filamento, cada uma com as suas gramas.
+  // Uma peça de uma cor só tem uma linha (como era antes).
+  final List<_ColorLine> _lines = [];
   // Canal escolhido (null = usa o primeiro, a Etsy).
   int? _channelId;
   // Quantidade de cada componente: id do componente → quantidade.
   final Map<int, int> _componentQty = {};
   var _savingVariant = false; // desliga o botão enquanto grava
 
-  final _gramsController = TextEditingController(text: "180");
   final _minutesController = TextEditingController(text: "540");
   final _priceController = TextEditingController(text: "29");
   // o nome, o SKU e o peso da variante (só quando há uma variante escolhida)
@@ -42,8 +43,10 @@ class _CostCardState extends ConsumerState<CostCard> {
 
   @override
   void dispose() {
+    for (final line in _lines) {
+      line.grams.dispose();
+    }
     for (final c in [
-      _gramsController,
       _minutesController,
       _priceController,
       _nameController,
@@ -59,6 +62,12 @@ class _CostCardState extends ConsumerState<CostCard> {
   void initState() {
     super.initState();
     final v = widget.variant;
+    // todas as cores da receita (antes só se lia a primeira)
+    for (final f in v?.filaments ?? <VariantFilament>[]) {
+      _lines.add(_ColorLine(f.filamentId, "${f.grams}"));
+    }
+    // sem receita: uma linha com o primeiro filamento e um valor de exemplo
+    if (_lines.isEmpty) _lines.add(_ColorLine(null, "180"));
     if (v == null) return; // sem variante: ficam os valores de exemplo
 
     _minutesController.text = "${v.printTimeMin}";
@@ -67,34 +76,77 @@ class _CostCardState extends ConsumerState<CostCard> {
     _skuController.text = v.sku;
     _weightController.text = "${v.weightG}";
 
-    final firstFilament = v.filaments.firstOrNull;
-    if (firstFilament != null) {
-      _filamentId = firstFilament.filamentId;
-      _gramsController.text = "${firstFilament.grams}";
-    }
-
     for (final line in v.components) {
       _componentQty[line.componentId] = line.quantity;
     }
   }
 
+  /// O filamento de uma linha. Sem escolha feita, é o primeiro da lista (como antes).
+  Filament? _filamentOf(_ColorLine line, List<Filament> filaments) =>
+      filaments.where((f) => f.id == line.filamentId).firstOrNull ??
+      filaments.firstOrNull;
+
+  /// A receita para gravar: um filamento por linha, com as gramas.
+  /// O mesmo filamento em duas linhas soma-se numa só: a base de dados
+  /// só aceita cada filamento uma vez por variante (chave variant_id + filament_id).
+  List<VariantFilament> _recipe(List<Filament> filaments) {
+    final grams = <int, int>{};
+    for (final line in _lines) {
+      final filament = _filamentOf(line, filaments);
+      final g = _read(line.grams).round();
+      if (filament == null || g <= 0) continue; // linha vazia: não entra
+      grams[filament.id] = (grams[filament.id] ?? 0) + g;
+    }
+    return [
+      for (final entry in grams.entries)
+        VariantFilament(filamentId: entry.key, grams: entry.value),
+    ];
+  }
+
+  /// O nome que a variante ganha sozinha: as cores, juntas ("PLA Basic Black + Orange").
+  /// Da 2.ª cor em diante, só a cor quando o material é o mesmo da 1.ª.
+  String _autoName(List<Filament> filaments) {
+    final used = <Filament>[];
+    for (final line in _lines) {
+      final f = _filamentOf(line, filaments);
+      if (f != null && !used.any((u) => u.id == f.id)) used.add(f);
+    }
+    if (used.isEmpty) return "";
+    final first = used.first;
+    return [
+      first.displayName,
+      for (final f in used.skip(1)) f.material == first.material ? f.colorName : f.displayName,
+    ].join(" + ");
+  }
+
+  /// Muda as cores e, enquanto a variante não tiver um nome teu, o nome acompanha.
+  void _changeColors(List<Filament> filaments, void Function() change) {
+    final before = _autoName(filaments);
+    setState(change);
+    final name = _nameController.text.trim();
+    if (name.isEmpty || name == "Nova variante" || name == before) {
+      _nameController.text = _autoName(filaments);
+    }
+  }
+
+  /// Tira uma cor. O campo só se deita fora depois de sair do ecrã
+  /// (deitá-lo fora já, com o campo ainda desenhado, dava erro).
+  void _removeLine(_ColorLine line, List<Filament> filaments) {
+    _changeColors(filaments, () => _lines.remove(line));
+    WidgetsBinding.instance.addPostFrameCallback((_) => line.grams.dispose());
+  }
+
   /// Junta o que está no cartão numa variante e grava-a.
-  Future<void> _saveVariant(int? filamentId) async {
+  Future<void> _saveVariant() async {
     final v = widget.variant!;
+    final filaments = ref.read(filamentsProvider).value ?? <Filament>[];
     setState(() => _savingVariant = true);
 
-    // uma variante ainda sem nome próprio fica com o nome do filamento ("PLA Basic Black")
+    // uma variante ainda sem nome próprio fica com o nome das cores ("PLA Basic Black")
     final typedName = _nameController.text.trim();
-    final filamentName = ref
-        .read(filamentsProvider)
-        .value
-        ?.where((f) => f.id == filamentId)
-        .firstOrNull
-        ?.displayName;
-    final name =
-        (typedName.isEmpty || typedName == "Nova variante") &&
-            filamentName != null
-        ? filamentName
+    final autoName = _autoName(filaments);
+    final name = (typedName.isEmpty || typedName == "Nova variante") && autoName.isNotEmpty
+        ? autoName
         : typedName;
     final sku = _skuController.text.trim();
     if (name.isEmpty || sku.isEmpty) {
@@ -113,14 +165,8 @@ class _CostCardState extends ConsumerState<CostCard> {
       weightG: _read(_weightController).round(),
       salePrice: _read(_priceController),
       printTimeMin: _read(_minutesController).round(),
-      filaments: filamentId == null
-          ? []
-          : [
-              VariantFilament(
-                filamentId: filamentId,
-                grams: _read(_gramsController).round(),
-              ),
-            ],
+      // todas as cores (antes gravava-se só uma, e uma 2.ª cor perdia-se sem aviso)
+      filaments: _recipe(filaments),
       components: [
         for (final entry in _componentQty.entries)
           if (entry.value > 0)
@@ -156,10 +202,7 @@ class _CostCardState extends ConsumerState<CostCard> {
 
   @override
   Widget build(BuildContext context) {
-    final filaments = ref.watch(filamentsProvider).value ?? [];
-    final filament =
-        filaments.where((f) => f.id == _filamentId).firstOrNull ??
-        filaments.firstOrNull;
+    final filaments = ref.watch(filamentsProvider).value ?? <Filament>[];
     final channels = ref.watch(salesChannelsProvider).value ?? [];
     final channel =
         channels.where((c) => c.id == _channelId).firstOrNull ??
@@ -177,14 +220,22 @@ class _CostCardState extends ConsumerState<CostCard> {
     final rounding = settings?.rounding ?? 0.50;
 
     // 1. ler o que está escrito
-    final grams = _read(_gramsController);
     final minutes = _read(_minutesController);
     final price = _read(_priceController);
 
     // 2. fazer as contas (sempre de novo, a cada desenho)
-    final filamentCost = filament == null
-        ? 0.0
-        : _calc.filamentCost(grams: grams, filament: filament);
+    // filamento: a soma de todas as cores, cada uma ao seu preço por kg
+    // (a mesma conta que a lista de variantes faz, por isso batem certo)
+    var filamentCost = 0.0;
+    var totalGrams = 0.0;
+    for (final line in _lines) {
+      final filament = _filamentOf(line, filaments);
+      final grams = _read(line.grams);
+      totalGrams += grams;
+      if (filament != null) {
+        filamentCost += _calc.filamentCost(grams: grams, filament: filament);
+      }
+    }
     final perHour = ref.watch(printerCostPerHourProvider);
     final printing = _calc.printingCost(minutes: minutes, costPerHour: perHour);
     // componentes: quantidade × custo por unidade, somado para todos
@@ -304,57 +355,33 @@ class _CostCardState extends ConsumerState<CostCard> {
               ),
               const SizedBox(height: 16),
             ],
-            // o filamento, com etiqueta e caixa como os outros campos
-            DropdownButtonFormField<int>(
-              // a key muda com o filamento: o menu acompanha quando muda por fora
-              key: ValueKey(filament?.id),
-              initialValue: filament?.id,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: "Filamento"),
-              hint: const Text("A carregar filamentos…"),
-              items: [
-                for (final f in filaments)
-                  DropdownMenuItem(
-                    value: f.id,
-                    child: Text(
-                      "${f.material} · ${f.colorName} — ${euroPer(_calc.filamentPricePerKg(f), "kg")}",
-                    ),
-                  ),
-              ],
-              onChanged: (id) => setState(() {
-                final previous = filaments
-                    .where((f) => f.id == _filamentId)
-                    .firstOrNull;
-                final next = filaments.where((f) => f.id == id).firstOrNull;
-                _filamentId = id;
-
-                // o nome segue o filamento, enquanto não lhe deres um nome teu
-                final name = _nameController.text.trim();
-                if (next != null &&
-                    (name.isEmpty ||
-                        name == "Nova variante" ||
-                        name == previous?.displayName)) {
-                  _nameController.text = next.displayName;
-                }
-              }),
+            // as cores: uma linha por filamento (filamento + gramas)
+            for (final (i, line) in _lines.indexed) ...[
+              if (i > 0) const SizedBox(height: 12),
+              _colorRow(line, i, filaments),
+            ],
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () => _changeColors(filaments, () {
+                  // começa no primeiro filamento que ainda não está na receita
+                  final used = {for (final l in _lines) _filamentOf(l, filaments)?.id};
+                  final next = filaments.where((f) => !used.contains(f.id)).firstOrNull;
+                  _lines.add(_ColorLine(next?.id, ""));
+                }),
+                icon: const Icon(Icons.add),
+                label: const Text("Adicionar cor"),
+              ),
             ),
+            if (_lines.length > 1)
+              Text(
+                "As gramas de cada cor estão no Bambu Studio, no consumo por filamento. "
+                "Já incluem o que se gasta nas trocas de cor.",
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _gramsController,
-                    style: AppTextStyles.mono,
-                    // etiquetas curtas e a unidade à direita: cabem inteiras no telemóvel
-                    decoration: const InputDecoration(
-                      labelText: "Filamento usado",
-                      suffixText: "g",
-                    ),
-                    keyboardType: TextInputType.number,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                ),
-                const SizedBox(width: 12),
                 Expanded(
                   child: TextField(
                     controller: _minutesController,
@@ -365,6 +392,18 @@ class _CostCardState extends ConsumerState<CostCard> {
                     ),
                     keyboardType: TextInputType.number,
                     onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // o total das cores, para comparar com o peso da peça
+                Expanded(
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: "Filamento total",
+                      suffixText: "g",
+                      filled: false,
+                    ),
+                    child: Text(totalGrams.round().toString(), style: AppTextStyles.mono),
                   ),
                 ),
               ],
@@ -382,7 +421,10 @@ class _CostCardState extends ConsumerState<CostCard> {
               ],
             ),
             const SizedBox(height: 12),
-            _row("Filamento", filamentCost),
+            _row(
+              _lines.length > 1 ? "Filamento (${_lines.length} cores)" : "Filamento",
+              filamentCost,
+            ),
             _row("Impressão", printing),
             const SizedBox(height: 12),
             Text("Componentes", style: Theme.of(context).textTheme.labelLarge),
@@ -458,7 +500,7 @@ class _CostCardState extends ConsumerState<CostCard> {
               FilledButton(
                 onPressed: _savingVariant
                     ? null
-                    : () => _saveVariant(filament?.id),
+                    : _saveVariant,
                 child: _savingVariant
                     ? const SizedBox(
                         width: 20,
@@ -475,6 +517,64 @@ class _CostCardState extends ConsumerState<CostCard> {
   }
 
   /// Uma linha com o nome à esquerda e o valor em € à direita.
+  /// Uma cor: o menu do filamento, as gramas e (havendo mais do que uma) o ✕ para a tirar.
+  Widget _colorRow(_ColorLine line, int index, List<Filament> filaments) {
+    final filament = _filamentOf(line, filaments);
+
+    return Row(
+      // a key é a própria linha: ao tirar uma cor do meio, as outras não trocam de estado
+      key: ObjectKey(line),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: DropdownButtonFormField<int>(
+            // a key muda com o filamento: o menu acompanha quando muda por fora
+            key: ValueKey(filament?.id),
+            initialValue: filament?.id,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: _lines.length > 1 ? "Cor ${index + 1}" : "Filamento",
+            ),
+            hint: const Text("A carregar filamentos…"),
+            // fechado mostra a cor primeiro: no telemóvel o texto é cortado, e
+            // "PLA Blac…" em todas as linhas não deixava distinguir as cores
+            selectedItemBuilder: (context) => [
+              for (final f in filaments)
+                Text("${f.colorName} · ${f.material}", overflow: TextOverflow.ellipsis),
+            ],
+            items: [
+              for (final f in filaments)
+                DropdownMenuItem(
+                  value: f.id,
+                  child: Text(
+                    "${f.material} · ${f.colorName} — ${euroPer(_calc.filamentPricePerKg(f), "kg")}",
+                  ),
+                ),
+            ],
+            onChanged: (id) => _changeColors(filaments, () => line.filamentId = id),
+          ),
+        ),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 96,
+          child: TextField(
+            controller: line.grams,
+            style: AppTextStyles.mono,
+            decoration: const InputDecoration(labelText: "Gramas", suffixText: "g"),
+            keyboardType: TextInputType.number,
+            onChanged: (_) => setState(() {}),
+          ),
+        ),
+        if (_lines.length > 1)
+          IconButton(
+            tooltip: "Tirar esta cor",
+            onPressed: () => _removeLine(line, filaments),
+            icon: const Icon(Icons.close),
+          ),
+      ],
+    );
+  }
+
   Widget _row(String label, double value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2), // era 4
@@ -570,4 +670,12 @@ class _CostCardState extends ConsumerState<CostCard> {
       ),
     );
   }
+}
+
+/// Uma cor da peça: o filamento escolhido (null = o primeiro da lista) e as gramas.
+class _ColorLine {
+  _ColorLine(this.filamentId, String grams) : grams = TextEditingController(text: grams);
+
+  int? filamentId;
+  final TextEditingController grams;
 }
