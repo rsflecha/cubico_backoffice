@@ -1,0 +1,4 @@
+
+# a base dos códigos postais dos CTT (gerada por api/bin/postal-codes.php): não vai para o Git
+postal-codes.sql
+postal-codes.sql.gz

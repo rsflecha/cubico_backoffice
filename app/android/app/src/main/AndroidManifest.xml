@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- a app fala com a API (https://api.fazendasubmersa.pt): sem isto, a versão final
+         (release) não tem internet. As versões debug e profile já a tinham. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="cubico_backoffice"
         android:name="${applicationName}"
@@ -40,6 +43,11 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- o url_launcher abre páginas https no browser (ligar a loja da Etsy) -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
         </intent>
     </queries>
 </manifest>

@@ -224,6 +224,13 @@ CREATE TABLE addresses (
   FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE postal_codes (                          -- base dos CTT (dados à parte: api/bin/postal-codes.php)
+  code         CHAR(8)     NOT NULL PRIMARY KEY,      -- "3700-008"
+  locality     VARCHAR(80) NOT NULL,                  -- a localidade postal (vai para a morada)
+  municipality VARCHAR(80) NOT NULL,                  -- concelho
+  district     VARCHAR(80) NOT NULL                   -- distrito (ou ilha)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- ───────────── Encomendas ─────────────
 
 CREATE TABLE orders (

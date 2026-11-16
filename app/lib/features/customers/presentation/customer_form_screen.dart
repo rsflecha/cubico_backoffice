@@ -1,11 +1,11 @@
+import 'package:cubico_backoffice/features/customers/domain/contact_rules.dart';
 import 'package:cubico_backoffice/features/customers/domain/customer.dart';
+import 'package:cubico_backoffice/features/customers/domain/postal_code.dart';
 import 'package:cubico_backoffice/features/customers/presentation/customers_providers.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-
-/// O código postal português: 4 algarismos, um hífen, 3 algarismos.
-final _ptPostalCode = RegExp(r"^\d{4}-\d{3}$");
 
 /// Criar (sem customerId) ou editar (com customerId) um cliente.
 class CustomerFormScreen extends ConsumerStatefulWidget {
@@ -32,6 +32,15 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
   final _postalCode = TextEditingController();
   final _city = TextEditingController();
 
+  // o país da morada: as moradas da Etsy podem ser de fora, e editar não o pode perder
+  var _country = "PT";
+  bool get _isPt => _country == "PT";
+
+  // a localidade pelo código postal (só em Portugal)
+  PostalCodeInfo? _postalInfo; // o que a base dos CTT diz do código escrito
+  String? _postalMessage; // "A procurar…", "não encontrado" ou um erro
+  String? _autoCity; // a localidade que a app escreveu (se a mudares à mão, já não a troca)
+
   var _submitted = false;
   var _saving = false;
 
@@ -56,7 +65,40 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
       _line2.text = address.line2 ?? "";
       _postalCode.text = address.postalCode;
       _city.text = address.city;
+      _country = address.country;
     }
+  }
+
+  /// O código postal mudou: com o formato completo, procura a localidade.
+  Future<void> _onPostalCodeChanged(String value) async {
+    setState(() {
+      _postalInfo = null;
+      _postalMessage = null;
+    });
+    final code = value.trim();
+    if (!_isPt || !ptPostalCode.hasMatch(code)) return;
+
+    setState(() => _postalMessage = "A procurar a localidade…");
+    PostalCodeInfo? info;
+    String? message;
+    try {
+      info = await ref.read(postalCodeRepositoryProvider).lookup(code);
+      if (info == null) message = "Código postal não encontrado nos CTT.";
+    } catch (_) {
+      message = "Não foi possível procurar a localidade; escreve-a à mão.";
+    }
+    // entretanto saíste do ecrã, ou o código já é outro: esta resposta já não serve
+    if (!mounted || _postalCode.text.trim() != code) return;
+    setState(() {
+      _postalInfo = info;
+      _postalMessage = message;
+      // só escreve a localidade se estiver vazia ou se foi a app que a escreveu
+      final city = _city.text.trim();
+      if (info != null && (city.isEmpty || city == _autoCity)) {
+        _city.text = info.locality;
+        _autoCity = info.locality;
+      }
+    });
   }
 
   @override
@@ -95,6 +137,7 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
       line2: _value(_line2),
       postalCode: _postalCode.text.trim(),
       city: _city.text.trim(),
+      country: _country,
     )
         : null;
 
@@ -145,6 +188,9 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
           TextInputType? keyboard,
           String? Function(String?)? validator,
           int maxLines = 1,
+          List<TextInputFormatter>? formatters,
+          String? helper,
+          void Function(String)? onChanged,
         }) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 12),
@@ -152,9 +198,10 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
           controller: c,
           keyboardType: keyboard,
           maxLines: maxLines,
-          decoration: InputDecoration(labelText: label, hintText: hint),
+          inputFormatters: formatters,
+          decoration: InputDecoration(labelText: label, hintText: hint, helperText: helper, helperMaxLines: 2),
           validator: validator,
-          onChanged: (_) => setState(() {}),
+          onChanged: onChanged ?? (_) => setState(() {}),
         ),
       );
     }
@@ -185,7 +232,10 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
                         if (t.isEmpty) return null;
                         return t.contains("@") && t.contains(".") ? null : "Este email não parece certo.";
                       }),
-                  field(_phone, "Telemóvel (opcional)", keyboard: TextInputType.phone),
+                  field(_phone, "Telemóvel (opcional)",
+                      hint: "912 345 678",
+                      keyboard: TextInputType.phone,
+                      validator: phoneError),
                   field(_instagram, "Instagram (opcional)", hint: "@nome"),
                   const SizedBox(height: 12),
                   Text("Morada (opcional)", style: Theme.of(context).textTheme.titleMedium),
@@ -201,17 +251,24 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
                       SizedBox(
                         width: 160,
                         child: field(_postalCode, "Código postal",
-                            hint: "4700-000",
+                            hint: _isPt ? "4700-000" : null,
+                            // em Portugal, o hífen aparece sozinho; lá fora, cada país tem o seu formato
+                            keyboard: _isPt ? TextInputType.number : null,
+                            formatters: _isPt ? [PtPostalCodeFormatter()] : null,
+                            onChanged: _onPostalCodeChanged,
                             validator: (v) {
                               final t = (v ?? "").trim();
                               if (!_hasAddress) return null;
                               if (t.isEmpty) return "Falta o código.";
-                              return _ptPostalCode.hasMatch(t) ? null : "Formato: 4700-000";
+                              if (!_isPt) return null;
+                              return ptPostalCode.hasMatch(t) ? null : "Formato: 4700-000";
                             }),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: field(_city, "Localidade",
+                            // por baixo: o concelho e o distrito, ou porque não se encontrou
+                            helper: _postalInfo?.area ?? _postalMessage ?? (_isPt ? null : "País: $_country"),
                             validator: (v) => _hasAddress && (v ?? "").trim().isEmpty
                                 ? "Falta a localidade."
                                 : null),

@@ -2,9 +2,9 @@
 
 Backoffice para gerir uma pequena loja de impressão 3D: produtos e variantes, **custo real de cada peça**, preço sugerido com margem, e encomendas de vários canais (Etsy, Instagram, Facebook e venda em mão).
 
-Feito em **Flutter** para **Windows** e Android. É um projeto real, para a minha loja, e o meu primeiro projeto de portfólio depois do curso de Flutter.
+Feito em **Flutter** para **Windows**, Android e web. É um projeto real, para a minha loja, e o meu primeiro projeto de portfólio depois do curso de Flutter.
 
-> **Estado:** app completa, com modo demo (sem servidor) e ligada à sua própria API em PHP + MariaDB. A publicação no alojamento e a sincronização com a Etsy são os passos seguintes.
+> **Estado:** em uso na loja. A API (PHP + MariaDB) e a versão web estão publicadas num alojamento cPanel, e as encomendas da Etsy entram com "Sincronizar agora". Continua a haver um modo demo, sem servidor, para explorar a app.
 
 ![Ficha do produto com a calculadora de custo](docs/screenshots/produto-custos.png)
 
@@ -21,7 +21,8 @@ Feito em **Flutter** para **Windows** e Android. É um projeto real, para a minh
 - Cada variante guarda a sua receita de produção; a tabela de variantes mostra o custo de cada uma.
 
 **Clientes**
-- Lista com pesquisa, nº de encomendas e total gasto; ficha com contactos, moradas, notas e histórico; criar e editar, com validação do código postal.
+- Lista com pesquisa, nº de encomendas e total gasto; ficha com contactos, moradas, notas e histórico; criar e editar, com validação do telemóvel (português ou estrangeiro) e do código postal.
+- A localidade preenche-se sozinha pelo código postal (base dos CTT, cerca de 197 mil códigos), com o concelho e o distrito por baixo.
 - Ao criar uma encomenda, associar a um cliente existente.
 
 **Definições**
@@ -40,6 +41,7 @@ Feito em **Flutter** para **Windows** e Android. É um projeto real, para a minh
 - Detalhe com artigos, recebido, custos e **lucro real** (com as taxas da Etsy e os portes pagos), cliente, envio e pagamento.
 - Fluxo de estados (Pendente → Em produção → Pronta → Enviada → Entregue) com um botão para avançar.
 - Criar encomendas manuais (Instagram, Facebook, em mão) com lucro estimado antes de gravar e portes calculados pelo peso.
+- **Etsy:** a loja liga-se por OAuth (com PKCE) e "Sincronizar agora" traz as encomendas novas, com o cliente, os artigos (pelo SKU), os portes reais e as taxas da Etsy; depois acompanha o pagamento, o envio e os cancelamentos.
 
 **Produção**
 - Enviar uma encomenda para produção cria uma tarefa por artigo num quadro kanban (Por imprimir → A imprimir → Pós-processamento → Concluído), com arrastar entre colunas.
@@ -128,8 +130,11 @@ A base de dados cria-se com `database/schema.sql` e `database/seed.sql`.
 | ✅ | Login com dois papéis: o colaborador não vê custos, lucros nem margens | |
 | ✅ | Clientes e Definições | |
 | ✅ | API PHP + MariaDB: login com JWT, permissões no servidor, contas oficiais | |
-| ⬜ | Publicar a API no alojamento cPanel | |
-| ⬜ | Sincronização com a Etsy | |
+| ✅ | Publicar a API e a versão web no alojamento cPanel | |
+| ✅ | Etsy: ligar a loja e importar as encomendas ("Sincronizar agora") | |
+| ✅ | Clientes: validar o telemóvel e localidade pelo código postal | |
+| ⬜ | Etsy: sincronização automática (tarefa agendada) | |
+| ⬜ | Impressora Bambu Lab A1 | |
 
 ## O que aprendi
 

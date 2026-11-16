@@ -36,6 +36,7 @@ require __DIR__ . '/../routes/categories.php';
 require __DIR__ . '/../routes/costs.php';
 require __DIR__ . '/../routes/products.php';
 require __DIR__ . '/../routes/customers.php';
+require __DIR__ . '/../routes/postal_codes.php';
 require __DIR__ . '/../routes/orders.php';
 require __DIR__ . '/../routes/production.php';
 require __DIR__ . '/../routes/users.php';

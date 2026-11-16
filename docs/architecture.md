@@ -3,7 +3,7 @@
 Como a app está organizada, por onde passam os dados e onde fica cada coisa.
 O âmbito, as decisões e o plano completo estão em [`cubico-backoffice.md`](cubico-backoffice.md).
 
-**Última atualização:** 12/11/2026 — v1 completa, em modo demo e ligada à API (no PC); falta publicar no cPanel
+**Última atualização:** 16/11/2026 — publicada no cPanel (API e web), Etsy ligada e a importar, clientes com telemóvel validado e localidade pelo código postal
 
 ---
 
@@ -205,7 +205,8 @@ api/
 - **Segurança SQL:** os valores entram sempre por `?` (consultas preparadas).
 - **Transações** onde se grava em várias tabelas (variante + receita, cliente + moradas, encomenda + linhas).
 - **Fotos dos produtos:** `POST /api/products` é `multipart/form-data` (parte `product` com o JSON, parte `photo` com o ficheiro) e grava produto e foto numa transação; `POST /api/products/{id}/photo` troca-a. O tipo confirma-se pelo conteúdo (`finfo` + `getimagesize`): só JPG, PNG ou WebP, até 2 MB. O ficheiro fica em `storage/products/` com nome aleatório; `product_photos.url` guarda só esse nome, e a API responde com `photo_url` completo. `GET /api/photos/{ficheiro}` entrega a imagem, com CORS e sem sessão (o `Image.network` da web não envia o token). No servidor, a pasta `storage/products/` tem de existir com permissão de escrita.
-- **Migrações:** alterações a bases de dados já existentes ficam em `database/migrations/` (001: portes por zona; 002: SKU automático; 003: ligação à Etsy; 004: importação da Etsy).
+- **Migrações:** alterações a bases de dados já existentes ficam em `database/migrations/` (001: portes por zona; 002: SKU automático; 003: ligação à Etsy; 004: importação da Etsy; 005: códigos postais).
+- **Códigos postais:** `GET /api/postal-codes/{4700-000}` (com sessão) devolve a localidade, o concelho e o distrito da tabela `postal_codes` (base dos CTT, uma linha por código; quando há várias localidades, fica a que tem mais ruas). Os dados não vão para o Git: geram-se a partir do `cp.db` da app do curso com `php -d extension=pdo_sqlite bin/postal-codes.php <cp.db> ../database/postal-codes.sql [--load]` e importam-se à parte. Na app, `PostalCodeRepository` (`Api…` / `Demo…`, este com uns poucos códigos); o formulário do cliente só preenche a localidade se estiver vazia ou se foi a app que a escreveu, e só em moradas de Portugal (as da Etsy podem ser de fora e guardam o país). O telemóvel valida-se em `contact_rules.dart` (português com ou sem +351, ou estrangeiro com + e 8 a 15 algarismos).
 - **Etsy (fase 1, a ligação):** o administrador carrega em "Ligar à Etsy" nas Definições → `POST /api/etsy/connect` guarda um `state` e um `code_verifier` (PKCE, 10 minutos, uso único) e devolve o endereço da Etsy → a Etsy volta a `GET /api/etsy/callback` (sem sessão; protegido pelo `state`), que troca o código pelos tokens e descobre a loja. Os tokens ficam cifrados (AES-256-GCM, chave tirada do `JWT_SECRET`) na tabela `etsy_connection`; o de acesso renova-se sozinho (`etsyAccessToken()`). A chave da app (`ETSY_KEYSTRING`, `ETSY_SHARED_SECRET`, `ETSY_REDIRECT_URI`) vive no `.env`. O callback tem de ser `https`, por isso a ligação só se faz no servidor; no PC testa-se com uma Etsy falsa (`$GLOBALS['etsyHttpFake']`).
 - **Etsy (fase 2, as encomendas):** "Sincronizar agora" (barra no topo das Encomendas) → `POST /api/etsy/sync` lê os recibos desde `etsy_import_from` (definição; por omissão, o dia da ligação), 100 por página. Cada recibo entra uma vez (`uq_source`). Os artigos ligam-se às variantes pelo SKU (ou, sem SKU, por `etsy_listing_id`); se faltar algum, a encomenda fica "por associar" e entra numa sincronização seguinte. Cliente pelo `etsy_buyer_user_id`; custo, taxas e portes reais com as mesmas contas das manuais (portes pela zona do país). Uma encomenda que já entrou só acompanha a Etsy em pago, enviado (com o seguimento) e cancelado/reembolsado, nunca para trás. Cada sincronização fica em `sync_runs`; `GET_LOCK` impede duas ao mesmo tempo.
 - **Na app:** cada placa de repositório escolhe o `Demo…` ou o `Api…` pelo `demoModeProvider`; o modo demo continua a funcionar sem servidor. Os erros da API chegam como `ApiException`, com a mensagem em português.
@@ -227,8 +228,29 @@ Para correr no PC: `php -S localhost:8080 -t public` dentro de `api` (ou o `inic
 | 8 | Produção (kanban) | ✅ |
 | 9 | Dashboard com gráficos | ✅ |
 | 10 | Login e papéis | ✅ |
-| 11 | Ligar à API real | ✅ (testada no PC; falta publicar no cPanel) |
+| 11 | Ligar à API real | ✅ |
+| 12 | Publicar no cPanel: API e versão web | ✅ |
+| 13 | SKU automático e variantes por nome | ✅ |
+| 14 | Etsy: ligar a loja e importar as encomendas | ✅ |
+| 15 | Clientes: telemóvel e localidade pelo código postal | ✅ |
 
 **Limitações conhecidas:** um filamento por variante no cartão de custo; ainda não se criam nem apagam variantes; nas encomendas manuais, os portes reais usam só a zona Portugal; a produção ainda não desconta filamento do stock nem regista falhas; na API, as regras que ligam encomendas e produção (enviar para produção, encomenda pronta sozinha) ainda correm na app, pelo ProductionService.
 
-**Para fazer depois:** validar o telemóvel dos clientes; preencher a localidade a partir do código postal (reaproveitando a adaptação portuguesa feita no curso); publicar a API no cPanel; sincronização com a Etsy.
+**Para fazer depois:** sincronização automática da Etsy (tarefa agendada no cPanel); impressora Bambu Lab A1 (pela nuvem da Bambu, não oficial).
+
+## 12. Publicação (alojamento cPanel)
+
+| O quê | Onde | Endereço |
+|---|---|---|
+| API | `repositories/cubico_backoffice/api/public` | `https://api.fazendasubmersa.pt` |
+| Versão web | `apps/backoffice-web` | `https://app.fazendasubmersa.pt` |
+| Base de dados | MariaDB 10.6, a **verdadeira** da loja | — |
+
+- **Sem terminal nem SSH.** O "Update from Remote" do Git Version Control falha, por isso os ficheiros vão pelo **File Manager**. A pasta `vendor` e o `.env` vão à mão (o `.env` nunca vai para o Git; modelo em `api/.env.example`).
+- **PHP 8.3 no servidor** (o PC tem 8.4): o `composer.json` tem `config.platform.php = 8.3.0`.
+- **Antes de publicar:** `flutter analyze`, `flutter test` e os testes da API contra a base do PC. Os testes nunca correm contra o servidor.
+- **API:** guardar uma cópia dos ficheiros que vão mudar (`api-backup-<data>`), enviar os novos para as pastas certas (`src/`, `routes/`, `public/`) e confirmar que ficaram iguais aos do PC.
+- **Web:** `flutter build web --dart-define=API_URL=https://api.fazendasubmersa.pt/api`; guardar uma cópia de `apps/backoffice-web`, enviar a build num zip e extrair por cima (o `canvaskit/` só muda quando muda o Flutter). Confirmar comparando o sha256 de cada ficheiro com o que o servidor devolve.
+- **Migrações:** cópia de segurança da base antes de cada uma (phpMyAdmin → Exportar, ou a cópia do cPanel), correr a migração pelo phpMyAdmin e confirmar as colunas/tabelas no `information_schema`.
+- **Códigos postais:** depois da migração 005, importar o `database/postal-codes.sql` (gerado no PC, cerca de 10 MB) pelo phpMyAdmin → Importar.
+- **Android:** a versão final (release) precisa da permissão `INTERNET` no `android/app/src/main/AndroidManifest.xml` (já lá está); as versões debug e profile têm-na à parte.
