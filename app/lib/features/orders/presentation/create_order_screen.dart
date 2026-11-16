@@ -13,6 +13,7 @@ import 'package:cubico_backoffice/features/orders/presentation/orders_providers.
 import 'package:cubico_backoffice/features/products/domain/product.dart';
 import 'package:cubico_backoffice/features/products/domain/variant.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
+import 'package:cubico_backoffice/features/production/presentation/production_providers.dart';
 import 'package:cubico_backoffice/core/formatting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -315,8 +316,22 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       );
       return;
     }
+    // paga → vai logo para "Por imprimir" (com a API já veio "Em produção" e isto não faz nada)
+    var productionFailed = false;
+    try {
+      final variants = await ref.read(allVariantsProvider.future);
+      await ref.read(productionServiceProvider).startIfPaid(created, variants);
+    } catch (_) {
+      productionFailed = true; // a encomenda ficou criada; dá para enviar à mão no detalhe
+    }
     ref.invalidate(ordersProvider);
+    ref.invalidate(printJobsProvider);
     if (!mounted) return;
+    if (productionFailed) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("Encomenda criada, mas não foi para produção. Usa \"Enviar para produção\" no detalhe."),
+      ));
+    }
     // troca este ecrã pelo detalhe: o "voltar" do detalhe leva à lista, e não a este formulário
     context.pushReplacement("/orders/${created.id}");
   }

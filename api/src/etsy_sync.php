@@ -296,6 +296,8 @@ function etsyImportReceipt(array $r, array $channel, float $perHour): string|arr
 
         db()->prepare('INSERT INTO order_events (order_id, description, new_status, source) VALUES (?, ?, ?, \'sync\')')
             ->execute([$orderId, "Entrou pela Etsy (recibo #$ref)", $status]);
+        // paga (é o normal na Etsy) → vai logo para "Por imprimir" (src/production.php)
+        autoStartProduction($orderId, 'sync');
         db()->commit();
     } catch (Throwable $e) {
         if (db()->inTransaction()) {
@@ -340,6 +342,8 @@ function etsyUpdateOrder(array $o, string $status, string $payment, ?string $tra
         foreach ($events as [$text, $st]) {
             $insert->execute([(int) $o['id'], $text, $st]);
         }
+        // o pagamento chegou agora? então também vai para "Por imprimir"
+        autoStartProduction((int) $o['id'], 'sync');
         db()->commit();
     } catch (Throwable $e) {
         if (db()->inTransaction()) {

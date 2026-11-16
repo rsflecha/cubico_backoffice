@@ -34,6 +34,17 @@ class ProductionService {
     );
   }
 
+  /// Uma encomenda paga não espera pelo botão: se estiver paga e "Pendente",
+  /// vai já para produção (as tarefas ficam em "Por imprimir"). Devolve true se o fez.
+  ///
+  /// Com a API, é a API que o faz (src/production.php) e a encomenda já chega
+  /// "Em produção", por isso aqui não acontece nada; no modo demo, é aqui.
+  Future<bool> startIfPaid(Order order, List<Variant> variants) async {
+    if (order.status != OrderStatus.pending || order.paymentStatus != PaymentStatus.paid) return false;
+    await sendToProduction(order, variants);
+    return true;
+  }
+
   /// Acerta o estado da encomenda depois de mexer numa tarefa dela:
   /// todas concluídas → "Pronta"; alguma por concluir → volta a "Em produção".
   Future<void> syncOrder(int orderId) async {

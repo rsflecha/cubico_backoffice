@@ -169,6 +169,8 @@ $app->post('/api/orders', function (Request $request, Response $response) {
                 $fee,
             ]);
         }
+        // já vem paga? então vai logo para "Por imprimir" (src/production.php)
+        autoStartProduction($orderId, 'user');
         db()->commit();
     } catch (Throwable $e) {
         if (db()->inTransaction()) {
@@ -217,6 +219,15 @@ $app->put('/api/orders/{id}', function (Request $request, Response $response, ar
     if ($sets !== []) {
         $values[] = $id;
         db()->prepare('UPDATE orders SET ' . implode(', ', $sets) . ' WHERE id = ?')->execute($values);
+    }
+    // ficou paga e ainda está pendente? vai para "Por imprimir", tarefas e estado juntos
+    db()->beginTransaction();
+    try {
+        autoStartProduction($id, 'user');
+        db()->commit();
+    } catch (Throwable $e) {
+        db()->rollBack();
+        throw $e;
     }
     return json($response, readOrders($isAdmin, $id)[0]);
 })->add($requireAuth);
