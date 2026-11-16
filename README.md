@@ -65,7 +65,7 @@ Feito em **Flutter** para **Windows**, Android e web. É um projeto real, para a
 | Modelos | Freezed + json_serializable |
 | Gráficos | fl_chart |
 | Testes | `flutter_test` |
-| API | PHP 8.4 · Slim 4 · JWT · PDO |
+| API | PHP 8.3 · Slim 4 · JWT · PDO |
 | Base de dados | MariaDB 10.6 (alojamento cPanel) |
 | Pedidos HTTP | Dio, com interceptor do token |
 
@@ -101,9 +101,9 @@ cd app
 flutter test
 ```
 
-Também há uma versão Windows pronta a usar, em modo demo, nos [Releases](../../releases).
+Também há versões prontas a usar (Windows e Android) nos [Releases](../../releases). Ligam à API da loja; para explorar sem conta, usar "Explorar em modo demo" no ecrã de entrada.
 
-API (precisa de PHP 8.4, Composer e MariaDB/MySQL):
+API (precisa de PHP 8.3 ou mais recente, Composer e MariaDB/MySQL):
 
 ```bash
 cd api
