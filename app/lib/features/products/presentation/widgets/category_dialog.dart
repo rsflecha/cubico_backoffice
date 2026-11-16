@@ -11,6 +11,7 @@ class CategoryDialog extends StatefulWidget {
     this.title = "Nova categoria",
     this.confirmLabel = "Adicionar",
     this.initialName = "",
+    this.initialCode = "",
     this.takenCodes,
   });
 
@@ -18,8 +19,12 @@ class CategoryDialog extends StatefulWidget {
   final String confirmLabel;
   final String initialName;
 
-  /// Os códigos já usados. Com eles, a janela mostra o campo do código (só ao criar:
-  /// depois de haver produtos, o código já não muda, porque está nos SKU).
+  /// Ao editar: o código atual. Vem já "mexido", por isso não segue o nome.
+  final String initialCode;
+
+  /// Os códigos já usados (sem o desta categoria). Com eles, a janela mostra o campo
+  /// do código: ao criar, e ao editar uma categoria ainda sem produtos (depois de
+  /// haver produtos, o código já não muda, porque está nos SKU).
   final Iterable<String>? takenCodes;
 
   @override
@@ -37,7 +42,14 @@ class _CategoryDialogState extends State<CategoryDialog> {
   @override
   void initState() {
     super.initState();
-    if (_withCode) _code.text = newCategoryCode(_controller.text, widget.takenCodes!);
+    if (!_withCode) return;
+    if (widget.initialCode.isNotEmpty) {
+      // a editar: mostra o código que já tem e não o muda quando o nome muda
+      _code.text = widget.initialCode;
+      _codeTouched = true;
+    } else {
+      _code.text = newCategoryCode(_controller.text, widget.takenCodes!);
+    }
   }
 
   @override

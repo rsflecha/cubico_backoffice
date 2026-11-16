@@ -50,10 +50,15 @@ class ProductsScreen extends ConsumerWidget {
       ref.invalidate(productCategoriesProvider);
     }
 
-    /// Muda o nome da categoria escolhida.
+    /// Muda o nome (e, se ainda não tiver produtos, o código) da categoria escolhida.
     Future<void> editCategory() async {
       // a categoria escolhida, completa
       final category = categories.firstWhere((c) => c.id == selected);
+
+      // o código está nos SKU dos produtos: só se pode mudar enquanto não houver nenhum
+      final allProducts = await ref.read(productsProvider.future);
+      final hasProducts = allProducts.any((p) => p.categoryId == category.id);
+      if (!context.mounted) return;
 
       final input = await showDialog<CategoryInput>(
         context: context,
@@ -61,17 +66,25 @@ class ProductsScreen extends ConsumerWidget {
           title: "Editar categoria",
           confirmLabel: "Guardar",
           initialName: category.name,
+          initialCode: category.code,
+          // sem a própria categoria, senão o código atual contava como "já usado"
+          takenCodes: hasProducts
+              ? null
+              : categories.where((c) => c.id != category.id).map((c) => c.code),
         ),
       );
-      final name = input?.name;
-      if (name == null || name.trim().isEmpty) return;
+      if (input == null || input.name.trim().isEmpty) return;
       if (!context.mounted) return;
 
       final ok = await _tryCategory(
         context,
-        () => ref
-            .read(productCategoryRepositoryProvider)
-            .update(category.copyWith(name: name.trim())),
+        () => ref.read(productCategoryRepositoryProvider).update(
+              category.copyWith(
+                name: input.name.trim(),
+                // com produtos, a janela não mostra o código: fica o que estava
+                code: hasProducts ? category.code : input.code,
+              ),
+            ),
       );
       if (!ok) return;
       ref.invalidate(productCategoriesProvider);

@@ -78,8 +78,17 @@ class DemoProductCategoryRepository implements ProductCategoryRepository {
       throw StateError("Nao existe categoria com id ${category.id}");
     }
 
-    _items[index] = category;
-    return category;
+    // o código novo tem de servir, como na API (sem contar com o desta categoria)
+    final wanted = plainUpper(category.code);
+    final taken = _items.where((c) => c.id != category.id).map((c) => c.code);
+    if (wanted != _items[index].code &&
+        (!isValidCategoryCode(wanted) || wanted == noCategoryCode || taken.contains(wanted))) {
+      throw const ApiException("Esse código não serve: 2 a 5 letras ou algarismos, sem repetir e sem GER.");
+    }
+
+    final saved = category.copyWith(code: wanted);
+    _items[index] = saved;
+    return saved;
   }
 
   @override
