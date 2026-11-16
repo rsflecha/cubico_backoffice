@@ -143,11 +143,16 @@ class _Summary extends StatelessWidget {
               : "${check.problems} ${check.problems == 1 ? "artigo ficava" : "artigos ficavam"} de fora numa venda.",
           style: TextStyle(fontWeight: FontWeight.w600, color: allOk ? null : color),
         ),
-        subtitle: Text(allOk
-            ? "As vendas destes anúncios entram sozinhas na app."
-            : "Uma encomenda com um destes artigos não entra na app. "
-                "Põe na Etsy (Anúncio → Variações → SKU) o mesmo SKU da variante na app. "
-                "${check.ok} ${check.ok == 1 ? "artigo já liga" : "artigos já ligam"}."),
+        subtitle: Text([
+          allOk
+              ? "As vendas destes anúncios entram sozinhas na app."
+              : "Uma encomenda com um destes artigos não entra na app. "
+                  "Põe na Etsy (Anúncio → Variações → SKU) o mesmo SKU da variante na app. "
+                  "${check.ok} ${check.ok == 1 ? "artigo já liga" : "artigos já ligam"}.",
+          if (check.digitalSkipped > 0)
+            "${check.digitalSkipped} ${check.digitalSkipped == 1 ? "anúncio digital ignorado" : "anúncios digitais ignorados"} "
+                "(os downloads não entram na app).",
+        ].join(" ")),
       ),
     );
   }

@@ -6,6 +6,7 @@ declare(strict_types=1);
  *
  * Regras:
  *  - cada recibo entra UMA vez (orders.uq_source = canal + external_ref);
+ *  - os artigos digitais (downloads) ignoram-se; uma encomenda só com digitais não entra;
  *  - cada artigo liga-se a uma variante pelo SKU (ou, sem SKU, pelo número da listagem);
  *    se um artigo não tiver variante, a encomenda inteira fica "por associar" e não entra —
  *    entra na sincronização seguinte, depois de o SKU existir;
@@ -64,6 +65,12 @@ function etsyFindVariant(array $t): ?int
         return count($ids) === 1 ? (int) $ids[0] : null;
     }
     return null;
+}
+
+/** Um artigo digital (download)? Esses não entram na app: não se imprimem nem se enviam. */
+function etsyIsDigital(array $t): bool
+{
+    return !empty($t['is_digital']);
 }
 
 /** As escolhas do comprador (personalização, cor…) num texto curto. */
@@ -188,10 +195,18 @@ function etsyImportReceipt(array $r, array $channel, float $perHour): string|arr
         return ['skipped', "recibo #$ref em $currency (só se importa em EUR)"];
     }
 
-    // todos os artigos têm de ter variante; senão, a encomenda fica por associar
+    // os produtos digitais (downloads) não entram: não se imprimem nem se enviam.
+    // Uma encomenda só com digitais fica de fora, calada (não é "por associar").
+    $transactions = (array) ($r['transactions'] ?? []);
+    $physical = array_values(array_filter($transactions, fn ($t) => !etsyIsDigital($t)));
+    if ($transactions !== [] && $physical === []) {
+        return 'unchanged';
+    }
+
+    // todos os artigos físicos têm de ter variante; senão, a encomenda fica por associar
     $lines = [];
     $missing = [];
-    foreach ((array) ($r['transactions'] ?? []) as $t) {
+    foreach ($physical as $t) {
         $variantId = etsyFindVariant($t);
         if ($variantId === null) {
             $missing[] = trim((string) ($t['sku'] ?? '')) !== ''
@@ -259,12 +274,21 @@ function etsyImportReceipt(array $r, array $channel, float $perHour): string|arr
         ]);
         $orderId = (int) db()->lastInsertId();
 
-        // o desconto da loja vem no recibo inteiro: reparte-se pelas linhas, na proporção do valor
+        // o desconto da loja vem no recibo inteiro: reparte-se pelas linhas, na proporção do valor.
+        // Se o recibo tiver digitais, só a parte dos físicos fica cá (o resto era desconto dos digitais).
         $gross = 0.0;
         foreach ($lines as $l) {
             $gross += max(1, (int) $l['t']['quantity']) * etsyMoney($l['t']['price'] ?? null);
         }
-        $discountLeft = min(etsyMoney($r['discount_amt'] ?? null), $gross);
+        $allGross = 0.0;
+        foreach ($transactions as $t) {
+            $allGross += max(1, (int) ($t['quantity'] ?? 1)) * etsyMoney($t['price'] ?? null);
+        }
+        $discount = etsyMoney($r['discount_amt'] ?? null);
+        if ($allGross > $gross && $allGross > 0) {
+            $discount = round($discount * $gross / $allGross, 2);
+        }
+        $discountLeft = min($discount, $gross);
 
         $insert = db()->prepare(
             'INSERT INTO order_lines (order_id, variant_id, quantity, unit_price, discount, customization, unit_cost, channel_fee)

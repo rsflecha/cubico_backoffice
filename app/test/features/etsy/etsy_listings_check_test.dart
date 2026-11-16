@@ -97,9 +97,10 @@ void main() {
   });
 
   testWidgets("tudo certo: diz que as vendas entram sozinhas", (tester) async {
-    final allOk = EtsyListingsCheck.fromJson(_json).copyWith(problems: 0, ok: 3, listings: []);
+    final allOk = EtsyListingsCheck.fromJson({..._json, "digital_skipped": 3}).copyWith(problems: 0, ok: 3, listings: []);
     await show(tester, () async => allOk);
     expect(find.text("Tudo certo: 3 artigos ligam a uma variante."), findsOneWidget);
+    expect(find.textContaining("3 anúncios digitais ignorados"), findsOneWidget);
     expect(find.text("A loja não tem anúncios ativos."), findsOneWidget);
   });
 

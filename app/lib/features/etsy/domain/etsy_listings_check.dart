@@ -69,6 +69,9 @@ abstract class EtsyListingsCheck with _$EtsyListingsCheck {
     required DateTime checkedAt,
     @Default(0) int ok,
     @Default(0) int problems,
+
+    /// Anúncios digitais (downloads) que não se conferem: não entram na app.
+    @Default(0) int digitalSkipped,
     @Default([]) List<EtsyListingCheck> listings,
 
     /// Variantes da app que nenhum anúncio usa (não é erro: podem não estar à venda na Etsy).

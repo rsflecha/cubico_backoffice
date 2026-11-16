@@ -65,6 +65,7 @@ _EtsyListingsCheck _$EtsyListingsCheckFromJson(Map<String, dynamic> json) =>
       checkedAt: DateTime.parse(json['checked_at'] as String),
       ok: (json['ok'] as num?)?.toInt() ?? 0,
       problems: (json['problems'] as num?)?.toInt() ?? 0,
+      digitalSkipped: (json['digital_skipped'] as num?)?.toInt() ?? 0,
       listings:
           (json['listings'] as List<dynamic>?)
               ?.map((e) => EtsyListingCheck.fromJson(e as Map<String, dynamic>))
@@ -82,6 +83,7 @@ Map<String, dynamic> _$EtsyListingsCheckToJson(_EtsyListingsCheck instance) =>
       'checked_at': instance.checkedAt.toIso8601String(),
       'ok': instance.ok,
       'problems': instance.problems,
+      'digital_skipped': instance.digitalSkipped,
       'listings': instance.listings.map((e) => e.toJson()).toList(),
       'unlisted_variants': instance.unlistedVariants
           .map((e) => e.toJson())

@@ -93,8 +93,14 @@ function etsyListingsCheck(): array
     $listings = [];
     $ok = 0;
     $problems = 0;
+    $digital = 0;
 
     foreach (etsyActiveListings($shopId) as $l) {
+        // os digitais (downloads) não entram na app, por isso não há SKU a conferir
+        if (($l['listing_type'] ?? '') === 'download') {
+            $digital++;
+            continue;
+        }
         $products = [];
         foreach ((array) ($l['inventory']['products'] ?? []) as $p) {
             if (!empty($p['is_deleted'])) {
@@ -127,6 +133,7 @@ function etsyListingsCheck(): array
         'checked_at' => date('c'),
         'ok' => $ok,
         'problems' => $problems,
+        'digital_skipped' => $digital,
         'listings' => $listings,
         'unlisted_variants' => array_values(array_filter($variants, fn ($v) => !isset($used[$v['variant_id']]))),
     ];
