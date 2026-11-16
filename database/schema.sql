@@ -207,6 +207,7 @@ CREATE TABLE customers (
   email      VARCHAR(190),
   phone      VARCHAR(30),
   instagram  VARCHAR(60),
+  etsy_buyer_user_id BIGINT UNSIGNED UNIQUE,     -- clientes da Etsy (o email quase nunca vem)
   notes      TEXT,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX (email)
@@ -293,7 +294,9 @@ CREATE TABLE sync_runs (
   status       ENUM('running','ok','error') NOT NULL DEFAULT 'running',
   created_count SMALLINT UNSIGNED NOT NULL DEFAULT 0,
   updated_count SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  skipped_count SMALLINT UNSIGNED NOT NULL DEFAULT 0,  -- encomendas por associar (SKU desconhecido)
   error_message TEXT,
+  notes         TEXT,                                -- quais ficaram por associar, e porqué
   FOREIGN KEY (channel_id) REFERENCES channels(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

@@ -1,6 +1,7 @@
 import 'package:cubico_backoffice/core/formatting.dart';
 import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
+import 'package:cubico_backoffice/features/etsy/presentation/etsy_sync_bar.dart';
 import 'package:cubico_backoffice/features/orders/domain/order.dart';
 import 'package:cubico_backoffice/features/orders/presentation/order_labels.dart';
 import 'package:cubico_backoffice/features/orders/presentation/orders_providers.dart';
@@ -65,7 +66,12 @@ class OrdersScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: orders.when(
+      body: Column(
+        children: [
+          // a barra da Etsy (só com a loja ligada): última sincronização e "Sincronizar agora"
+          const EtsySyncBar(),
+          Expanded(
+            child: orders.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text("Erro: $error")),
         data: (list) {
@@ -340,6 +346,9 @@ class OrdersScreen extends ConsumerWidget {
             ],
           );
         },
+      ),
+          ),
+        ],
       ),
     );
   }

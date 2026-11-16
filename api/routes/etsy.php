@@ -17,6 +17,21 @@ $app->post('/api/etsy/connect', function (Request $request, Response $response) 
     return json($response, ['url' => etsyStartConnect((int) $request->getAttribute('userId'))]);
 })->add($requireAdmin)->add($requireAuth);
 
+// GET /api/etsy/sync → a última sincronização (todos com sessão: aparece nas Encomendas)
+$app->get('/api/etsy/sync', function (Request $request, Response $response) {
+    return json($response, ['connected' => etsyConnection() !== null, 'last' => etsyLastSync()]);
+})->add($requireAuth);
+
+// POST /api/etsy/sync → "Sincronizar agora": vai buscar as encomendas novas à Etsy
+$app->post('/api/etsy/sync', function (Request $request, Response $response) {
+    try {
+        $result = etsySync();
+    } catch (EtsyException $e) {
+        return fail($response, $e->getMessage(), 502);
+    }
+    return json($response, $result + ['last' => etsyLastSync()]);
+})->add($requireAuth);
+
 // DELETE /api/etsy/connection → desligar a loja (só o administrador)
 $app->delete('/api/etsy/connection', function (Request $request, Response $response) {
     db()->exec('DELETE FROM etsy_connection WHERE id = 1');
