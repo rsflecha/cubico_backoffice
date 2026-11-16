@@ -224,7 +224,8 @@ Os valores mostrados nos ecrãs são **de exemplo**; os reais copiam-se da fatur
 filamento   = Σ gramas × €/kg ÷ 1000
 impressão   = horas × €/h da impressora (luz + desgaste)
 embalagem   = Σ custo/un. dos componentes e embalagens
-taxas       = preço × (% transação + % processamento) + fixo + listagem
+taxas       = (preço + portes cobrados) × (% transação + % processamento)
+              + fixo (1× por encomenda) + listagem × unidades vendidas
 mão de obra = minutos de pós-processamento × valor da hora (opcional)
 ```
 
@@ -418,7 +419,7 @@ lucro    = recebido − custos
 - [ ] Falta algum campo que uses hoje nas encomendas (ex.: oferta, embrulho)?
 - [x] Confirmar a versão do MySQL/MariaDB no cPanel — **MariaDB 10.6.27**, 2026-10-28.
 - [ ] Preços dos CTT por escalão de peso, para preencher `shipping_rates`.
-- [ ] Confirmar as taxas da Etsy no painel da conta (estão no `seed.sql` por estimativa).
+- [x] Confirmar as taxas da Etsy — páginas oficiais da Etsy para Portugal, 2026-11-16: transação 6,5% (artigo + envio + embrulho), processamento 4% + 0,30 € sobre o total, anúncio 0,20 USD por unidade vendida.
 - [ ] Confirmar margem alvo, margem mínima e arredondamento dos preços sugeridos.
 
 

@@ -142,7 +142,7 @@ $app->post('/api/orders', function (Request $request, Response $response) {
             $body['payment_method'] ?? null,
             in_array($body['delivery_method'] ?? '', ['carrier', 'hand', 'pickup', 'other'], true) ? $body['delivery_method'] : 'hand',
             $byCarrier ? 'CTT' : null,
-            $byCarrier ? (float) ($body['shipping_charged'] ?? 0) : 0,
+            $shippingCharged = $byCarrier ? (float) ($body['shipping_charged'] ?? 0) : 0.0,
             $shippingPaid,
             toDate($body['ship_by_date'] ?? null),
             ($n = trim((string) ($body['notes'] ?? ''))) === '' ? null : $n,
@@ -158,9 +158,7 @@ $app->post('/api/orders', function (Request $request, Response $response) {
         foreach (array_values($lines) as $i => $l) {
             $qty = max(1, (int) ($l['quantity'] ?? 1));
             $unitPrice = (float) ($l['unit_price'] ?? 0);
-            $percent = $qty * $unitPrice * ((float) $channel['transaction_fee'] + (float) $channel['processing_fee']) / 100;
-            // os valores fixos do canal contam uma vez por encomenda: só na primeira linha
-            $fixed = $i === 0 ? (float) $channel['flat_fee'] + (float) $channel['listing_fee'] : 0;
+            $fee = channelLineFee($channel, $qty * $unitPrice, $qty, $i === 0 ? $shippingCharged : 0.0, $i === 0);
             $insert->execute([
                 $orderId,
                 (int) $l['variant_id'],
@@ -168,7 +166,7 @@ $app->post('/api/orders', function (Request $request, Response $response) {
                 $unitPrice,
                 ($cz = trim((string) ($l['customization'] ?? ''))) === '' ? null : $cz,
                 variantUnitCost((int) $l['variant_id'], $perHour),
-                round($percent + $fixed, 2),
+                $fee,
             ]);
         }
         db()->commit();

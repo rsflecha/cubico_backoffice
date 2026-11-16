@@ -200,7 +200,7 @@ api/
 - **`GET /api/auth/me`** devolve o utilizador atual; **`POST /api/auth/password`** muda a palavra-passe (mínimo 10 caracteres) e devolve um token novo. Como o `pwv` muda, os tokens dos outros aparelhos deixam de valer.
 - **Porteiros:** `$requireAuth` (token válido, e confirma na base de dados que a conta existe, está ativa e tem a mesma palavra-passe; o papel vem daí, não do token) e `$requireAdmin` (papel admin). No Slim, o último `add` corre primeiro.
 - **A API protege os dados:** o colaborador não recebe custos, taxas nem portes pagos; Custos e preços e Utilizadores são só do administrador.
-- **Contas oficiais:** ao criar uma encomenda, a API refaz o custo de cada linha, as taxas e os portes (`src/costs.php`, as mesmas fórmulas da `CostCalculator`).
+- **Contas oficiais:** ao criar uma encomenda, a API refaz o custo de cada linha, as taxas e os portes (`src/costs.php`, as mesmas fórmulas da `CostCalculator`). Taxas (`channelLineFee` / `channelFees`): as % do canal sobre a linha e, na 1.ª linha, também sobre os portes cobrados; o fixo uma vez por encomenda; a listagem por unidade.
 - **Tipos:** o PHP lê `DECIMAL` como texto e `BOOLEAN` como 0/1; o `typed()` converte antes de responder.
 - **Segurança SQL:** os valores entram sempre por `?` (consultas preparadas).
 - **Transações** onde se grava em várias tabelas (variante + receita, cliente + moradas, encomenda + linhas).

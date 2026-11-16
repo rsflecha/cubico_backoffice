@@ -251,7 +251,7 @@ function etsyImportReceipt(array $r, array $channel, float $perHour): string|arr
             $payment,
             'Etsy Payments',
             etsyTracking($r),
-            etsyMoney($r['total_shipping_cost'] ?? null),
+            $shippingCharged = etsyMoney($r['total_shipping_cost'] ?? null),
             $shippingPaid,
             $shipBy === null ? null : date('Y-m-d', $shipBy),
             $notes === [] ? null : implode("\n", $notes),
@@ -280,9 +280,8 @@ function etsyImportReceipt(array $r, array $channel, float $perHour): string|arr
                 $gross -= $lineGross;
                 $discountLeft = round($discountLeft - $discount, 2);
             }
-            // a mesma conta das encomendas manuais: % sobre o valor; os fixos só na 1.ª linha
-            $percent = $lineGross * ((float) $channel['transaction_fee'] + (float) $channel['processing_fee']) / 100;
-            $fixed = $i === 0 ? (float) $channel['flat_fee'] + (float) $channel['listing_fee'] : 0.0;
+            // a mesma conta das encomendas manuais (channelLineFee), sobre o valor já com o desconto
+            $fee = channelLineFee($channel, $lineGross - $discount, $qty, $i === 0 ? $shippingCharged : 0.0, $i === 0);
             $insert->execute([
                 $orderId,
                 $l['variant_id'],
@@ -291,7 +290,7 @@ function etsyImportReceipt(array $r, array $channel, float $perHour): string|arr
                 $discount,
                 etsyCustomization($l['t']),
                 variantUnitCost($l['variant_id'], $perHour),
-                round($percent + $fixed, 2),
+                $fee,
             ]);
         }
 

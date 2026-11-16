@@ -198,6 +198,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     final contact = _customerContact.text.trim();
     final notes = _notes.text.trim();
     final byCarrier = _delivery == DeliveryMethod.carrier;
+    final shippingCharged = byCarrier ? parseDecimal(_shippingCharged.text) : 0.0;
 
     return Order(
       id: 0,
@@ -210,7 +211,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       paymentMethod: _paymentMethod,
       deliveryMethod: _delivery,
       carrierName: byCarrier ? "CTT" : null,
-      shippingCharged: byCarrier ? parseDecimal(_shippingCharged.text) : 0,
+      shippingCharged: shippingCharged,
       // os portes reais: o escalão do Correio Registado (zona 1, Portugal) para o peso total
       shippingPaid: byCarrier
           ? _calc.shippingPrice(weightG: _totalWeight(components), zoneId: 1, rates: rates) ?? 0
@@ -223,7 +224,15 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       updatedAt: now,
       lines: [
         for (var i = 0; i < _lines.length; i++)
-          _orderLine(_lines[i], isFirst: i == 0, channel, filaments, components, perHour),
+          _orderLine(
+            _lines[i],
+            isFirst: i == 0,
+            shipping: i == 0 ? shippingCharged : 0,
+            channel,
+            filaments,
+            components,
+            perHour,
+          ),
       ],
     );
   }
@@ -237,6 +246,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       List<Component> components,
       double perHour, {
         required bool isFirst,
+        double shipping = 0, // os portes cobrados, só na primeira linha
       }) {
     final qty = parseDecimal(line.quantity.text).round();
     final unitPrice = parseDecimal(line.price.text);
@@ -255,13 +265,16 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         components: components,
         costPerHour: perHour,
       ),
-      // as percentagens do canal sobre esta linha; os valores fixos só uma vez, na primeira
+      // as percentagens do canal sobre esta linha; os portes cobrados e o valor fixo
+      // contam uma vez, na primeira linha; a taxa de anúncio conta por unidade
       channelFee: _calc.channelFees(
         price: qty * unitPrice,
+        shipping: shipping,
+        units: qty,
         transactionPct: channel?.transactionFee ?? 0,
         processingPct: channel?.processingFee ?? 0,
         flatFee: isFirst ? channel?.flatFee ?? 0 : 0,
-        listingFee: isFirst ? channel?.listingFee ?? 0 : 0,
+        listingFee: channel?.listingFee ?? 0,
       ),
     );
   }

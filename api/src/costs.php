@@ -80,3 +80,21 @@ function shippingPrice(int $weightG, int $zoneId): ?float
     $price = $stmt->fetchColumn();
     return $price === false ? null : (float) $price;
 }
+
+/**
+ * A taxa do canal numa linha de encomenda (as regras da Etsy, iguais em
+ * app/lib/features/costs/domain/cost_calculator.dart → channelFees):
+ * - transação e processamento: % sobre o valor da linha e sobre os portes cobrados
+ *   (os portes entram só na primeira linha, para não contarem duas vezes);
+ * - o valor fixo (flat_fee): uma vez por encomenda, na primeira linha;
+ * - a taxa de anúncio (listing_fee): uma vez por cada unidade vendida.
+ */
+function channelLineFee(array $channel, float $lineValue, int $qty, float $shipping, bool $isFirst): float
+{
+    $pct = ((float) $channel['transaction_fee'] + (float) $channel['processing_fee']) / 100;
+    $fee = ($lineValue + $shipping) * $pct + (float) $channel['listing_fee'] * $qty;
+    if ($isFirst) {
+        $fee += (float) $channel['flat_fee'];
+    }
+    return round($fee, 2);
+}

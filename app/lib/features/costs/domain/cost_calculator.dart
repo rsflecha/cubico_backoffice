@@ -39,16 +39,24 @@ class CostCalculator {
     return minutes / 60 * costPerHour;
   }
 
-  /// Taxas que o canal cobra numa venda: percentagens sobre o preço + fixos.
+  /// Taxas que o canal cobra numa venda (as regras da Etsy):
+  /// - as percentagens (transação e processamento) caem sobre o preço E sobre os
+  ///   portes que o cliente paga;
+  /// - o valor fixo ([flatFee]) conta uma vez por encomenda;
+  /// - a taxa de anúncio ([listingFee]) conta uma vez por cada unidade vendida
+  ///   (a Etsy renova o anúncio a cada unidade).
+  /// Por omissão é a venda de uma unidade sem portes: o exemplo das fichas.
   double channelFees({
     required double price,
     required double transactionPct,
     required double processingPct,
     required double flatFee,
     required double listingFee,
+    double shipping = 0,
+    int units = 1,
   }) {
-    final percentPart = price * (transactionPct + processingPct) / 100;
-    return percentPart + flatFee + listingFee;
+    final percentPart = (price + shipping) * (transactionPct + processingPct) / 100;
+    return percentPart + flatFee + listingFee * units;
   }
 
   /// Margem de uma venda, em %: lucro a dividir pelo preço.

@@ -67,6 +67,57 @@ void main() {
       expect(etsy, closeTo(2.60, 0.001));
     });
 
+    test("Etsy: as percentagens também caem sobre os portes cobrados", () {
+      // (20 + 4,50) × 10,5% = 2,5725 + 0,30 + 0,20 = 3,0725 €
+      final etsy = calc.channelFees(
+        price: 20,
+        shipping: 4.5,
+        transactionPct: 6.5,
+        processingPct: 4,
+        flatFee: 0.30,
+        listingFee: 0.20,
+      );
+      expect(etsy, closeTo(3.0725, 0.0001));
+    });
+
+    test("Etsy: a taxa de anúncio conta por unidade, o fixo uma vez", () {
+      // 3 unidades a 10 €: 30 × 10,5% = 3,15 + 0,30 + 0,20 × 3 = 4,05 €
+      final etsy = calc.channelFees(
+        price: 30,
+        units: 3,
+        transactionPct: 6.5,
+        processingPct: 4,
+        flatFee: 0.30,
+        listingFee: 0.20,
+      );
+      expect(etsy, closeTo(4.05, 0.0001));
+    });
+
+    test("Etsy: encomenda de 2 linhas soma o mesmo que a conta da encomenda inteira", () {
+      // 2 × 10 € + 1 × 5 €, 4,50 € de portes: (25 + 4,50) × 10,5% + 0,30 + 0,20 × 3 = 3,9975 €
+      // (os mesmos números do teste da API: 3,27 + 0,73 depois de arredondar cada linha)
+      final first = calc.channelFees(
+        price: 20,
+        shipping: 4.5,
+        units: 2,
+        transactionPct: 6.5,
+        processingPct: 4,
+        flatFee: 0.30,
+        listingFee: 0.20,
+      );
+      final second = calc.channelFees(
+        price: 5,
+        units: 1,
+        transactionPct: 6.5,
+        processingPct: 4,
+        flatFee: 0,
+        listingFee: 0.20,
+      );
+      expect(first, closeTo(3.2725, 0.0001));
+      expect(second, closeTo(0.725, 0.0001));
+      expect(first + second, closeTo(3.9975, 0.0001));
+    });
+
     test("sem taxas (Instagram, Facebook, Pessoalmente)", () {
       final fees = calc.channelFees(
         price: 20,

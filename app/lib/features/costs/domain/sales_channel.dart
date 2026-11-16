@@ -12,7 +12,7 @@ abstract class SalesChannel with _$SalesChannel {
     @Default(0) double transactionFee, // em %
     @Default(0) double processingFee, // em %
     @Default(0) double flatFee, // em € por venda
-    @Default(0) double listingFee, // em € por venda
+    @Default(0) double listingFee, // em € por unidade vendida (a Etsy renova o anúncio a cada unidade)
     @Default(false)
     bool isAutomatic, // true = as encomendas entram sozinhas (Etsy)
   }) = _SalesChannel;
