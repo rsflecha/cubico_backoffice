@@ -256,8 +256,13 @@ class ProductsScreen extends ConsumerWidget {
                     ? list
                     : list.where((p) => p.categoryId == selected).toList();
                 if (visible.isEmpty) {
-                  return const Center(
-                    child: Text("Ainda não há produtos nesta categoria."),
+                  // em "Todas" (selected == null) não há categoria nenhuma escolhida
+                  return Center(
+                    child: Text(
+                      selected == null
+                          ? "Ainda não há produtos. Cria o primeiro em «Novo produto»."
+                          : "Ainda não há produtos nesta categoria.",
+                    ),
                   );
                 }
                 return ListView.builder(
