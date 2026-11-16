@@ -1,6 +1,7 @@
 import 'package:cubico_backoffice/features/products/data/api_product_repository.dart';
 import 'package:cubico_backoffice/features/products/data/api_variant_repository.dart';
 import 'package:cubico_backoffice/core/api/api_client.dart';
+import 'package:cubico_backoffice/core/formatting.dart';
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
 import 'package:cubico_backoffice/features/products/data/api_product_category_repository.dart';
 import 'package:cubico_backoffice/features/products/data/demo_product_category_repository.dart';
@@ -23,9 +24,13 @@ final productCategoryRepositoryProvider = Provider<ProductCategoryRepository>((r
 
 /// A lista de categorias, vinda do repositório.
 /// É FutureProvider porque o fetchAll() demora (devolve um Future).
-final productCategoriesProvider = FutureProvider<List<ProductCategory>>((ref) {
+final productCategoriesProvider = FutureProvider<List<ProductCategory>>((ref) async {
   final repository = ref.watch(productCategoryRepositoryProvider);
-  return repository.fetchAll();
+  // por ordem alfabética, venham da API ou do modo demo (antes vinham pela ordem
+  // em que foram criadas, e cada categoria nova ia parar ao fim)
+  final list = [...await repository.fetchAll()];
+  list.sort((a, b) => compareNames(a.name, b.name));
+  return list;
 });
 
 /// Qual é o repositório dos produtos.
