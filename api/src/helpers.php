@@ -37,16 +37,33 @@ function publicUser(array $user): array
     ];
 }
 
-/** Cria o token de sessão de um utilizador, válido durante 12 horas. */
-function makeToken(array $user): string
+/** Quanto dura uma sessão: 12 horas, ou 30 dias com "Manter sessão". */
+const SESSION_SECONDS = 60 * 60 * 12;
+const REMEMBER_SECONDS = 60 * 60 * 24 * 30;
+
+/**
+ * Cria o token de sessão de um utilizador.
+ * O papel NÃO vai lá dentro: o porteiro lê-o da base de dados a cada pedido.
+ */
+function makeToken(array $user, bool $remember = false): string
 {
     $now = time();
     return JWT::encode([
-        'sub' => (int) $user['id'],     // quem é
-        'role' => $user['role'],        // o papel
-        'iat' => $now,                  // quando foi criado
-        'exp' => $now + 60 * 60 * 12,   // quando deixa de valer
+        'sub' => (int) $user['id'],                  // quem é
+        'pwv' => passwordVersion($user),             // que palavra-passe tinha quando entrou
+        'iat' => $now,                               // quando foi criado
+        'exp' => $now + ($remember ? REMEMBER_SECONDS : SESSION_SECONDS), // quando deixa de valer
     ], $_ENV['JWT_SECRET'], 'HS256');
+}
+
+/**
+ * Uma "impressão digital" curta da palavra-passe atual (tirada do hash, nunca da palavra-passe).
+ * Muda sempre que a palavra-passe muda: assim os tokens antigos deixam de valer, sem precisar
+ * de uma coluna nova na base de dados.
+ */
+function passwordVersion(array $user): string
+{
+    return substr(hash('sha256', (string) $user['password_hash']), 0, 12);
 }
 
 /** Foi um erro de "valor repetido" numa coluna UNIQUE? (ex.: duas categorias com o mesmo nome) */

@@ -8,8 +8,12 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface as Handler;
 
 /**
- * Porteiro 1: só deixa passar pedidos com um token válido.
+ * Porteiro 1: só deixa passar pedidos com um token válido E de um utilizador que ainda tem acesso.
  * Junta ao pedido o id e o papel de quem está a pedir.
+ *
+ * O papel e o "ainda tem acesso?" vêm da base de dados, a cada pedido, e não de dentro do token.
+ * Antes vinham do token: retirar o acesso a alguém, ou passá-lo a colaborador, só tinha efeito
+ * quando o token dele expirasse (até 12 horas depois).
  */
 $requireAuth = function (Request $request, Handler $handler): Response {
     $header = $request->getHeaderLine('Authorization');
@@ -21,8 +25,20 @@ $requireAuth = function (Request $request, Handler $handler): Response {
     } catch (Throwable $e) {
         return fail(new Slim\Psr7\Response(), 'A sessão expirou. Entra outra vez.', 401);
     }
+
+    $stmt = db()->prepare('SELECT * FROM users WHERE id = ? AND is_active = 1');
+    $stmt->execute([(int) ($claims->sub ?? 0)]);
+    $user = $stmt->fetch();
+    if (!$user) {
+        return fail(new Slim\Psr7\Response(), 'Já não tens acesso a esta loja.', 401);
+    }
+    // a palavra-passe mudou depois de o token ser criado: as sessões antigas deixam de valer
+    if (($claims->pwv ?? '') !== passwordVersion($user)) {
+        return fail(new Slim\Psr7\Response(), 'A palavra-passe mudou. Entra outra vez.', 401);
+    }
+
     return $handler->handle(
-        $request->withAttribute('userId', (int) $claims->sub)->withAttribute('role', $claims->role)
+        $request->withAttribute('userId', (int) $user['id'])->withAttribute('role', $user['role'])
     );
 };
 
