@@ -24,6 +24,8 @@ final _json = {
           "variant": {"variant_id": 5, "product_id": 2, "sku": "CD3-SUP-01-HAMILTON", "label": "Suporte F1 · Hamilton"},
         },
         {"sku": "CD3-SUP-01-VERS", "variation": "Piloto: Verstappen", "status": "unknown_sku", "variant": null},
+        {"sku": "CD3-SUP-01-HAMILTON", "variation": "Quantidade: 10", "pack": 10, "status": "ok",
+         "variant": {"variant_id": 5, "product_id": 2, "sku": "CD3-SUP-01-HAMILTON", "label": "Suporte F1 · Hamilton"}},
       ],
     },
     {
@@ -88,7 +90,8 @@ void main() {
   testWidgets("com problemas: resumo a vermelho e cada artigo com o que falta", (tester) async {
     await show(tester, () async => EtsyListingsCheck.fromJson(_json));
     expect(find.text("2 artigos ficavam de fora numa venda."), findsOneWidget);
-    expect(find.text("Liga a: Suporte F1 · Hamilton"), findsOneWidget);
+    expect(find.text("Liga a: Suporte F1 · Hamilton"), findsNWidgets(2));
+    expect(find.text("Quantidade: 10 · SKU CD3-SUP-01-HAMILTON · pack de 10 peças"), findsOneWidget);
     expect(find.text("Piloto: Verstappen · SKU CD3-SUP-01-VERS"), findsOneWidget);
     expect(find.text("Nenhuma variante da app tem o SKU CD3-SUP-01-VERS."), findsOneWidget);
     expect(find.text("sem SKU"), findsOneWidget);

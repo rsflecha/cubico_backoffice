@@ -26,6 +26,7 @@ _EtsyProductCheck _$EtsyProductCheckFromJson(Map<String, dynamic> json) =>
     _EtsyProductCheck(
       sku: json['sku'] as String?,
       variation: json['variation'] as String? ?? "",
+      pack: (json['pack'] as num?)?.toInt() ?? 1,
       status: json['status'] as String,
       variant: json['variant'] == null
           ? null
@@ -36,6 +37,7 @@ Map<String, dynamic> _$EtsyProductCheckToJson(_EtsyProductCheck instance) =>
     <String, dynamic>{
       'sku': instance.sku,
       'variation': instance.variation,
+      'pack': instance.pack,
       'status': instance.status,
       'variant': instance.variant?.toJson(),
     };

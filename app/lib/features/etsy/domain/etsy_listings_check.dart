@@ -24,6 +24,7 @@ abstract class EtsyProductCheck with _$EtsyProductCheck {
   const factory EtsyProductCheck({
     String? sku,
     @Default("") String variation, // "Piloto: Hamilton"
+    @Default(1) int pack, // pack de quantidade: cada venda são N peças (a API reconhece "Quantidade: 10")
     required String status, // ok, unknown_sku, no_sku
     EtsyVariantRef? variant, // a variante da app a que liga (só quando ok)
   }) = _EtsyProductCheck;

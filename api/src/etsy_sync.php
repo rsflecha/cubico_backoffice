@@ -73,6 +73,35 @@ function etsyIsDigital(array $t): bool
     return !empty($t['is_digital']);
 }
 
+/**
+ * Packs de quantidade: uma variação do anúncio com um nome como "Quantidade" (ou Quantity, Pack,
+ * Unidades) e um número no valor ("10", "Pack de 10") quer dizer que cada unidade vendida
+ * na Etsy são N peças. Devolve N, ou 1 se a variação não for de quantidade.
+ */
+function etsyPackFrom(string $name, string $value): int
+{
+    if (!preg_match('/quantidade|quantity|qtd|pack|unidades|units|pe[çc]as|pieces/iu', $name)) {
+        return 1;
+    }
+    if (!preg_match('/\d+/', $value, $m)) {
+        return 1;
+    }
+    $n = (int) $m[0];
+    return $n >= 1 && $n <= 1000 ? $n : 1;
+}
+
+/** As peças por unidade vendida de um artigo da Etsy (ver etsyPackFrom). */
+function etsyPackSize(array $t): int
+{
+    foreach ((array) ($t['variations'] ?? []) as $v) {
+        $n = etsyPackFrom((string) ($v['formatted_name'] ?? ''), (string) ($v['formatted_value'] ?? ''));
+        if ($n > 1) {
+            return $n;
+        }
+    }
+    return 1;
+}
+
 /** As escolhas do comprador (personalização, cor…) num texto curto. */
 function etsyCustomization(array $t): ?string
 {
@@ -214,7 +243,7 @@ function etsyImportReceipt(array $r, array $channel, float $perHour): string|arr
                 : '«' . mb_substr((string) ($t['title'] ?? 'sem título'), 0, 40) . '» sem SKU';
             continue;
         }
-        $lines[] = ['t' => $t, 'variant_id' => $variantId];
+        $lines[] = ['t' => $t, 'variant_id' => $variantId, 'pack' => etsyPackSize($t)];
     }
     if ($missing !== []) {
         return ['skipped', "recibo #$ref: " . implode(', ', $missing)];
@@ -231,7 +260,8 @@ function etsyImportReceipt(array $r, array $channel, float $perHour): string|arr
         // os portes reais: o escalão do peso total, na zona do país
         $weight = 0;
         foreach ($lines as $l) {
-            $weight += max(1, (int) $l['t']['quantity']) * variantShippingWeightG($l['variant_id']);
+            // um pack de 10 pesa 10 peças
+            $weight += max(1, (int) $l['t']['quantity']) * $l['pack'] * variantShippingWeightG($l['variant_id']);
         }
         $shippingPaid = shippingPrice($weight, etsyZoneId($r['country_iso'] ?? null)) ?? 0.0;
 
@@ -304,14 +334,26 @@ function etsyImportReceipt(array $r, array $channel, float $perHour): string|arr
                 $gross -= $lineGross;
                 $discountLeft = round($discountLeft - $discount, 2);
             }
-            // a mesma conta das encomendas manuais (channelLineFee), sobre o valor já com o desconto
+            // a mesma conta das encomendas manuais (channelLineFee), sobre o valor já com o desconto.
+            // A taxa de anúncio é por unidade vendida NA ETSY: um pack conta 1, não 10.
             $fee = channelLineFee($channel, $lineGross - $discount, $qty, $i === 0 ? $shippingCharged : 0.0, $i === 0);
+
+            // pack de N: a linha guarda as PEÇAS (custo, tempo de impressão e tarefas certos).
+            // O preço por peça arredonda-se ao cêntimo PARA CIMA e a diferença vai para o desconto,
+            // para o total da linha ficar igual ao da Etsy (12,99 € ÷ 10 → 1,30 × 10 − 0,01).
+            $pieces = $qty * $l['pack'];
+            $piecePrice = $unitPrice;
+            $lineDiscount = $discount;
+            if ($l['pack'] > 1) {
+                $piecePrice = ceil(round($unitPrice / $l['pack'] * 100, 6)) / 100;
+                $lineDiscount = round($discount + $pieces * $piecePrice - $lineGross, 2);
+            }
             $insert->execute([
                 $orderId,
                 $l['variant_id'],
-                $qty,
-                $unitPrice,
-                $discount,
+                $pieces,
+                $piecePrice,
+                $lineDiscount,
                 etsyCustomization($l['t']),
                 variantUnitCost($l['variant_id'], $perHour),
                 $fee,

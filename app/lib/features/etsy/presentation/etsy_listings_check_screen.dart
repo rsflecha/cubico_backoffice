@@ -209,6 +209,7 @@ class _ProductRow extends StatelessWidget {
     final head = [
       if (p.variation.isNotEmpty) p.variation,
       p.sku == null ? "sem SKU" : "SKU ${p.sku}",
+      if (p.pack > 1) "pack de ${p.pack} peças",
     ].join(" · ");
     return ListTile(
       dense: true,

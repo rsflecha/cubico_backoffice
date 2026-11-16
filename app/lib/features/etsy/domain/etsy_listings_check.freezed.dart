@@ -290,6 +290,7 @@ as String,
 mixin _$EtsyProductCheck {
 
  String? get sku; String get variation;// "Piloto: Hamilton"
+ int get pack;// pack de quantidade: cada venda são N peças (a API reconhece "Quantidade: 10")
  String get status;// ok, unknown_sku, no_sku
  EtsyVariantRef? get variant;
 /// Create a copy of EtsyProductCheck
@@ -304,16 +305,16 @@ $EtsyProductCheckCopyWith<EtsyProductCheck> get copyWith => _$EtsyProductCheckCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is EtsyProductCheck&&(identical(other.sku, sku) || other.sku == sku)&&(identical(other.variation, variation) || other.variation == variation)&&(identical(other.status, status) || other.status == status)&&(identical(other.variant, variant) || other.variant == variant));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is EtsyProductCheck&&(identical(other.sku, sku) || other.sku == sku)&&(identical(other.variation, variation) || other.variation == variation)&&(identical(other.pack, pack) || other.pack == pack)&&(identical(other.status, status) || other.status == status)&&(identical(other.variant, variant) || other.variant == variant));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,sku,variation,status,variant);
+int get hashCode => Object.hash(runtimeType,sku,variation,pack,status,variant);
 
 @override
 String toString() {
-  return 'EtsyProductCheck(sku: $sku, variation: $variation, status: $status, variant: $variant)';
+  return 'EtsyProductCheck(sku: $sku, variation: $variation, pack: $pack, status: $status, variant: $variant)';
 }
 
 
@@ -324,7 +325,7 @@ abstract mixin class $EtsyProductCheckCopyWith<$Res>  {
   factory $EtsyProductCheckCopyWith(EtsyProductCheck value, $Res Function(EtsyProductCheck) _then) = _$EtsyProductCheckCopyWithImpl;
 @useResult
 $Res call({
- String? sku, String variation, String status, EtsyVariantRef? variant
+ String? sku, String variation, int pack, String status, EtsyVariantRef? variant
 });
 
 
@@ -341,11 +342,12 @@ class _$EtsyProductCheckCopyWithImpl<$Res>
 
 /// Create a copy of EtsyProductCheck
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? sku = freezed,Object? variation = null,Object? status = null,Object? variant = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? sku = freezed,Object? variation = null,Object? pack = null,Object? status = null,Object? variant = freezed,}) {
   return _then(_self.copyWith(
 sku: freezed == sku ? _self.sku : sku // ignore: cast_nullable_to_non_nullable
 as String?,variation: null == variation ? _self.variation : variation // ignore: cast_nullable_to_non_nullable
-as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as String,pack: null == pack ? _self.pack : pack // ignore: cast_nullable_to_non_nullable
+as int,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,variant: freezed == variant ? _self.variant : variant // ignore: cast_nullable_to_non_nullable
 as EtsyVariantRef?,
   ));
@@ -444,10 +446,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? sku,  String variation,  String status,  EtsyVariantRef? variant)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? sku,  String variation,  int pack,  String status,  EtsyVariantRef? variant)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _EtsyProductCheck() when $default != null:
-return $default(_that.sku,_that.variation,_that.status,_that.variant);case _:
+return $default(_that.sku,_that.variation,_that.pack,_that.status,_that.variant);case _:
   return orElse();
 
 }
@@ -465,10 +467,10 @@ return $default(_that.sku,_that.variation,_that.status,_that.variant);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? sku,  String variation,  String status,  EtsyVariantRef? variant)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? sku,  String variation,  int pack,  String status,  EtsyVariantRef? variant)  $default,) {final _that = this;
 switch (_that) {
 case _EtsyProductCheck():
-return $default(_that.sku,_that.variation,_that.status,_that.variant);case _:
+return $default(_that.sku,_that.variation,_that.pack,_that.status,_that.variant);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -485,10 +487,10 @@ return $default(_that.sku,_that.variation,_that.status,_that.variant);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? sku,  String variation,  String status,  EtsyVariantRef? variant)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? sku,  String variation,  int pack,  String status,  EtsyVariantRef? variant)?  $default,) {final _that = this;
 switch (_that) {
 case _EtsyProductCheck() when $default != null:
-return $default(_that.sku,_that.variation,_that.status,_that.variant);case _:
+return $default(_that.sku,_that.variation,_that.pack,_that.status,_that.variant);case _:
   return null;
 
 }
@@ -500,12 +502,14 @@ return $default(_that.sku,_that.variation,_that.status,_that.variant);case _:
 @JsonSerializable()
 
 class _EtsyProductCheck extends EtsyProductCheck {
-  const _EtsyProductCheck({this.sku, this.variation = "", required this.status, this.variant}): super._();
+  const _EtsyProductCheck({this.sku, this.variation = "", this.pack = 1, required this.status, this.variant}): super._();
   factory _EtsyProductCheck.fromJson(Map<String, dynamic> json) => _$EtsyProductCheckFromJson(json);
 
 @override final  String? sku;
 @override@JsonKey() final  String variation;
 // "Piloto: Hamilton"
+@override@JsonKey() final  int pack;
+// pack de quantidade: cada venda são N peças (a API reconhece "Quantidade: 10")
 @override final  String status;
 // ok, unknown_sku, no_sku
 @override final  EtsyVariantRef? variant;
@@ -523,16 +527,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EtsyProductCheck&&(identical(other.sku, sku) || other.sku == sku)&&(identical(other.variation, variation) || other.variation == variation)&&(identical(other.status, status) || other.status == status)&&(identical(other.variant, variant) || other.variant == variant));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EtsyProductCheck&&(identical(other.sku, sku) || other.sku == sku)&&(identical(other.variation, variation) || other.variation == variation)&&(identical(other.pack, pack) || other.pack == pack)&&(identical(other.status, status) || other.status == status)&&(identical(other.variant, variant) || other.variant == variant));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,sku,variation,status,variant);
+int get hashCode => Object.hash(runtimeType,sku,variation,pack,status,variant);
 
 @override
 String toString() {
-  return 'EtsyProductCheck(sku: $sku, variation: $variation, status: $status, variant: $variant)';
+  return 'EtsyProductCheck(sku: $sku, variation: $variation, pack: $pack, status: $status, variant: $variant)';
 }
 
 
@@ -543,7 +547,7 @@ abstract mixin class _$EtsyProductCheckCopyWith<$Res> implements $EtsyProductChe
   factory _$EtsyProductCheckCopyWith(_EtsyProductCheck value, $Res Function(_EtsyProductCheck) _then) = __$EtsyProductCheckCopyWithImpl;
 @override @useResult
 $Res call({
- String? sku, String variation, String status, EtsyVariantRef? variant
+ String? sku, String variation, int pack, String status, EtsyVariantRef? variant
 });
 
 
@@ -560,11 +564,12 @@ class __$EtsyProductCheckCopyWithImpl<$Res>
 
 /// Create a copy of EtsyProductCheck
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? sku = freezed,Object? variation = null,Object? status = null,Object? variant = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? sku = freezed,Object? variation = null,Object? pack = null,Object? status = null,Object? variant = freezed,}) {
   return _then(_EtsyProductCheck(
 sku: freezed == sku ? _self.sku : sku // ignore: cast_nullable_to_non_nullable
 as String?,variation: null == variation ? _self.variation : variation // ignore: cast_nullable_to_non_nullable
-as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as String,pack: null == pack ? _self.pack : pack // ignore: cast_nullable_to_non_nullable
+as int,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,variant: freezed == variant ? _self.variant : variant // ignore: cast_nullable_to_non_nullable
 as EtsyVariantRef?,
   ));

@@ -29,6 +29,18 @@ function etsyProductVariation(array $product): string
     return implode(' · ', $parts);
 }
 
+/** As peças de um produto do anúncio, se for um pack de quantidade (a mesma regra da sincronização). */
+function etsyProductPack(array $product): int
+{
+    foreach ((array) ($product['property_values'] ?? []) as $p) {
+        $n = etsyPackFrom((string) ($p['property_name'] ?? ''), (string) (((array) ($p['values'] ?? []))[0] ?? ''));
+        if ($n > 1) {
+            return $n;
+        }
+    }
+    return 1;
+}
+
 /** As variantes que existem na app, por id (para mostrar o nome e o SKU de cada uma). */
 function etsyAppVariants(): array
 {
@@ -117,6 +129,7 @@ function etsyListingsCheck(): array
             $products[] = [
                 'sku' => $sku === '' ? null : $sku,
                 'variation' => etsyProductVariation($p),
+                'pack' => etsyProductPack($p), // 10 = cada venda deste produto são 10 peças
                 'status' => $status,
                 'variant' => $variantId === null ? null : ($variants[$variantId] ?? ['variant_id' => $variantId, 'product_id' => null, 'sku' => null, 'label' => 'variante inativa']),
             ];

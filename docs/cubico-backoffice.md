@@ -92,6 +92,7 @@ cubico_backoffice/
 
 - A sincronização é **idempotente**: a mesma encomenda Etsy nunca entra duas vezes (chave única canal + referência externa).
 - **Produtos digitais não entram** (downloads da Etsy): não se imprimem nem se enviam, por isso a app ignora-os, na importação e no "Conferir os SKU". Numa encomenda mista entram só os físicos. Decidido a 2026-11-16.
+- **Packs de quantidade** (ex.: porta-chaves "Quantidade: 1, 3, 5, 10"): a app lê a variação e conta as peças, não as unidades da Etsy (custo, portes e produção certos; o total da venda fica o da Etsy). Decidido a 2026-11-16.
 - **Conferir os SKU** (Definições → Etsy): antes de haver vendas, mostra que anúncios ativos não ligam a nenhuma variante (sem SKU, ou com um SKU que a app não tem). A app só **lê** a Etsy (scopes `transactions_r shops_r listings_r`); nunca escreve SKU nos anúncios. Decidido a 2026-11-16.
 - No ecrã aparece o estado da sincronização ("Etsy há 5 min · Loja há 2 min") e um botão "Sincronizar agora".
 
