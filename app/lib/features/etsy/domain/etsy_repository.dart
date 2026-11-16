@@ -1,3 +1,4 @@
+import 'package:cubico_backoffice/features/etsy/domain/etsy_listings_check.dart';
 import 'package:cubico_backoffice/features/etsy/domain/etsy_status.dart';
 import 'package:cubico_backoffice/features/etsy/domain/etsy_sync.dart';
 
@@ -17,4 +18,7 @@ abstract interface class EtsyRepository {
 
   /// "Sincronizar agora": vai buscar as encomendas novas e devolve o registo desta vez.
   Future<EtsySyncRun> syncNow();
+
+  /// "Conferir os SKU": os anúncios ativos da Etsy contra as variantes da app (só lê).
+  Future<EtsyListingsCheck> checkListings();
 }

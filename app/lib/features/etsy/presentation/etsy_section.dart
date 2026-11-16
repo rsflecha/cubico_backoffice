@@ -2,6 +2,7 @@ import 'package:cubico_backoffice/core/api/api_exception.dart';
 import 'package:cubico_backoffice/features/etsy/domain/etsy_status.dart';
 import 'package:cubico_backoffice/features/etsy/presentation/etsy_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -167,6 +168,12 @@ class EtsySection extends ConsumerWidget {
             children: [
               TextButton(onPressed: () => _disconnect(context, ref, shop), child: const Text("Desligar")),
               OutlinedButton(onPressed: () => _connect(context, ref), child: const Text("Ligar outra vez")),
+              // os anúncios da Etsy contra as variantes: que vendas ficavam de fora
+              FilledButton.icon(
+                onPressed: () => context.go("/settings/etsy-skus"),
+                icon: const Icon(Icons.fact_check_outlined),
+                label: const Text("Conferir os SKU"),
+              ),
             ],
           ),
         ),

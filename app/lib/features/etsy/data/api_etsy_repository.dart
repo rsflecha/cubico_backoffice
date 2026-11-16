@@ -1,4 +1,5 @@
 import 'package:cubico_backoffice/core/api/api_exception.dart';
+import 'package:cubico_backoffice/features/etsy/domain/etsy_listings_check.dart';
 import 'package:cubico_backoffice/features/etsy/domain/etsy_repository.dart';
 import 'package:cubico_backoffice/features/etsy/domain/etsy_status.dart';
 import 'package:cubico_backoffice/features/etsy/domain/etsy_sync.dart';
@@ -41,5 +42,15 @@ class ApiEtsyRepository implements EtsyRepository {
           options: Options(receiveTimeout: const Duration(minutes: 2)),
         );
         return EtsySyncRun.fromJson(response.data!["last"] as Map<String, dynamic>);
+      });
+
+  @override
+  Future<EtsyListingsCheck> checkListings() => apiCall(() async {
+        // a Etsy responde página a página (100 anúncios de cada vez): mais tempo do que o habitual
+        final response = await _dio.get<Map<String, dynamic>>(
+          "/etsy/listings-check",
+          options: Options(receiveTimeout: const Duration(minutes: 1)),
+        );
+        return EtsyListingsCheck.fromJson(response.data!);
       });
 }

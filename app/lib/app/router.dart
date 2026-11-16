@@ -6,6 +6,7 @@ import 'package:cubico_backoffice/features/customers/presentation/customer_detai
 import 'package:cubico_backoffice/features/customers/presentation/customer_form_screen.dart';
 import 'package:cubico_backoffice/features/customers/presentation/customers_screen.dart';
 import 'package:cubico_backoffice/features/dashboard/presentation/dashboard_screen.dart';
+import 'package:cubico_backoffice/features/etsy/presentation/etsy_listings_check_screen.dart';
 import 'package:cubico_backoffice/features/orders/presentation/create_order_screen.dart';
 import 'package:cubico_backoffice/features/orders/presentation/orders_screen.dart';
 import 'package:cubico_backoffice/features/production/presentation/production_screen.dart';
@@ -152,6 +153,12 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: "/settings",
                 builder: (context, state) => const SettingsScreen(),
+                routes: [
+                  GoRoute(
+                    path: "etsy-skus", // /settings/etsy-skus (só o administrador, pelo redirect)
+                    builder: (context, state) => const EtsyListingsCheckScreen(),
+                  ),
+                ],
               ),
             ],
           ),

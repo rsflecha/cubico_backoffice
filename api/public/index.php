@@ -20,6 +20,7 @@ require __DIR__ . '/../src/sku.php';    // os SKU automáticos (CD3-SUP-01-HAMIL
 require __DIR__ . '/../src/production.php'; // encomenda paga → produção sozinha
 require __DIR__ . '/../src/etsy.php';   // a ligação à Etsy (OAuth e pedidos)
 require __DIR__ . '/../src/etsy_sync.php'; // a importação das encomendas da Etsy
+require __DIR__ . '/../src/etsy_listings.php'; // conferir os SKU dos anúncios
 require __DIR__ . '/../src/cors.php';   // quem pode usar a API a partir de um browser
 
 $app = AppFactory::create();

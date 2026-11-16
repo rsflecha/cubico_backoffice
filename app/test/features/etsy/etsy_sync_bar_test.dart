@@ -1,4 +1,5 @@
 import 'package:cubico_backoffice/core/api/api_exception.dart';
+import 'package:cubico_backoffice/features/etsy/domain/etsy_listings_check.dart';
 import 'package:cubico_backoffice/features/etsy/domain/etsy_repository.dart';
 import 'package:cubico_backoffice/features/etsy/domain/etsy_status.dart';
 import 'package:cubico_backoffice/features/etsy/domain/etsy_sync.dart';
@@ -32,6 +33,8 @@ class _FakeEtsy implements EtsyRepository {
   Future<Uri> startConnect() async => Uri();
   @override
   Future<void> disconnect() async {}
+  @override
+  Future<EtsyListingsCheck> checkListings() async => throw UnimplementedError();
 }
 
 void main() {

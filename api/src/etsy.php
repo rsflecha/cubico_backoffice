@@ -19,8 +19,9 @@ declare(strict_types=1);
 const ETSY_AUTH_URL = 'https://www.etsy.com/oauth/connect';
 const ETSY_API = 'https://api.etsy.com/v3';
 const ETSY_TOKEN_URL = ETSY_API . '/public/oauth/token';
-// ler encomendas e transações; ler a loja
-const ETSY_SCOPES = 'transactions_r shops_r';
+// ler encomendas e transações; ler a loja; ler os anúncios (para conferir os SKU).
+// Só leitura: a app nunca escreve na Etsy. Mudar esta lista obriga a "Ligar outra vez".
+const ETSY_SCOPES = 'transactions_r shops_r listings_r';
 const ETSY_STATE_MINUTES = 10;
 
 /** Um erro da ligação à Etsy, com uma mensagem em português para mostrar. */

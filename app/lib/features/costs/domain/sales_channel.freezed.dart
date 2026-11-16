@@ -20,7 +20,7 @@ mixin _$SalesChannel {
  double get transactionFee;// em %
  double get processingFee;// em %
  double get flatFee;// em € por venda
- double get listingFee;// em € por venda
+ double get listingFee;// em € por unidade vendida (a Etsy renova o anúncio a cada unidade)
  bool get isAutomatic;
 /// Create a copy of SalesChannel
 /// with the given fields replaced by the non-null parameter values.
@@ -237,7 +237,7 @@ class _SalesChannel implements SalesChannel {
 @override@JsonKey() final  double flatFee;
 // em € por venda
 @override@JsonKey() final  double listingFee;
-// em € por venda
+// em € por unidade vendida (a Etsy renova o anúncio a cada unidade)
 @override@JsonKey() final  bool isAutomatic;
 
 /// Create a copy of SalesChannel

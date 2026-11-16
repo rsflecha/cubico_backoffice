@@ -32,6 +32,16 @@ $app->post('/api/etsy/sync', function (Request $request, Response $response) {
     return json($response, $result + ['last' => etsyLastSync()]);
 })->add($requireAuth);
 
+// GET /api/etsy/listings-check → os anúncios ativos contra as variantes (só o administrador).
+// Só lê. Diz que anúncios iam ficar de fora numa venda por o SKU não ligar a nenhuma variante.
+$app->get('/api/etsy/listings-check', function (Request $request, Response $response) {
+    try {
+        return json($response, etsyListingsCheck());
+    } catch (EtsyException $e) {
+        return fail($response, $e->getMessage(), 502);
+    }
+})->add($requireAdmin)->add($requireAuth);
+
 // DELETE /api/etsy/connection → desligar a loja (só o administrador)
 $app->delete('/api/etsy/connection', function (Request $request, Response $response) {
     db()->exec('DELETE FROM etsy_connection WHERE id = 1');

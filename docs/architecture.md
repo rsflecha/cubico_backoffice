@@ -180,7 +180,7 @@ Correm com `flutter test`, dentro de `app/`.
 
 ## 10. A API (Fase 3)
 
-PHP 8.4 + Slim 4, em `api/`, e MariaDB 10.6 (o mesmo do alojamento cPanel).
+PHP 8.3 + Slim 4 (o servidor tem 8.3; o `composer.json` fixa `platform.php`), em `api/`, e MariaDB 10.6 (o mesmo do alojamento cPanel).
 
 ```
 api/
@@ -189,6 +189,7 @@ api/
 │                      tables (pedidos habituais de tabelas simples) · costs (as contas oficiais)
 │                      photos (conferir e gravar as fotos dos produtos) · sku (os SKU automáticos)
 │                      etsy (OAuth com PKCE, tokens cifrados, pedidos à Etsy) · etsy_sync (importar encomendas)
+│                      etsy_listings (conferir os SKU dos anúncios)
 ├── routes/            um ficheiro por módulo: auth, categories, costs, products, customers,
 │                      orders, production, users, etsy, health
 ├── storage/products/  as fotos dos produtos (fora de public/; nunca vão para o Git)
@@ -211,6 +212,7 @@ api/
 - **Códigos postais:** `GET /api/postal-codes/{4700-000}` (com sessão) devolve a localidade, o concelho e o distrito da tabela `postal_codes` (base dos CTT, uma linha por código; quando há várias localidades, fica a que tem mais ruas). Os dados não vão para o Git: geram-se a partir do `cp.db` da app do curso com `php -d extension=pdo_sqlite bin/postal-codes.php <cp.db> ../database/postal-codes.sql [--load]` e importam-se à parte. Na app, `PostalCodeRepository` (`Api…` / `Demo…`, este com uns poucos códigos); o formulário do cliente só preenche a localidade se estiver vazia ou se foi a app que a escreveu, e só em moradas de Portugal (as da Etsy podem ser de fora e guardam o país). O telemóvel valida-se em `contact_rules.dart` (português com ou sem +351, ou estrangeiro com + e 8 a 15 algarismos).
 - **Etsy (fase 1, a ligação):** o administrador carrega em "Ligar à Etsy" nas Definições → `POST /api/etsy/connect` guarda um `state` e um `code_verifier` (PKCE, 10 minutos, uso único) e devolve o endereço da Etsy → a Etsy volta a `GET /api/etsy/callback` (sem sessão; protegido pelo `state`), que troca o código pelos tokens e descobre a loja. Os tokens ficam cifrados (AES-256-GCM, chave tirada do `JWT_SECRET`) na tabela `etsy_connection`; o de acesso renova-se sozinho (`etsyAccessToken()`). A chave da app (`ETSY_KEYSTRING`, `ETSY_SHARED_SECRET`, `ETSY_REDIRECT_URI`) vive no `.env`. O callback tem de ser `https`, por isso a ligação só se faz no servidor; no PC testa-se com uma Etsy falsa (`$GLOBALS['etsyHttpFake']`).
 - **Etsy (fase 2, as encomendas):** "Sincronizar agora" (barra no topo das Encomendas) → `POST /api/etsy/sync` lê os recibos desde `etsy_import_from` (definição; por omissão, o dia da ligação), 100 por página. Cada recibo entra uma vez (`uq_source`). Os artigos ligam-se às variantes pelo SKU (ou, sem SKU, por `etsy_listing_id`); se faltar algum, a encomenda fica "por associar" e entra numa sincronização seguinte. Cliente pelo `etsy_buyer_user_id`; custo, taxas e portes reais com as mesmas contas das manuais (portes pela zona do país). Uma encomenda que já entrou só acompanha a Etsy em pago, enviado (com o seguimento) e cancelado/reembolsado, nunca para trás. Cada sincronização fica em `sync_runs`; `GET_LOCK` impede duas ao mesmo tempo.
+- **Conferir os SKU:** `GET /api/etsy/listings-check` (administrador) lê os anúncios ativos da loja com o inventário (`includes=Inventory`, 100 por página) e passa cada produto pelo **mesmo** `etsyFindVariant()` da sincronização: `ok`, `unknown_sku` (SKU que nenhuma variante tem) ou `no_sku`. Junta as variantes ativas que nenhum anúncio usa. Só lê. Precisa do scope `listings_r` (`ETSY_SCOPES = transactions_r shops_r listings_r`, tudo só leitura); uma ligação feita antes não o tem, a Etsy responde 403 e a API pede para "Ligar outra vez". Na app: botão "Conferir os SKU" na secção Etsy das Definições → `/settings/etsy-skus` (`EtsyListingsCheckScreen`), com os anúncios com problemas primeiro. O provider desliga o retry automático do Riverpod 3 (senão o erro ficava escondido atrás de "a carregar" e a Etsy levava 10 pedidos).
 - **Na app:** cada placa de repositório escolhe o `Demo…` ou o `Api…` pelo `demoModeProvider`; o modo demo continua a funcionar sem servidor. Os erros da API chegam como `ApiException`, com a mensagem em português.
 
 Para correr no PC: `php -S localhost:8080 -t public` dentro de `api` (ou o `iniciar-api.bat`), e a app com `flutter run -d windows`.
@@ -235,6 +237,7 @@ Para correr no PC: `php -S localhost:8080 -t public` dentro de `api` (ou o `inic
 | 13 | SKU automático e variantes por nome | ✅ |
 | 14 | Etsy: ligar a loja e importar as encomendas | ✅ |
 | 15 | Clientes: telemóvel e localidade pelo código postal | ✅ |
+| 16 | Etsy: conferir os SKU dos anúncios contra as variantes | ✅ |
 
 **Limitações conhecidas:** um filamento por variante no cartão de custo; ainda não se criam nem apagam variantes; nas encomendas manuais, os portes reais usam só a zona Portugal; a produção ainda não desconta filamento do stock nem regista falhas; na API, "enviar para produção" à mão e "encomenda pronta sozinha" ainda correm na app, pelo ProductionService.
 

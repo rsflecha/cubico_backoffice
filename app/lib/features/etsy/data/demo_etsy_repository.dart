@@ -1,4 +1,5 @@
 import 'package:cubico_backoffice/core/api/api_exception.dart';
+import 'package:cubico_backoffice/features/etsy/domain/etsy_listings_check.dart';
 import 'package:cubico_backoffice/features/etsy/domain/etsy_repository.dart';
 import 'package:cubico_backoffice/features/etsy/domain/etsy_status.dart';
 import 'package:cubico_backoffice/features/etsy/domain/etsy_sync.dart';
@@ -21,5 +22,9 @@ class DemoEtsyRepository implements EtsyRepository {
 
   @override
   Future<EtsySyncRun> syncNow() async =>
+      throw const ApiException("No modo demo não há ligação à Etsy. Entra com a tua conta.");
+
+  @override
+  Future<EtsyListingsCheck> checkListings() async =>
       throw const ApiException("No modo demo não há ligação à Etsy. Entra com a tua conta.");
 }
