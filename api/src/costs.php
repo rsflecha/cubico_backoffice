@@ -98,3 +98,30 @@ function channelLineFee(array $channel, float $lineValue, int $qty, float $shipp
     }
     return round($fee, 2);
 }
+
+// ═══ Definições (tabela settings) ═══
+// Aqui, e não em routes/costs.php, porque as contas também as usam (e o bin/etsy-sync.php).
+// Na base de dados são linhas soltas (kwh_price = 0.21…); a app recebe um objeto só.
+// À esquerda o nome na app, à direita a chave na tabela e o tipo.
+
+const SETTINGS_MAP = [
+    'kwh_price' => ['kwh_price', 'float'],
+    'target_margin_pct' => ['target_margin', 'float'],
+    'min_margin_pct' => ['min_margin', 'float'],
+    'rounding' => ['rounding', 'float'],
+    'hourly_rate' => ['hourly_rate', 'float'],
+    'include_fixed_costs' => ['include_fixed_costs', 'bool'],
+];
+
+/** As definições, como um objeto para a app. */
+function readSettings(): array
+{
+    $rows = db()->query('SELECT setting_key, setting_value FROM settings')->fetchAll();
+    $byKey = array_column($rows, 'setting_value', 'setting_key');
+    $out = [];
+    foreach (SETTINGS_MAP as $field => [$key, $type]) {
+        $value = $byKey[$key] ?? '0';
+        $out[$field] = $type === 'bool' ? $value === '1' : (float) $value;
+    }
+    return $out;
+}

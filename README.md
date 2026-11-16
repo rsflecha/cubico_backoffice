@@ -4,7 +4,7 @@ Backoffice para gerir uma pequena loja de impressão 3D: produtos e variantes, *
 
 Feito em **Flutter** para **Windows**, Android e web. É um projeto real, para a minha loja, e o meu primeiro projeto de portfólio depois do curso de Flutter.
 
-> **Estado:** em uso na loja. A API (PHP + MariaDB) e a versão web estão publicadas num alojamento cPanel, e as encomendas da Etsy entram com "Sincronizar agora". Continua a haver um modo demo, sem servidor, para explorar a app.
+> **Estado:** em uso na loja. A API (PHP + MariaDB) e a versão web estão publicadas num alojamento cPanel, e as encomendas da Etsy entram sozinhas, a cada 15 minutos (ou logo, com "Sincronizar agora"). Continua a haver um modo demo, sem servidor, para explorar a app.
 
 ![Ficha do produto com a calculadora de custo](docs/screenshots/produto-custos.png)
 
@@ -133,7 +133,7 @@ A base de dados cria-se com `database/schema.sql` e `database/seed.sql`.
 | ✅ | Publicar a API e a versão web no alojamento cPanel | |
 | ✅ | Etsy: ligar a loja e importar as encomendas ("Sincronizar agora") | |
 | ✅ | Clientes: validar o telemóvel e localidade pelo código postal | |
-| ⬜ | Etsy: sincronização automática (tarefa agendada) | |
+| ✅ | Etsy: sincronização automática (tarefa agendada a cada 15 minutos) | |
 | ⬜ | Impressora Bambu Lab A1 | |
 
 ## O que aprendi
