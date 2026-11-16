@@ -34,8 +34,22 @@ final productCategoriesProvider = FutureProvider<List<ProductCategory>>((ref) as
 });
 
 /// Qual é o repositório dos produtos.
-final productRepositoryProvider = Provider<ProductRepository>((ref) {
-  if (ref.watch(demoModeProvider)) return DemoProductRepository();
+// (o tipo escrito à frente: este provider e o das variantes usam-se um ao outro no modo demo)
+final Provider<ProductRepository> productRepositoryProvider = Provider<ProductRepository>((ref) {
+  if (ref.watch(demoModeProvider)) {
+    // no modo demo, o SKU nasce aqui, com as mesmas regras da API (domain/sku.dart)
+    return DemoProductRepository(
+      categoryCode: (categoryId) async {
+        if (categoryId == null) return null;
+        final categories = await ref.read(productCategoryRepositoryProvider).fetchAll();
+        return categories.where((c) => c.id == categoryId).firstOrNull?.code;
+      },
+      onSkuChanged: (productId, baseSku) {
+        final variants = ref.read(variantRepositoryProvider);
+        if (variants is DemoVariantRepository) variants.rebase(productId, baseSku);
+      },
+    );
+  }
   return ApiProductRepository(ref.watch(dioProvider));
 });
 
@@ -62,8 +76,15 @@ final selectedCategoryProvider =
     );
 
 /// Qual é o repositório das variantes.
-final variantRepositoryProvider = Provider<VariantRepository>((ref) {
-  if (ref.watch(demoModeProvider)) return DemoVariantRepository();
+final Provider<VariantRepository> variantRepositoryProvider = Provider<VariantRepository>((ref) {
+  if (ref.watch(demoModeProvider)) {
+    return DemoVariantRepository(
+      productSku: (productId) async {
+        final products = await ref.read(productRepositoryProvider).fetchAll();
+        return products.firstWhere((p) => p.id == productId).baseSku;
+      },
+    );
+  }
   return ApiVariantRepository(ref.watch(dioProvider));
 });
 

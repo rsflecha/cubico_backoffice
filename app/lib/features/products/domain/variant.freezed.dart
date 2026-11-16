@@ -226,8 +226,8 @@ return $default(_that.id,_that.productId,_that.name,_that.sku,_that.salePrice,_t
 /// @nodoc
 @JsonSerializable()
 
-class _Variant implements Variant {
-  const _Variant({required this.id, required this.productId, required this.name, required this.sku, required this.salePrice, this.printerId, this.modelFile, this.etsyListingId, this.printTimeMin = 0, this.plateCount = 1, this.weightG = 0, this.isActive = true, final  List<VariantFilament> filaments = const [], final  List<VariantComponent> components = const []}): _filaments = filaments,_components = components;
+class _Variant extends Variant {
+  const _Variant({required this.id, required this.productId, required this.name, required this.sku, required this.salePrice, this.printerId, this.modelFile, this.etsyListingId, this.printTimeMin = 0, this.plateCount = 1, this.weightG = 0, this.isActive = true, final  List<VariantFilament> filaments = const [], final  List<VariantComponent> components = const []}): _filaments = filaments,_components = components,super._();
   factory _Variant.fromJson(Map<String, dynamic> json) => _$VariantFromJson(json);
 
 @override final  int id;

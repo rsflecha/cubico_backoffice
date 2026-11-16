@@ -135,7 +135,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                   onPressed: () => Navigator.pop(context, v),
                   child: Row(
                     children: [
-                      Expanded(child: Text(v.name)),
+                      Expanded(child: Text(v.label)),
                       Text(euro(v.salePrice), style: AppTextStyles.mono),
                     ],
                   ),
@@ -600,7 +600,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             Text(
-              "Variante: ${line.variant.name} · ${line.variant.sku}",
+              "${line.variant.label} · ${line.variant.sku}",
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],

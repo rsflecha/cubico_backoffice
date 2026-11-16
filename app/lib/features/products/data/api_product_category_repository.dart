@@ -21,13 +21,20 @@ class ApiProductCategoryRepository implements ProductCategoryRepository {
   @override
   Future<ProductCategory> create({
     required String name,
+    String? code,
     String color = "#A1A1AA",
     int sortOrder = 0,
   }) =>
       apiCall(() async {
         final response = await _dio.post<Map<String, dynamic>>(
           "/categories",
-          data: {"name": name, "color": color, "sort_order": sortOrder},
+          data: {
+            "name": name,
+            "color": color,
+            "sort_order": sortOrder,
+            // sem código, a API dá-lhe as 3 letras do nome
+            if (code != null && code.trim().isNotEmpty) "code": code.trim(),
+          },
         );
         return ProductCategory.fromJson(response.data!);
       });

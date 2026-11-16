@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cubico_backoffice/features/costs/domain/component.dart';
 import 'package:cubico_backoffice/features/costs/domain/filament.dart';
 import 'package:cubico_backoffice/features/products/domain/variant.dart';
+import 'package:cubico_backoffice/features/products/domain/sku.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
 
 class CostCard extends ConsumerStatefulWidget {
@@ -36,9 +37,8 @@ class _CostCardState extends ConsumerState<CostCard> {
 
   final _minutesController = TextEditingController(text: "540");
   final _priceController = TextEditingController(text: "29");
-  // o nome, o SKU e o peso da variante (só quando há uma variante escolhida)
+  // o nome e o peso da variante (só quando há uma variante escolhida); o SKU sai do nome
   final _nameController = TextEditingController();
-  final _skuController = TextEditingController();
   final _weightController = TextEditingController();
 
   @override
@@ -50,7 +50,6 @@ class _CostCardState extends ConsumerState<CostCard> {
       _minutesController,
       _priceController,
       _nameController,
-      _skuController,
       _weightController,
     ]) {
       c.dispose();
@@ -73,7 +72,6 @@ class _CostCardState extends ConsumerState<CostCard> {
     _minutesController.text = "${v.printTimeMin}";
     _priceController.text = decimalField(v.salePrice);
     _nameController.text = v.name;
-    _skuController.text = v.sku;
     _weightController.text = "${v.weightG}";
 
     for (final line in v.components) {
@@ -103,31 +101,9 @@ class _CostCardState extends ConsumerState<CostCard> {
     ];
   }
 
-  /// O nome que a variante ganha sozinha: as cores, juntas ("PLA Basic Black + Orange").
-  /// Da 2.ª cor em diante, só a cor quando o material é o mesmo da 1.ª.
-  String _autoName(List<Filament> filaments) {
-    final used = <Filament>[];
-    for (final line in _lines) {
-      final f = _filamentOf(line, filaments);
-      if (f != null && !used.any((u) => u.id == f.id)) used.add(f);
-    }
-    if (used.isEmpty) return "";
-    final first = used.first;
-    return [
-      first.displayName,
-      for (final f in used.skip(1)) f.material == first.material ? f.colorName : f.displayName,
-    ].join(" + ");
-  }
-
-  /// Muda as cores e, enquanto a variante não tiver um nome teu, o nome acompanha.
-  void _changeColors(List<Filament> filaments, void Function() change) {
-    final before = _autoName(filaments);
-    setState(change);
-    final name = _nameController.text.trim();
-    if (name.isEmpty || name == "Nova variante" || name == before) {
-      _nameController.text = _autoName(filaments);
-    }
-  }
+  /// Muda as cores. (Antes, o nome da variante acompanhava as cores; agora a variante
+  /// é um nome teu, como "Hamilton", e as cores são só a receita.)
+  void _changeColors(List<Filament> filaments, void Function() change) => setState(change);
 
   /// Tira uma cor. O campo só se deita fora depois de sair do ecrã
   /// (deitá-lo fora já, com o campo ainda desenhado, dava erro).
@@ -142,26 +118,11 @@ class _CostCardState extends ConsumerState<CostCard> {
     final filaments = ref.read(filamentsProvider).value ?? <Filament>[];
     setState(() => _savingVariant = true);
 
-    // uma variante ainda sem nome próprio fica com o nome das cores ("PLA Basic Black")
-    final typedName = _nameController.text.trim();
-    final autoName = _autoName(filaments);
-    final name = (typedName.isEmpty || typedName == "Nova variante") && autoName.isNotEmpty
-        ? autoName
-        : typedName;
-    final sku = _skuController.text.trim();
-    if (name.isEmpty || sku.isEmpty) {
-      setState(() => _savingVariant = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("A variante precisa de um nome e de um SKU."),
-        ),
-      );
-      return;
-    }
+    // vazio = o próprio produto ("Modelo único"); o SKU é a API que o calcula a partir do nome
+    final name = _nameController.text.trim();
 
     final updated = v.copyWith(
       name: name,
-      sku: sku,
       weightG: _read(_weightController).round(),
       salePrice: _read(_priceController),
       printTimeMin: _read(_minutesController).round(),
@@ -177,7 +138,7 @@ class _CostCardState extends ConsumerState<CostCard> {
     try {
       await ref.read(variantRepositoryProvider).update(updated);
     } catch (error) {
-      // por exemplo: "Já existe uma variante com esse SKU."
+      // por exemplo: "Já existe uma variante com esse nome neste produto."
       if (!mounted) return;
       setState(() => _savingVariant = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -192,7 +153,7 @@ class _CostCardState extends ConsumerState<CostCard> {
     setState(() => _savingVariant = false);
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text("Variante \"$name\" guardada.")));
+    ).showSnackBar(SnackBar(content: Text("Variante \"${name.isEmpty ? "Modelo único" : name}\" guardada.")));
   }
 
   /// Lê um número de um campo. Aceita vírgula ("29,90") e devolve 0 se estiver vazio.
@@ -291,11 +252,11 @@ class _CostCardState extends ConsumerState<CostCard> {
             Text(
               widget.variant == null
                   ? "Custo e margem"
-                  : "Custo e margem · ${widget.variant!.name}",
+                  : "Custo e margem · ${widget.variant!.label}",
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),
-            // o nome, o SKU e o peso da variante
+            // o nome e o peso da variante; o SKU por baixo, só para ler (sai do nome)
             if (widget.variant != null) ...[
               LayoutBuilder(
                 builder: (context, constraints) {
@@ -303,13 +264,10 @@ class _CostCardState extends ConsumerState<CostCard> {
                     controller: _nameController,
                     decoration: const InputDecoration(
                       labelText: "Nome da variante",
-                      hintText: "Ex.: Preto mate",
+                      hintText: "Ex.: Hamilton",
+                      helperText: "Vazio = o produto não tem variantes.",
                     ),
-                  );
-                  final sku = TextField(
-                    controller: _skuController,
-                    style: AppTextStyles.mono,
-                    decoration: const InputDecoration(labelText: "SKU"),
+                    onChanged: (_) => setState(() {}), // o SKU por baixo acompanha
                   );
                   final weight = TextField(
                     controller: _weightController,
@@ -322,23 +280,11 @@ class _CostCardState extends ConsumerState<CostCard> {
                     ),
                   );
 
-                  // com pouco espaço, os 3 lado a lado não cabiam (o peso ficava
-                  // com ~20 px): o nome fica sozinho, SKU e peso por baixo
-                  if (constraints.maxWidth < 520) {
+                  // com pouco espaço, o peso ficava espremido: passa para baixo do nome
+                  if (constraints.maxWidth < 420) {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        name,
-                        const SizedBox(height: 12),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(flex: 3, child: sku),
-                            const SizedBox(width: 12),
-                            Expanded(flex: 2, child: weight),
-                          ],
-                        ),
-                      ],
+                      children: [name, const SizedBox(height: 12), weight],
                     );
                   }
                   return Row(
@@ -346,13 +292,13 @@ class _CostCardState extends ConsumerState<CostCard> {
                     children: [
                       Expanded(flex: 3, child: name),
                       const SizedBox(width: 12),
-                      Expanded(flex: 2, child: sku),
-                      const SizedBox(width: 12),
                       Expanded(child: weight),
                     ],
                   );
                 },
               ),
+              const SizedBox(height: 8),
+              _skuLine(),
               const SizedBox(height: 16),
             ],
             // as cores: uma linha por filamento (filamento + gramas)
@@ -570,6 +516,28 @@ class _CostCardState extends ConsumerState<CostCard> {
             tooltip: "Tirar esta cor",
             onPressed: () => _removeLine(line, filaments),
             icon: const Icon(Icons.close),
+          ),
+      ],
+    );
+  }
+
+  /// O SKU que a variante vai ter com o nome escrito, e um aviso se for diferente do gravado
+  /// (a Etsy liga as encomendas pelo SKU: se mudar aqui, tem de mudar lá).
+  Widget _skuLine() {
+    final v = widget.variant!;
+    final product = (ref.watch(productsProvider).value ?? [])
+        .where((p) => p.id == v.productId)
+        .firstOrNull;
+    final next = product == null ? v.sku : variantSku(product.baseSku, _nameController.text);
+    final changes = next != v.sku;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("SKU $next", style: AppTextStyles.mono),
+        if (changes)
+          Text(
+            "O SKU muda (era ${v.sku}). Se esta variante está na Etsy, muda-o lá também.",
+            style: const TextStyle(color: Color(0xFFB45309), fontSize: 12),
           ),
       ],
     );

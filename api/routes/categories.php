@@ -10,9 +10,31 @@ function categoryJson(array $row): array
     return [
         'id' => (int) $row['id'],
         'name' => $row['name'],
+        'code' => $row['code'], // entra no SKU dos produtos: CD3-<code>-01
         'color' => $row['color'],
         'sort_order' => (int) $row['sort_order'],
     ];
+}
+
+/**
+ * O código que veio no pedido, já conferido, ou uma mensagem de erro.
+ * Devolve [código, null] ou [null, "mensagem"].
+ */
+function checkedCategoryCode(string $code, ?int $exceptId = null): array
+{
+    $code = plainUpper($code);
+    if (!isValidCategoryCode($code)) {
+        return [null, 'O código tem de ter 2 a 5 letras ou algarismos, sem espaços.'];
+    }
+    if ($code === NO_CATEGORY_CODE) {
+        return [null, 'O código ' . NO_CATEGORY_CODE . ' está reservado para os produtos sem categoria.'];
+    }
+    $stmt = db()->prepare('SELECT COUNT(*) FROM categories WHERE code = ? AND id <> ?');
+    $stmt->execute([$code, $exceptId ?? 0]);
+    if ((int) $stmt->fetchColumn() > 0) {
+        return [null, "Já existe uma categoria com o código $code."];
+    }
+    return [$code, null];
 }
 
 /** Uma categoria pelo id, ou null se não existir. */
@@ -42,9 +64,20 @@ $app->post('/api/categories', function (Request $request, Response $response) {
         ? (int) $body['sort_order']
         : (int) db()->query('SELECT COALESCE(MAX(sort_order), 0) + 1 FROM categories')->fetchColumn();
 
+    // o código: o que a app mandou (corrigido pelo Rui), ou as 3 letras do nome
+    $wanted = trim((string) ($body['code'] ?? ''));
+    if ($wanted === '') {
+        $code = newCategoryCode($name);
+    } else {
+        [$code, $error] = checkedCategoryCode($wanted);
+        if ($error !== null) {
+            return fail($response, $error, 422);
+        }
+    }
+
     try {
-        db()->prepare('INSERT INTO categories (name, color, sort_order) VALUES (?, ?, ?)')
-            ->execute([$name, $color, $sortOrder]);
+        db()->prepare('INSERT INTO categories (name, code, color, sort_order) VALUES (?, ?, ?, ?)')
+            ->execute([$name, $code, $color, $sortOrder]);
     } catch (PDOException $e) {
         if (isDuplicate($e)) {
             return fail($response, 'Já existe uma categoria com esse nome.', 409);
@@ -67,10 +100,26 @@ $app->put('/api/categories/{id}', function (Request $request, Response $response
         return fail($response, 'O nome é obrigatório.', 422);
     }
 
+    // o código só muda enquanto a categoria não tiver produtos (senão os SKU já usados mudavam)
+    $code = $current['code'];
+    $wanted = trim((string) ($body['code'] ?? ''));
+    if ($wanted !== '' && plainUpper($wanted) !== $current['code']) {
+        $stmt = db()->prepare('SELECT COUNT(*) FROM products WHERE category_id = ?');
+        $stmt->execute([$id]);
+        if ((int) $stmt->fetchColumn() > 0) {
+            return fail($response, 'Esta categoria já tem produtos: o código já não pode mudar.', 409);
+        }
+        [$code, $error] = checkedCategoryCode($wanted, $id);
+        if ($error !== null) {
+            return fail($response, $error, 422);
+        }
+    }
+
     try {
-        db()->prepare('UPDATE categories SET name = ?, color = ?, sort_order = ? WHERE id = ?')
+        db()->prepare('UPDATE categories SET name = ?, code = ?, color = ?, sort_order = ? WHERE id = ?')
             ->execute([
                 $name,
+                $code,
                 (string) ($body['color'] ?? $current['color']),
                 (int) ($body['sort_order'] ?? $current['sort_order']),
                 $id,

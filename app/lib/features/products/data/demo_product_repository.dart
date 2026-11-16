@@ -3,14 +3,23 @@ import 'dart:typed_data';
 
 import 'package:cubico_backoffice/features/products/domain/product.dart';
 import 'package:cubico_backoffice/features/products/domain/product_repository.dart';
+import 'package:cubico_backoffice/features/products/domain/sku.dart';
 
 class DemoProductRepository implements ProductRepository {
+  DemoProductRepository({required this.categoryCode, this.onSkuChanged});
+
+  /// O código de uma categoria (SEC), para dar o SKU; null = sem categoria (GER).
+  final Future<String?> Function(int? categoryId) categoryCode;
+
+  /// Avisa as variantes quando o SKU de um produto muda (mudou de categoria).
+  final void Function(int productId, String baseSku)? onSkuChanged;
+
   int _nextId = 4;
   final List<Product> _items = [
     Product(
       id: 1,
       name: "Suporte de auscultadores",
-      baseSku: "CD3-SDA-01",
+      baseSku: "CD3-SEC-01",
       categoryId: 1,
       status: ProductStatus.active,
       createdAt: DateTime(2026, 10, 1),
@@ -19,7 +28,7 @@ class DemoProductRepository implements ProductRepository {
     Product(
       id: 2,
       name: "Árvore de Natal",
-      baseSku: "CD3-ADN-01",
+      baseSku: "CD3-BRI-01",
       categoryId: 2,
       status: ProductStatus.active,
       createdAt: DateTime(2026, 09, 15),
@@ -28,7 +37,7 @@ class DemoProductRepository implements ProductRepository {
     Product(
       id: 3,
       name: "Bolas de Natal",
-      baseSku: "CD3-BDN-01",
+      baseSku: "CD3-BRI-02",
       categoryId: 2,
       status: ProductStatus.active,
       createdAt: DateTime(2026, 09, 25),
@@ -47,11 +56,12 @@ class DemoProductRepository implements ProductRepository {
   @override
   Future<Product> create({
     required String name,
-    required String baseSku,
     required int categoryId,
     required Uint8List photo,
   }) async {
     await _latency();
+    // o SKU, como na API: o próximo número da categoria
+    final baseSku = nextProductSku(await categoryCode(categoryId), _items.map((p) => p.baseSku));
     final now = DateTime.now();
     final created = Product(
       id: _nextId++,
@@ -71,8 +81,16 @@ class DemoProductRepository implements ProductRepository {
     await _latency();
     final index = _items.indexWhere((p) => p.id == product.id);
     if (index == -1) throw StateError("Produto ${product.id} não existe.");
-    _items[index] = product;
-    return product;
+    var saved = product.copyWith(baseSku: _items[index].baseSku); // o SKU não se escreve à mão
+    // mudou de categoria: SKU novo, no fim da numeração da categoria nova (e as variantes com ele)
+    if (product.categoryId != _items[index].categoryId) {
+      saved = saved.copyWith(
+        baseSku: nextProductSku(await categoryCode(product.categoryId), _items.map((p) => p.baseSku)),
+      );
+      onSkuChanged?.call(saved.id, saved.baseSku);
+    }
+    _items[index] = saved;
+    return saved;
   }
 
   @override

@@ -1,5 +1,7 @@
+import 'package:cubico_backoffice/core/api/api_exception.dart';
 import 'package:cubico_backoffice/features/products/domain/product_category.dart';
 import 'package:cubico_backoffice/features/products/domain/product_category_repository.dart';
+import 'package:cubico_backoffice/features/products/domain/sku.dart';
 
 class DemoProductCategoryRepository implements ProductCategoryRepository {
   /// As quatro categorias do seed.sql, para a demo comecar com conteudo real.
@@ -7,17 +9,19 @@ class DemoProductCategoryRepository implements ProductCategoryRepository {
     const ProductCategory(
       id: 1,
       name: "Secretária",
+      code: "SEC",
       color: "#C2410C",
       sortOrder: 1,
     ),
     const ProductCategory(
       id: 2,
       name: "Brindes",
+      code: "BRI",
       color: "#0D7698",
       sortOrder: 2,
     ),
-    const ProductCategory(id: 3, name: "Flexi", color: "#7C3AED", sortOrder: 3),
-    const ProductCategory(id: 4, name: "Packs", color: "#15803D", sortOrder: 4),
+    const ProductCategory(id: 3, name: "Flexi", code: "FLE", color: "#7C3AED", sortOrder: 3),
+    const ProductCategory(id: 4, name: "Packs", code: "PAC", color: "#15803D", sortOrder: 4),
   ];
 
   int _nextId = 5;
@@ -38,14 +42,21 @@ class DemoProductCategoryRepository implements ProductCategoryRepository {
   @override
   Future<ProductCategory> create({
     required String name,
+    String? code,
     String color = "#A1A1AA",
     int sortOrder = 0,
   }) async {
     await _latency();
+    final taken = _items.map((c) => c.code);
+    final wanted = plainUpper(code ?? "");
+    if (wanted.isNotEmpty && (!isValidCategoryCode(wanted) || wanted == noCategoryCode || taken.contains(wanted))) {
+      throw const ApiException("Esse código não serve: 2 a 5 letras ou algarismos, sem repetir e sem GER.");
+    }
 
     final created = ProductCategory(
       id: _nextId++, // atribui e avanca, tal como faria o INSERT
       name: name,
+      code: wanted.isEmpty ? newCategoryCode(name, taken) : wanted,
       color: color,
       sortOrder: sortOrder,
     );

@@ -3,6 +3,7 @@ import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/features/costs/domain/cost_calculator.dart';
 import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
+import 'package:cubico_backoffice/features/products/domain/sku.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
@@ -22,17 +23,28 @@ class VariantsSection extends ConsumerWidget {
   final int? selectedVariantId; // qual está escolhida (para a pintar)
   final ValueChanged<Variant>? onSelect; // chamada quando se toca numa linha
 
-  /// Cria uma variante vazia e escolhe-a, para se preencher no cartão de custo.
-  Future<void> _addVariant(BuildContext context, WidgetRef ref) async {
+  /// Pergunta o nome (Hamilton, Verstappen…), cria a variante e escolhe-a no cartão de custo.
+  /// A API copia-lhe o preço, o tempo, o peso e a receita da primeira variante.
+  Future<void> _addVariant(BuildContext context, WidgetRef ref, List<Variant> current) async {
+    final product = ref
+        .read(productsProvider)
+        .value
+        ?.where((p) => p.id == productId)
+        .firstOrNull;
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => _VariantNameDialog(
+        productSku: product?.baseSku ?? "",
+        hasUnnamed: current.any((v) => v.isUnnamed),
+      ),
+    );
+    if (name == null || !context.mounted) return; // cancelou
+
     final Variant created;
     try {
-      final repository = ref.read(variantRepositoryProvider);
-      final draft = await repository.create(productId: productId);
-      // dá-lhe logo o nome do filamento que o cartão de custo vai mostrar (o primeiro da lista)
-      final first = ref.read(filamentsProvider).value?.firstOrNull;
-      created = first == null
-          ? draft
-          : await repository.update(draft.copyWith(name: first.displayName));
+      created = await ref
+          .read(variantRepositoryProvider)
+          .create(productId: productId, name: name);
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -55,7 +67,7 @@ class VariantsSection extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Apagar \"${v.name}\"?"),
+        title: Text("Apagar \"${v.label}\"?"),
         content: const Text(
           "A variante e a receita dela desaparecem. Não dá para desfazer.",
         ),
@@ -114,7 +126,7 @@ class VariantsSection extends ConsumerWidget {
                 ),
                 if (isAdmin)
                   TextButton.icon(
-                    onPressed: () => _addVariant(context, ref),
+                    onPressed: () => _addVariant(context, ref, variants.value ?? const []),
                     icon: const Icon(Icons.add),
                     label: const Text("Adicionar variante"),
                   ),
@@ -149,7 +161,7 @@ class VariantsSection extends ConsumerWidget {
                                 contentPadding: const EdgeInsets.only(left: 4),
                                 selected: v.id == selectedVariantId,
                                 onTap: () => onSelect?.call(v),
-                                title: Text(v.name),
+                                title: Text(v.label),
                                 subtitle: Text(
                                   "${v.sku} · ${_formatHours(v.printTimeMin)}",
                                   style: AppTextStyles.mono.copyWith(
@@ -226,7 +238,7 @@ class VariantsSection extends ConsumerWidget {
                                     selected: v.id == selectedVariantId,
                                     onSelectChanged: (_) => onSelect?.call(v),
                                     cells: [
-                                      DataCell(Text(v.name)),
+                                      DataCell(Text(v.label)),
                                       DataCell(
                                         Text(v.sku, style: AppTextStyles.mono),
                                       ),
@@ -287,5 +299,80 @@ class VariantsSection extends ConsumerWidget {
     final m = minutes % 60;
     //   é um espaço que não deixa partir a linha: "2 h" fica sempre junto
     return m == 0 ? "$h h" : "$h h $m";
+  }
+}
+
+/// A janela "Nova variante": o nome, e o SKU que vai ficar (para ver antes de criar).
+/// É um StatefulWidget que cria e deita fora o seu próprio controller.
+class _VariantNameDialog extends StatefulWidget {
+  const _VariantNameDialog({required this.productSku, required this.hasUnnamed});
+
+  final String productSku;
+  final bool hasUnnamed; // já há uma variante sem nome ("Modelo único")
+
+  @override
+  State<_VariantNameDialog> createState() => _VariantNameDialogState();
+}
+
+class _VariantNameDialogState extends State<_VariantNameDialog> {
+  final _name = TextEditingController();
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  void _create() {
+    // com uma variante sem nome já criada, esta tem de ter nome (o SKU seria igual)
+    if (widget.hasUnnamed && _name.text.trim().isEmpty) return;
+    Navigator.pop(context, _name.text.trim());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sku = variantSku(widget.productSku, _name.text);
+    final missingName = widget.hasUnnamed && _name.text.trim().isEmpty;
+    return AlertDialog(
+      title: const Text("Nova variante"),
+      content: SizedBox(
+        width: 400,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _name,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: "Nome",
+                hintText: "Ex.: Hamilton",
+                helperText: "SKU: $sku",
+              ),
+              onChanged: (_) => setState(() {}),
+              onSubmitted: (_) => _create(),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              widget.hasUnnamed
+                  ? "Este produto tem um \"Modelo único\". Dá-lhe também um nome (ex.: Hamilton) "
+                      "no cartão de custo, para as variantes se distinguirem."
+                  : "Começa com o preço, o tempo e a receita da primeira variante. Acerta o que mudar.",
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("Cancelar"),
+        ),
+        FilledButton(
+          onPressed: missingName ? null : _create,
+          child: const Text("Criar"),
+        ),
+      ],
+    );
   }
 }

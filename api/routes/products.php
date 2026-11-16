@@ -22,8 +22,8 @@ const PRODUCT_TYPES = [
     'updated_at' => 'string',
 ];
 
-/** As colunas que a app pode escrever (todas menos o id e as datas automáticas). */
-const PRODUCT_WRITABLE = ['name', 'base_sku', 'description', 'category_id', 'status', 'is_customizable', 'is_pack'];
+/** As colunas que a app pode escrever. O base_sku não: é a API que o dá (src/sku.php). */
+const PRODUCT_WRITABLE = ['name', 'description', 'category_id', 'status', 'is_customizable', 'is_pack'];
 
 /** Os produtos (todos, ou só um), cada um com o nome do ficheiro da sua foto em "photo". */
 function readProducts(?int $id = null): array
@@ -68,10 +68,8 @@ $app->post('/api/products', function (Request $request, Response $response) {
     if (!is_array($body)) {
         return fail($response, 'O pedido não traz os dados do produto.', 422);
     }
-    foreach (['name', 'base_sku'] as $column) {
-        if (!isset($body[$column]) || trim((string) $body[$column]) === '') {
-            return fail($response, "Falta preencher: $column.", 422);
-        }
+    if (trim((string) ($body['name'] ?? '')) === '') {
+        return fail($response, 'Falta preencher o nome.', 422);
     }
 
     // primeiro a foto: se estiver mal, não se cria nada
@@ -82,6 +80,9 @@ $app->post('/api/products', function (Request $request, Response $response) {
     }
 
     [$columns, $values] = productValues($body);
+    // o SKU: o próximo número da categoria (CD3-SUP-03)
+    $columns[] = 'base_sku';
+    $values[] = nextProductSku(isset($body['category_id']) ? (int) $body['category_id'] : null);
     $marks = implode(', ', array_fill(0, count($columns), '?'));
     $pdo = db();
     try {
@@ -95,7 +96,8 @@ $app->post('/api/products', function (Request $request, Response $response) {
         $pdo->rollBack();
         deletePhotoFile($photo); // o produto não ficou: a foto também não fica
         if (isDuplicate($e)) {
-            return fail($response, 'Já existe um produto com este SKU.', 409);
+            // dois produtos criados ao mesmo tempo na mesma categoria
+            return fail($response, 'Não foi possível dar o SKU ao produto. Tenta outra vez.', 409);
         }
         throw $e;
     }
@@ -105,20 +107,41 @@ $app->post('/api/products', function (Request $request, Response $response) {
 // PUT /api/products/{id} → mudar os dados (JSON normal; a foto muda-se na rota de baixo)
 $app->put('/api/products/{id}', function (Request $request, Response $response, array $args) {
     $id = (int) $args['id'];
-    if (readProducts($id) === []) {
+    $found = readProducts($id);
+    if ($found === []) {
         return fail($response, 'Este produto já não existe.', 404);
     }
-    [$columns, $values] = productValues(body($request));
+    $body = body($request);
+    [$columns, $values] = productValues($body);
     if ($columns === []) {
         return fail($response, 'Não há nada para mudar.', 422);
     }
+
+    // mudou de categoria: SKU novo, no fim da numeração da categoria nova (e as variantes com ele)
+    $oldCategory = $found[0]['category_id'] === null ? null : (int) $found[0]['category_id'];
+    $newCategory = array_key_exists('category_id', $body)
+        ? ($body['category_id'] === null ? null : (int) $body['category_id'])
+        : $oldCategory;
+    $categoryChanged = $newCategory !== $oldCategory;
+    if ($categoryChanged) {
+        $columns[] = 'base_sku';
+        $values[] = nextProductSku($newCategory);
+    }
+
     $sets = implode(', ', array_map(fn ($c) => "$c = ?", $columns));
     $values[] = $id;
+    $pdo = db();
     try {
-        db()->prepare("UPDATE products SET $sets WHERE id = ?")->execute($values);
+        $pdo->beginTransaction();
+        $pdo->prepare("UPDATE products SET $sets WHERE id = ?")->execute($values);
+        if ($categoryChanged) {
+            refreshVariantSkus($id);
+        }
+        $pdo->commit();
     } catch (PDOException $e) {
+        $pdo->rollBack();
         if (isDuplicate($e)) {
-            return fail($response, 'Já existe um produto com este SKU.', 409);
+            return fail($response, 'Não foi possível dar o SKU novo ao produto. Tenta outra vez.', 409);
         }
         throw $e;
     }
@@ -283,9 +306,21 @@ $app->get('/api/variants', function (Request $request, Response $response) {
     return json($response, readVariants($productId === null ? null : (int) $productId));
 })->add($requireAuth);
 
-// POST /api/variants → uma variante nova, vazia, para depois se preencher
+/** A mensagem para um nome que dá um SKU já usado. */
+function variantNameTakenMessage(string $name): string
+{
+    return trim($name) === ''
+        ? 'Só uma variante pode ficar sem nome. Dá um nome a esta (ex.: Hamilton).'
+        : 'Já existe uma variante com esse nome neste produto.';
+}
+
+// POST /api/variants → uma variante nova, com o nome que vem da app ({product_id, name})
+// Se o produto já tiver variantes, a nova copia o preço, o tempo, o peso e a receita da primeira:
+// as variantes por nome (Hamilton, Verstappen…) costumam custar o mesmo, e o Rui só acerta o que muda.
 $app->post('/api/variants', function (Request $request, Response $response) {
-    $productId = (int) (body($request)['product_id'] ?? 0);
+    $body = body($request);
+    $productId = (int) ($body['product_id'] ?? 0);
+    $name = trim((string) ($body['name'] ?? ''));
     $stmt = db()->prepare('SELECT base_sku FROM products WHERE id = ?');
     $stmt->execute([$productId]);
     $baseSku = $stmt->fetchColumn();
@@ -293,37 +328,73 @@ $app->post('/api/variants', function (Request $request, Response $response) {
         return fail($response, 'Este produto já não existe.', 404);
     }
 
-    // o primeiro SKU livre: CD3-SDA-01-V1, -V2…
-    $n = 1;
-    $check = db()->prepare('SELECT COUNT(*) FROM variants WHERE sku = ?');
-    do {
-        $sku = "$baseSku-V$n";
-        $check->execute([$sku]);
-        $n++;
-    } while ((int) $check->fetchColumn() > 0);
+    $sku = variantSku((string) $baseSku, $name);
+    if (variantSkuTaken($sku)) {
+        return fail($response, variantNameTakenMessage($name), 409);
+    }
 
-    db()->prepare('INSERT INTO variants (product_id, name, sku, sale_price) VALUES (?, ?, ?, 0)')
-        ->execute([$productId, 'Nova variante', $sku]);
-    return json($response, readVariants(variantId: (int) db()->lastInsertId())[0], 201);
+    $first = readVariants($productId)[0] ?? null;
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+        $pdo->prepare(
+            'INSERT INTO variants (product_id, name, sku, sale_price, print_time_min, plate_count, weight_g, printer_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        )->execute([
+            $productId, $name, $sku,
+            $first['sale_price'] ?? 0,
+            $first['print_time_min'] ?? 0,
+            $first['plate_count'] ?? 1,
+            $first['weight_g'] ?? 0,
+            $first['printer_id'] ?? null,
+        ]);
+        $id = (int) $pdo->lastInsertId();
+        if ($first !== null) {
+            saveRecipe($id, ['filaments' => $first['filaments'], 'components' => $first['components']]);
+        }
+        $pdo->commit();
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        if (isDuplicate($e)) {
+            return fail($response, variantNameTakenMessage($name), 409);
+        }
+        throw $e;
+    }
+    return json($response, readVariants(variantId: $id)[0], 201);
 })->add($requireAdmin)->add($requireAuth);
 
 // PUT /api/variants/{id} → mudar a variante e a receita, tudo ou nada
 $app->put('/api/variants/{id}', function (Request $request, Response $response, array $args) {
     $id = (int) $args['id'];
-    if (readVariants(variantId: $id) === []) {
+    $found = readVariants(variantId: $id);
+    if ($found === []) {
         return fail($response, 'Esta variante já não existe.', 404);
     }
     $body = body($request);
-    $writable = ['name', 'sku', 'sale_price', 'print_time_min', 'plate_count', 'weight_g',
+    // o sku não se escreve: sai do nome
+    $writable = ['name', 'sale_price', 'print_time_min', 'plate_count', 'weight_g',
         'printer_id', 'model_file', 'etsy_listing_id', 'is_active'];
     $columns = array_values(array_filter($writable, fn ($c) => array_key_exists($c, $body)));
+    $values = array_map(fn ($c) => dbValue($body[$c], VARIANT_TYPES[$c]), $columns);
+
+    if (array_key_exists('name', $body)) {
+        $name = trim((string) $body['name']);
+        $values[array_search('name', $columns, true)] = $name;
+        $stmt = db()->prepare('SELECT base_sku FROM products WHERE id = ?');
+        $stmt->execute([$found[0]['product_id']]);
+        $sku = variantSku((string) $stmt->fetchColumn(), $name);
+        if (variantSkuTaken($sku, $id)) {
+            return fail($response, variantNameTakenMessage($name), 409);
+        }
+        $columns[] = 'sku';
+        $values[] = $sku;
+    }
 
     // uma transação: ou grava a variante E a receita, ou não grava nada
     db()->beginTransaction();
     try {
         if ($columns !== []) {
             $sets = implode(', ', array_map(fn ($c) => "$c = ?", $columns));
-            $values = array_map(fn ($c) => dbValue($body[$c], VARIANT_TYPES[$c]), $columns);
             $values[] = $id;
             db()->prepare("UPDATE variants SET $sets WHERE id = ?")->execute($values);
         }
@@ -332,7 +403,7 @@ $app->put('/api/variants/{id}', function (Request $request, Response $response, 
     } catch (PDOException $e) {
         db()->rollBack();
         if (isDuplicate($e)) {
-            return fail($response, 'Já existe uma variante com esse SKU.', 409);
+            return fail($response, variantNameTakenMessage((string) ($body['name'] ?? '')), 409);
         }
         throw $e;
     }

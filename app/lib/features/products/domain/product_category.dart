@@ -8,6 +8,8 @@ abstract class ProductCategory with _$ProductCategory {
   const factory ProductCategory({
     required int id,
     required String name,
+    // o código que entra no SKU dos produtos (CD3-SEC-01); nasce na API, das 3 letras do nome
+    @Default("") String code,
     // o valor por omissao vive aqui: o JSON pode nao trazer o campo
     @Default("#A1A1AA") String color,
     @Default(0) int sortOrder,

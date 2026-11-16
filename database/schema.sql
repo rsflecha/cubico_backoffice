@@ -46,6 +46,7 @@ CREATE TABLE channels (
 CREATE TABLE categories (
   id         SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name       VARCHAR(60) NOT NULL UNIQUE,          -- Secretaria, Chaveiros, Flexi, Packs…
+  code       VARCHAR(5) NOT NULL UNIQUE,           -- SEC, CHA… entra no SKU (CD3-SEC-01); GER = sem categoria
   color      CHAR(7) NOT NULL DEFAULT '#A1A1AA',   -- cor da etiqueta na app
   sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0  -- ordem na lista (arrastar para ordenar)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -135,7 +136,7 @@ CREATE TABLE fixed_costs (
 CREATE TABLE products (
   id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name            VARCHAR(120) NOT NULL,
-  base_sku        VARCHAR(40) NOT NULL UNIQUE,
+  base_sku        VARCHAR(40) NOT NULL UNIQUE,  -- automatico: CD3-<codigo da categoria>-01, -02…
   description     TEXT,
   category_id     SMALLINT UNSIGNED,
   status          ENUM('active','draft','archived') NOT NULL DEFAULT 'draft',
@@ -157,8 +158,8 @@ CREATE TABLE product_photos (
 CREATE TABLE variants (
   id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   product_id      INT UNSIGNED NOT NULL,
-  name            VARCHAR(80) NOT NULL,         -- Preto mate, Laranja…
-  sku             VARCHAR(50) NOT NULL UNIQUE,
+  name            VARCHAR(80) NOT NULL,         -- Hamilton, Verstappen… (ou o nome do produto, se so houver uma)
+  sku             VARCHAR(50) NOT NULL UNIQUE,  -- automatico: SKU do produto + nome (CD3-FOR-01-HAMILTON)
   sale_price      DECIMAL(10,2) NOT NULL,
   print_time_min  INT UNSIGNED NOT NULL DEFAULT 0,
   plate_count     TINYINT UNSIGNED NOT NULL DEFAULT 1,

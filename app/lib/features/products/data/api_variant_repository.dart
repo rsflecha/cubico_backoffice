@@ -29,10 +29,10 @@ class ApiVariantRepository implements VariantRepository {
       });
 
   @override
-  Future<Variant> create({required int productId}) => apiCall(() async {
+  Future<Variant> create({required int productId, String name = ""}) => apiCall(() async {
         final response = await _dio.post<Map<String, dynamic>>(
           "/variants",
-          data: {"product_id": productId},
+          data: {"product_id": productId, "name": name},
         );
         return Variant.fromJson(response.data!);
       });

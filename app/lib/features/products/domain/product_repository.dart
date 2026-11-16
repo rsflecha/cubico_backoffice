@@ -6,9 +6,9 @@ abstract interface class ProductRepository {
   Future<List<Product>> fetchAll();
 
   /// Cria o produto JÁ com a foto (é obrigatória). [photo] é um JPG, já reduzido por preparePhoto().
+  /// O SKU (CD3-SEC-01) não se escolhe: é dado pela categoria e pela ordem.
   Future<Product> create({
     required String name,
-    required String baseSku,
     required int categoryId,
     required Uint8List photo,
   });

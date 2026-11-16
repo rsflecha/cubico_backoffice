@@ -15,7 +15,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ProductCategory {
 
- int get id; String get name;// o valor por omissao vive aqui: o JSON pode nao trazer o campo
+ int get id; String get name;// o código que entra no SKU dos produtos (CD3-SEC-01); nasce na API, das 3 letras do nome
+ String get code;// o valor por omissao vive aqui: o JSON pode nao trazer o campo
  String get color; int get sortOrder;
 /// Create a copy of ProductCategory
 /// with the given fields replaced by the non-null parameter values.
@@ -29,16 +30,16 @@ $ProductCategoryCopyWith<ProductCategory> get copyWith => _$ProductCategoryCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProductCategory&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.color, color) || other.color == color)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProductCategory&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.code, code) || other.code == code)&&(identical(other.color, color) || other.color == color)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,color,sortOrder);
+int get hashCode => Object.hash(runtimeType,id,name,code,color,sortOrder);
 
 @override
 String toString() {
-  return 'ProductCategory(id: $id, name: $name, color: $color, sortOrder: $sortOrder)';
+  return 'ProductCategory(id: $id, name: $name, code: $code, color: $color, sortOrder: $sortOrder)';
 }
 
 
@@ -49,7 +50,7 @@ abstract mixin class $ProductCategoryCopyWith<$Res>  {
   factory $ProductCategoryCopyWith(ProductCategory value, $Res Function(ProductCategory) _then) = _$ProductCategoryCopyWithImpl;
 @useResult
 $Res call({
- int id, String name, String color, int sortOrder
+ int id, String name, String code, String color, int sortOrder
 });
 
 
@@ -66,10 +67,11 @@ class _$ProductCategoryCopyWithImpl<$Res>
 
 /// Create a copy of ProductCategory
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? color = null,Object? sortOrder = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? code = null,Object? color = null,Object? sortOrder = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
 as String,color: null == color ? _self.color : color // ignore: cast_nullable_to_non_nullable
 as String,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
 as int,
@@ -157,10 +159,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name,  String color,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name,  String code,  String color,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProductCategory() when $default != null:
-return $default(_that.id,_that.name,_that.color,_that.sortOrder);case _:
+return $default(_that.id,_that.name,_that.code,_that.color,_that.sortOrder);case _:
   return orElse();
 
 }
@@ -178,10 +180,10 @@ return $default(_that.id,_that.name,_that.color,_that.sortOrder);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name,  String color,  int sortOrder)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name,  String code,  String color,  int sortOrder)  $default,) {final _that = this;
 switch (_that) {
 case _ProductCategory():
-return $default(_that.id,_that.name,_that.color,_that.sortOrder);case _:
+return $default(_that.id,_that.name,_that.code,_that.color,_that.sortOrder);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -198,10 +200,10 @@ return $default(_that.id,_that.name,_that.color,_that.sortOrder);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name,  String color,  int sortOrder)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name,  String code,  String color,  int sortOrder)?  $default,) {final _that = this;
 switch (_that) {
 case _ProductCategory() when $default != null:
-return $default(_that.id,_that.name,_that.color,_that.sortOrder);case _:
+return $default(_that.id,_that.name,_that.code,_that.color,_that.sortOrder);case _:
   return null;
 
 }
@@ -213,11 +215,13 @@ return $default(_that.id,_that.name,_that.color,_that.sortOrder);case _:
 @JsonSerializable()
 
 class _ProductCategory implements ProductCategory {
-  const _ProductCategory({required this.id, required this.name, this.color = "#A1A1AA", this.sortOrder = 0});
+  const _ProductCategory({required this.id, required this.name, this.code = "", this.color = "#A1A1AA", this.sortOrder = 0});
   factory _ProductCategory.fromJson(Map<String, dynamic> json) => _$ProductCategoryFromJson(json);
 
 @override final  int id;
 @override final  String name;
+// o código que entra no SKU dos produtos (CD3-SEC-01); nasce na API, das 3 letras do nome
+@override@JsonKey() final  String code;
 // o valor por omissao vive aqui: o JSON pode nao trazer o campo
 @override@JsonKey() final  String color;
 @override@JsonKey() final  int sortOrder;
@@ -235,16 +239,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProductCategory&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.color, color) || other.color == color)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProductCategory&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.code, code) || other.code == code)&&(identical(other.color, color) || other.color == color)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,color,sortOrder);
+int get hashCode => Object.hash(runtimeType,id,name,code,color,sortOrder);
 
 @override
 String toString() {
-  return 'ProductCategory(id: $id, name: $name, color: $color, sortOrder: $sortOrder)';
+  return 'ProductCategory(id: $id, name: $name, code: $code, color: $color, sortOrder: $sortOrder)';
 }
 
 
@@ -255,7 +259,7 @@ abstract mixin class _$ProductCategoryCopyWith<$Res> implements $ProductCategory
   factory _$ProductCategoryCopyWith(_ProductCategory value, $Res Function(_ProductCategory) _then) = __$ProductCategoryCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String name, String color, int sortOrder
+ int id, String name, String code, String color, int sortOrder
 });
 
 
@@ -272,10 +276,11 @@ class __$ProductCategoryCopyWithImpl<$Res>
 
 /// Create a copy of ProductCategory
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? color = null,Object? sortOrder = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? code = null,Object? color = null,Object? sortOrder = null,}) {
   return _then(_ProductCategory(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
 as String,color: null == color ? _self.color : color // ignore: cast_nullable_to_non_nullable
 as String,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
 as int,

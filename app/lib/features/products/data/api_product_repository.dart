@@ -27,14 +27,13 @@ class ApiProductRepository implements ProductRepository {
   @override
   Future<Product> create({
     required String name,
-    required String baseSku,
     required int categoryId,
     required Uint8List photo,
   }) =>
       apiCall(() async {
         // duas partes: "product" (o JSON, como texto) e "photo" (o ficheiro)
         final form = FormData.fromMap({
-          "product": jsonEncode({"name": name, "base_sku": baseSku, "category_id": categoryId}),
+          "product": jsonEncode({"name": name, "category_id": categoryId}), // o SKU é a API que o dá
           "photo": _photoPart(photo),
         });
         final response = await _dio.post<Map<String, dynamic>>("/products", data: form);

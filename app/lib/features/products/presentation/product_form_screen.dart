@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/core/api/api_exception.dart';
 import 'package:cubico_backoffice/core/photos.dart';
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
@@ -27,7 +28,6 @@ class ProductFormScreen extends ConsumerStatefulWidget {
 class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   final _formKey = GlobalKey<FormState>(); // o "comando" do formulário
   final _nameController = TextEditingController();
-  final _skuController = TextEditingController();
   int? _categoryId;
   var _submitted = false;
   var _saving = false;
@@ -39,7 +39,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _skuController.dispose();
     super.dispose();
   }
 
@@ -54,7 +53,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
     if (_original != null) {
       _nameController.text = _original!.name;
-      _skuController.text = _original!.baseSku;
       _categoryId = _original!.categoryId;
     }
   }
@@ -98,22 +96,23 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
     final repository = ref.read(productRepositoryProvider);
     final name = _nameController.text.trim();
-    final sku = _skuController.text.trim().toUpperCase();
     final photo = _newPhoto;
 
     try {
       if (_original == null) {
-        await repository.create(
+        final created = await repository.create(
           name: name,
-          baseSku: sku,
           categoryId: _categoryId!,
           photo: photo!, // _missingPhoto já garantiu que existe
         );
+        // nasce já com uma variante sem nome (o próprio produto, SKU CD3-SEC-01);
+        // se tiver nomes (Hamilton, Verstappen…), muda-se o nome desta e juntam-se as outras
+        await ref.read(variantRepositoryProvider).create(productId: created.id);
+        ref.invalidate(allVariantsProvider);
       } else {
         await repository.update(
           _original!.copyWith(
             name: name,
-            baseSku: sku,
             categoryId: _categoryId,
             updatedAt: DateTime.now(),
           ),
@@ -255,22 +254,20 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         validator: (value) => value == null ? "Escolhe uma categoria." : null,
       ),
       const SizedBox(height: 16),
-      TextFormField(
-        controller: _skuController,
-        enabled: canSeeCosts,
-        decoration: const InputDecoration(
-          labelText: "SKU base",
-          hintText: "Ex.: CD3-SDA-01",
+      // o SKU não se escreve: nasce da categoria e da ordem (CD3-SEC-01)
+      InputDecorator(
+        decoration: InputDecoration(
+          labelText: "SKU",
+          filled: false,
+          helperText: _original != null && _categoryId != _original!.categoryId
+              ? "Ao mudar de categoria, o SKU muda (e o das variantes). Se o produto está na Etsy, atualiza lá."
+              : "Automático: CD3, o código da categoria e o número.",
+          helperMaxLines: 2,
         ),
-        validator: (value) {
-          if (value == null || value.trim().isEmpty) {
-            return "O SKU é obrigatório.";
-          }
-          if (value.contains(" ")) {
-            return "O SKU não pode ter espaços.";
-          }
-          return null;
-        },
+        child: Text(
+          _original?.baseSku ?? "Dado ao guardar",
+          style: _original == null ? null : AppTextStyles.mono,
+        ),
       ),
       if (canSeeCosts) ...[
         const SizedBox(height: 24),

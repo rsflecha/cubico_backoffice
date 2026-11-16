@@ -187,7 +187,7 @@ api/
 ├── public/index.php   arranca a API e junta as rotas (o único ficheiro público)
 ├── src/               db (PDO, sempre utf8mb4) · helpers (json, fail, typed, token) · auth (os porteiros)
 │                      tables (pedidos habituais de tabelas simples) · costs (as contas oficiais)
-│                      photos (conferir e gravar as fotos dos produtos)
+│                      photos (conferir e gravar as fotos dos produtos) · sku (os SKU automáticos)
 ├── routes/            um ficheiro por módulo: auth, categories, costs, products, customers,
 │                      orders, production, users, health
 ├── storage/products/  as fotos dos produtos (fora de public/; nunca vão para o Git)

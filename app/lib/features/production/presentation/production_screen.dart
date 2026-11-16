@@ -90,7 +90,13 @@ class ProductionScreen extends ConsumerWidget {
             // a key muda quando muda a tarefa a imprimir, e o cartão recomeça
             key: ValueKey(printing?.id),
             job: printing,
-            title: printingVariant?.name ?? "",
+            title: printingVariant?.titleWith(
+                  (ref.watch(productsProvider).value ?? [])
+                      .where((p) => p.id == printingVariant.productId)
+                      .firstOrNull
+                      ?.name,
+                ) ??
+                "",
           );
 
           // PC: 4 colunas lado a lado. iPad: 2 por linha, em grelha. Telemóvel: a deslizar.
@@ -213,6 +219,7 @@ class ProductionScreen extends ConsumerWidget {
   /// O cartão de uma tarefa, que se pode arrastar para outra coluna.
   Widget _card(BuildContext context, WidgetRef ref, PrintJob job, List<Variant> variants) {
     final variant = variants.where((v) => v.id == job.variantId).firstOrNull;
+    final products = ref.watch(productsProvider).value ?? [];
     final hours = job.estimatedMin ~/ 60;
     final minutes = job.estimatedMin % 60;
     final time = minutes == 0 ? "$hours h" : "$hours h $minutes";
@@ -230,7 +237,11 @@ class ProductionScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              variant?.name ?? "Variante ${job.variantId}",
+              // "Suporte F1 · Hamilton": só "Hamilton" não dizia que produto era
+              variant?.titleWith(
+                    products.where((p) => p.id == variant.productId).firstOrNull?.name,
+                  ) ??
+                  "Variante ${job.variantId}",
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             Text(

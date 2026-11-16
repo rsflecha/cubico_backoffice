@@ -30,11 +30,11 @@ INSERT INTO channels (code, name, transaction_fee, processing_fee, flat_fee, lis
   ('in_person', 'Pessoalmente', 0.00, 0.00, 0.00, 0.00, FALSE);
 
 -- ───────────── Categorias ─────────────
-INSERT INTO categories (name, color, sort_order) VALUES
-  ('Secretária', '#C2410C', 1),
-  ('Chaveiros',  '#0D7698', 2),
-  ('Flexi',      '#7C3AED', 3),
-  ('Packs',      '#15803D', 4);
+INSERT INTO categories (name, code, color, sort_order) VALUES
+  ('Secretária', 'SEC', '#C2410C', 1),
+  ('Chaveiros',  'CHA', '#0D7698', 2),
+  ('Flexi',      'FLE', '#7C3AED', 3),
+  ('Packs',      'PAC', '#15803D', 4);
 
 -- ───────────── Impressora ─────────────
 -- custo/h = 95/1000 × 0,21 + 381,40/5000 + 40/1500 ≈ 0,123 €/h

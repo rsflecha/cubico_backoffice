@@ -41,20 +41,19 @@ void main() {
 
   group("DemoProductRepository", () {
     test("criar guarda a foto no próprio endereço (data: URI), sem servidor", () async {
-      final repository = DemoProductRepository();
+      final repository = DemoProductRepository(categoryCode: (_) async => "SEC");
       final photo = Uint8List.fromList([1, 2, 3, 4]);
 
-      final created = await repository.create(name: "Teste", baseSku: "TST-1", categoryId: 1, photo: photo);
+      final created = await repository.create(name: "Teste", categoryId: 1, photo: photo);
 
       expect(created.photoUrl, startsWith("data:image/jpeg;base64,"));
       expect(UriData.parse(created.photoUrl!).contentAsBytes(), photo);
     });
 
     test("trocar a foto muda o endereço e mantém o resto do produto", () async {
-      final repository = DemoProductRepository();
+      final repository = DemoProductRepository(categoryCode: (_) async => "SEC");
       final created = await repository.create(
         name: "Teste",
-        baseSku: "TST-1",
         categoryId: 1,
         photo: Uint8List.fromList([1]),
       );

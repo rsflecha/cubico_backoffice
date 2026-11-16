@@ -5,6 +5,9 @@ part 'variant.g.dart'; // enquanto nao os criar, o analyzer queixa-se — e norm
 
 @freezed
 abstract class Variant with _$Variant {
+  // o construtor privado deixa juntar getters nossos à classe gerada (como o "label")
+  const Variant._();
+
   const factory Variant({
     required int id,
     required int productId,
@@ -27,6 +30,18 @@ abstract class Variant with _$Variant {
 
   factory Variant.fromJson(Map<String, dynamic> json) =>
       _$VariantFromJson(json);
+
+  /// Uma variante sem nome é o próprio produto (não tem variantes, como "Hamilton").
+  bool get isUnnamed => name.trim().isEmpty;
+
+  /// O nome para mostrar: o da variante, ou "Modelo único".
+  String get label => isUnnamed ? "Modelo único" : name;
+
+  /// "Suporte F1 · Hamilton", ou só "Suporte F1" quando não tem variantes.
+  String titleWith(String? productName) {
+    if (productName == null) return label;
+    return isUnnamed ? productName : "$productName · $name";
+  }
 }
 
 /// Uma linha da receita: um filamento e quantas gramas leva.

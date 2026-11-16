@@ -26,13 +26,14 @@ class ProductsScreen extends ConsumerWidget {
     /// Cria uma categoria nova.
     Future<void> newCategory() async {
       // 1. abre a janela e espera pela resposta
-      final name = await showDialog<String>(
+      // (com os códigos já usados, a janela sugere o código do SKU e deixa corrigi-lo)
+      final input = await showDialog<CategoryInput>(
         context: context,
-        builder: (context) => const CategoryDialog(),
+        builder: (context) => CategoryDialog(takenCodes: categories.map((c) => c.code)),
       );
 
       // 2. se cancelou ou deixou vazio, não faz nada
-      if (name == null || name.trim().isEmpty) return;
+      if (input == null || input.name.trim().isEmpty) return;
       // depois do await da janela, o ecrã pode já ter fechado
       if (!context.mounted) return;
 
@@ -41,7 +42,7 @@ class ProductsScreen extends ConsumerWidget {
         context,
         () => ref
             .read(productCategoryRepositoryProvider)
-            .create(name: name.trim()),
+            .create(name: input.name.trim(), code: input.code),
       );
       if (!ok) return;
 
@@ -54,7 +55,7 @@ class ProductsScreen extends ConsumerWidget {
       // a categoria escolhida, completa
       final category = categories.firstWhere((c) => c.id == selected);
 
-      final name = await showDialog<String>(
+      final input = await showDialog<CategoryInput>(
         context: context,
         builder: (context) => CategoryDialog(
           title: "Editar categoria",
@@ -62,6 +63,7 @@ class ProductsScreen extends ConsumerWidget {
           initialName: category.name,
         ),
       );
+      final name = input?.name;
       if (name == null || name.trim().isEmpty) return;
       if (!context.mounted) return;
 

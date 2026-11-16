@@ -6,6 +6,7 @@ import 'package:cubico_backoffice/features/orders/presentation/order_labels.dart
 import 'package:cubico_backoffice/features/orders/presentation/orders_providers.dart';
 import 'package:cubico_backoffice/features/orders/presentation/widgets/status_badge.dart';
 import 'package:cubico_backoffice/features/production/presentation/production_providers.dart';
+import 'package:cubico_backoffice/features/products/domain/product.dart';
 import 'package:cubico_backoffice/features/products/domain/variant.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,6 +32,7 @@ class OrderDetailScreen extends ConsumerWidget {
 
     final channels = ref.watch(salesChannelsProvider).value ?? [];
     final channel = channels.where((c) => c.id == order.channelId).firstOrNull;
+    final products = ref.watch(productsProvider).value ?? [];
     final variants = ref.watch(allVariantsProvider).value ?? <Variant>[];
     final canSeeCosts = ref.watch(sessionProvider)?.canSeeCosts ?? false;
 
@@ -61,7 +63,7 @@ class OrderDetailScreen extends ConsumerWidget {
 
     // coluna da esquerda: o que se vendeu e as contas
     final leftCards = <Widget>[
-      _itemsCard(context, order, variants),
+      _itemsCard(context, order, variants, products),
       const SizedBox(height: 16),
       _moneyCard(context, order, channel?.name ?? "canal", canSeeCosts),
     ];
@@ -169,7 +171,12 @@ class OrderDetailScreen extends ConsumerWidget {
   }
 
   /// O cartão "Artigos": uma linha por artigo, com nome, SKU, quantidade e total.
-  Widget _itemsCard(BuildContext context, Order order, List<Variant> variants) {
+  Widget _itemsCard(
+    BuildContext context,
+    Order order,
+    List<Variant> variants,
+    List<Product> products,
+  ) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -198,7 +205,14 @@ class OrderDetailScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              variant?.name ?? "Variante ${line.variantId}",
+                              // "Suporte F1 · Hamilton": só "Hamilton" não dizia que produto era
+                              variant?.titleWith(
+                                    products
+                                        .where((p) => p.id == variant.productId)
+                                        .firstOrNull
+                                        ?.name,
+                                  ) ??
+                                  "Variante ${line.variantId}",
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                               ),
