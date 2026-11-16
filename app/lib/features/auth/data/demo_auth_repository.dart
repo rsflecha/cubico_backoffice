@@ -16,13 +16,29 @@ class DemoAuthRepository implements AuthRepository {
   };
 
   @override
-  Future<AppUser> signIn({required String email, required String password}) async {
+  Future<AppUser> signIn({
+    required String email,
+    required String password,
+    bool remember = false,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 500));
     final account = _accounts[email.trim().toLowerCase()];
     if (account == null || account.password != password) {
       throw const AuthException("Email ou palavra-passe errados.");
     }
     return account.user;
+  }
+
+  @override
+  Future<AppUser> me() async => _accounts.values.first.user;
+
+  @override
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    bool remember = false,
+  }) async {
+    throw const AuthException("No modo demo não se muda a palavra-passe.");
   }
 
   @override

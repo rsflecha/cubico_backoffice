@@ -1,6 +1,7 @@
 import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/features/auth/domain/app_user.dart';
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
+import 'package:cubico_backoffice/features/auth/presentation/change_password_dialog.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -139,6 +140,16 @@ class AppShell extends ConsumerWidget {
                       : "Colaborador",
                 ),
               ),
+              // aqui e não só nas Definições: o colaborador não entra nas Definições
+              if (!ref.read(demoModeProvider))
+                ListTile(
+                  leading: const Icon(Icons.key_outlined),
+                  title: const Text("Mudar palavra-passe"),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    showChangePasswordDialog(context);
+                  },
+                ),
               ListTile(
                 leading: const Icon(Icons.logout),
                 title: const Text("Terminar sessão"),
@@ -200,11 +211,22 @@ class AppShell extends ConsumerWidget {
                         alignment: Alignment.bottomCenter,
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 12),
-                          child: IconButton(
-                            tooltip: "Terminar sessão",
-                            onPressed: () =>
-                                ref.read(sessionProvider.notifier).signOut(),
-                            icon: const Icon(Icons.logout, color: muted),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (!ref.watch(demoModeProvider))
+                                IconButton(
+                                  tooltip: "Mudar palavra-passe",
+                                  onPressed: () => showChangePasswordDialog(context),
+                                  icon: const Icon(Icons.key_outlined, color: muted),
+                                ),
+                              IconButton(
+                                tooltip: "Terminar sessão",
+                                onPressed: () =>
+                                    ref.read(sessionProvider.notifier).signOut(),
+                                icon: const Icon(Icons.logout, color: muted),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -360,6 +382,15 @@ class AppShell extends ConsumerWidget {
                             ],
                           ),
                         ),
+                        if (!ref.watch(demoModeProvider))
+                          IconButton(
+                            tooltip: "Mudar palavra-passe",
+                            onPressed: () => showChangePasswordDialog(context),
+                            icon: const Icon(
+                              Icons.key_outlined,
+                              color: Color(0xFFA1A1AA),
+                            ),
+                          ),
                         IconButton(
                           tooltip: "Terminar sessão",
                           onPressed: () =>

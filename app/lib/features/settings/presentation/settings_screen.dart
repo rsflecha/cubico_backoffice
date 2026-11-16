@@ -1,4 +1,5 @@
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
+import 'package:cubico_backoffice/features/auth/presentation/change_password_dialog.dart';
 import 'package:cubico_backoffice/features/settings/presentation/widgets/users_section.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -32,6 +33,13 @@ class SettingsScreen extends ConsumerWidget {
                     subtitle: Text(user?.email ?? ""),
                     trailing: Text(user?.isAdmin == true ? "Administrador" : "Colaborador"),
                   ),
+                  // no modo demo não há palavra-passe para mudar
+                  if (!ref.watch(demoModeProvider))
+                    ListTile(
+                      leading: const Icon(Icons.key_outlined),
+                      title: const Text("Mudar palavra-passe"),
+                      onTap: () => showChangePasswordDialog(context),
+                    ),
                   ListTile(
                     leading: const Icon(Icons.logout),
                     title: const Text("Terminar sessão"),

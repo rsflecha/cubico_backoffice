@@ -135,6 +135,9 @@ Depois de gravar, o ecrã chama `ref.invalidate(...)` e a lista recarrega-se soz
 - Dois papéis: **administrador** (vê tudo) e **colaborador** (só a parte operacional). Os ecrãs perguntam sempre `user.canSeeCosts`, e na dúvida escondem.
 - O colaborador não vê: Custos e preços e Definições (nem no menu, nem pelo endereço), vendas e lucro no Dashboard, a coluna Lucro, o bloco de custos no detalhe, o custo e o lucro estimados ao criar encomenda, a calculadora e os custos dos produtos; e não cria, edita nem apaga produtos.
 - **Esconder no Flutter não chega:** na Fase 3, a API deixa de enviar custos, lucros e margens a um colaborador.
+- **"Manter sessão":** o token e o utilizador ficam no `SessionStorage` (`shared_preferences`; na web, o localStorage). O `main` recupera-os antes do primeiro ecrã e pergunta à API (`GET /auth/me`) o papel atual. Sem a caixa, nada fica guardado.
+- **Sessão terminada pela API:** qualquer 401 (token expirado, acesso retirado, palavra-passe mudada noutro aparelho) chama o `TokenStore.onExpired`; a sessão apaga-se e o login mostra porquê, numa caixa âmbar (`loginMessageProvider`).
+- **Mudar a palavra-passe:** nas Definições e no menu (o colaborador não abre as Definições). Escondido no modo demo.
 
 ## 7. Navegação
 
@@ -192,8 +195,9 @@ api/
 └── .env               segredos (base de dados, JWT); nunca vai para o Git — modelo em .env.example
 ```
 
-- **Sessão:** `POST /api/auth/login` devolve um **JWT** (12 h). Palavras-passe com `password_hash` (bcrypt). O Dio junta o token a cada pedido, num interceptor.
-- **Porteiros:** `$requireAuth` (token válido) e `$requireAdmin` (papel admin). No Slim, o último `add` corre primeiro.
+- **Sessão:** `POST /api/auth/login` devolve um **JWT** (12 h; 30 dias com `remember`). Palavras-passe com `password_hash` (bcrypt). O Dio junta o token a cada pedido, num interceptor. O token leva `sub` e `pwv` (12 caracteres de um hash da palavra-passe guardada), não o papel.
+- **`GET /api/auth/me`** devolve o utilizador atual; **`POST /api/auth/password`** muda a palavra-passe (mínimo 10 caracteres) e devolve um token novo. Como o `pwv` muda, os tokens dos outros aparelhos deixam de valer.
+- **Porteiros:** `$requireAuth` (token válido, e confirma na base de dados que a conta existe, está ativa e tem a mesma palavra-passe; o papel vem daí, não do token) e `$requireAdmin` (papel admin). No Slim, o último `add` corre primeiro.
 - **A API protege os dados:** o colaborador não recebe custos, taxas nem portes pagos; Custos e preços e Utilizadores são só do administrador.
 - **Contas oficiais:** ao criar uma encomenda, a API refaz o custo de cada linha, as taxas e os portes (`src/costs.php`, as mesmas fórmulas da `CostCalculator`).
 - **Tipos:** o PHP lê `DECIMAL` como texto e `BOOLEAN` como 0/1; o `typed()` converte antes de responder.
@@ -224,4 +228,4 @@ Para correr no PC: `php -S localhost:8080 -t public` dentro de `api` (ou o `inic
 
 **Limitações conhecidas:** um filamento por variante no cartão de custo; ainda não se criam nem apagam variantes; nas encomendas manuais, os portes reais usam só a zona Portugal; a produção ainda não desconta filamento do stock nem regista falhas; na API, as regras que ligam encomendas e produção (enviar para produção, encomenda pronta sozinha) ainda correm na app, pelo ProductionService.
 
-**Para fazer depois:** validar o telemóvel dos clientes; preencher a localidade a partir do código postal (reaproveitando a adaptação portuguesa feita no curso); mudar a própria palavra-passe; terminar a sessão sozinho quando o token expira; publicar a API no cPanel; sincronização com a Etsy.
+**Para fazer depois:** validar o telemóvel dos clientes; preencher a localidade a partir do código postal (reaproveitando a adaptação portuguesa feita no curso); publicar a API no cPanel; sincronização com a Etsy.

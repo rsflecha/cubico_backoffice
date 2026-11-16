@@ -34,7 +34,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _error = null;
     });
     try {
-      await ref.read(sessionProvider.notifier).signIn(_email.text, _password.text);
+      // "Manter sessão": a sessão fica guardada e dura 30 dias (antes a caixa não fazia nada)
+      await ref
+          .read(sessionProvider.notifier)
+          .signIn(_email.text, _password.text, remember: _keepSession);
     } on AuthException catch (e) {
       // palavra-passe errada: mostra a nossa mensagem
       setState(() {
@@ -93,6 +96,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final isWide = MediaQuery.sizeOf(context).width >= 900;
+    // porque é que se voltou ao login (a sessão expirou, o acesso foi retirado…)
+    final message = ref.watch(loginMessageProvider);
 
     final form = Center(
       child: ConstrainedBox(
@@ -116,6 +121,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             const SizedBox(height: 4),
             const Text("Acede ao backoffice da tua loja."),
             const SizedBox(height: 24),
+            if (message != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7), // âmbar claro: um aviso, não um erro
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFF59E0B)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: Color(0xFFB45309)),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(message)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             TextField(
               controller: _email,
               keyboardType: TextInputType.emailAddress,
