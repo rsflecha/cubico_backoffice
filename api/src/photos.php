@@ -54,14 +54,34 @@ function storePhoto(?UploadedFileInterface $file): string
 
     // o PHP guarda o envio num ficheiro temporário; é esse que se analisa
     $tmp = $file->getStream()->getMetadata('uri');
-    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($tmp);
-    if (!isset(PHOTO_TYPES[$mime]) || @getimagesize($tmp) === false) {
+    $mime = photoMime((string) $tmp);
+    if ($mime === null || !isset(PHOTO_TYPES[$mime])) {
         throw new PhotoError('A foto tem de ser uma imagem JPG, PNG ou WebP.');
     }
 
     $name = bin2hex(random_bytes(16)) . '.' . PHOTO_TYPES[$mime];
     $file->moveTo(photoDir() . '/' . $name);
     return $name;
+}
+
+/**
+ * O tipo de uma imagem, lido do CONTEÚDO do ficheiro (null se não for uma imagem).
+ *
+ * Quem decide é o getimagesize(), que faz parte do PHP base. A extensão fileinfo (finfo)
+ * NÃO está ligada no PHP do alojamento (deu "Class finfo not found" a 2026-11-17);
+ * quando existe (no PC), confirma-se também por ela e os dois têm de concordar.
+ */
+function photoMime(string $path): ?string
+{
+    $info = @getimagesize($path);
+    if ($info === false || empty($info['mime'])) {
+        return null;
+    }
+    $mime = (string) $info['mime'];
+    if (class_exists('finfo') && (new finfo(FILEINFO_MIME_TYPE))->file($path) !== $mime) {
+        return null;
+    }
+    return $mime;
 }
 
 /** Apaga o ficheiro de uma foto (se ainda existir). */
