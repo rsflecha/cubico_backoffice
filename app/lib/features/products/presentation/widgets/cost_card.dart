@@ -215,7 +215,10 @@ class CostCardState extends ConsumerState<CostCard> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              widget.variant == null ? "Custo e margem" : "Custo e margem · ${widget.variant!.label}",
+              // modelo único (sem nome): só "Custo e margem"; com variante, o nome dela
+              widget.variant == null || widget.variant!.isUnnamed
+                  ? "Custo e margem"
+                  : "Custo e margem · ${widget.variant!.name}",
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),

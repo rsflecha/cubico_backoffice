@@ -79,6 +79,7 @@ void main() {
     await settle(tester);
     expect(find.text("Escolhe pelo menos uma cor."), findsOneWidget);
     expect(find.text("Escreve as gramas de filamento."), findsOneWidget);
+    expect(find.textContaining("Modelo único"), findsNothing);
 
     // cores disponíveis: Black Basic (13,43 €/kg) e Orange Basic (11,88 €/kg)
     await tester.tap(find.widgetWithText(FilterChip, "Black Basic · PLA"));
