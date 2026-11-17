@@ -213,11 +213,14 @@ class ProductsScreen extends ConsumerWidget {
               ),
             )
           else
-            // computador e iPad: a fila de botões, como estava
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
+            // computador e iPad: os botões das categorias. Quando não cabem numa linha,
+            // descem para a seguinte (antes deslizavam para o lado e os últimos ficavam
+            // escondidos fora do ecrã, sem se perceber que existiam)
+            Padding(
               padding: const EdgeInsets.all(12),
-              child: Row(
+              child: Wrap(
+                spacing: 8, // espaço entre botões na mesma linha
+                runSpacing: 8, // espaço entre linhas
                 children: [
                   ChoiceChip(
                     label: const Text("Todas"),
@@ -226,8 +229,7 @@ class ProductsScreen extends ConsumerWidget {
                         .read(selectedCategoryProvider.notifier)
                         .select(null),
                   ),
-                  for (final category in categories) ...[
-                    const SizedBox(width: 8),
+                  for (final category in categories)
                     ChoiceChip(
                       label: Text(category.name),
                       selected: selected == category.id,
@@ -235,22 +237,18 @@ class ProductsScreen extends ConsumerWidget {
                           .read(selectedCategoryProvider.notifier)
                           .select(category.id),
                     ),
-                  ],
                   if (canSeeCosts) ...[
-                    const SizedBox(width: 8),
                     ActionChip(
                       avatar: const Icon(Icons.add, size: 18),
                       label: const Text("Nova"),
                       onPressed: newCategory,
                     ),
                     if (selected != null) ...[
-                      const SizedBox(width: 8),
                       ActionChip(
                         avatar: const Icon(Icons.edit_outlined, size: 18),
                         label: const Text("Editar"),
                         onPressed: editCategory,
                       ),
-                      const SizedBox(width: 8),
                       ActionChip(
                         avatar: const Icon(Icons.delete_outline, size: 18),
                         label: const Text("Apagar"),
