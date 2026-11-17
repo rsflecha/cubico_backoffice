@@ -3,7 +3,7 @@
   "diagram_type": "architecture",
   "meta": {
     "title": "CubicoDesign3D Backoffice — arquitetura",
-    "output": ".archify/architecture-backoffice-20261117-200441/cubico-backoffice-arquitetura.html",
+    "output": "docs/arquitetura/cubico-backoffice-arquitetura.html",
     "quality_profile": "showcase",
     "locale": "pt-PT",
     "translations": {
