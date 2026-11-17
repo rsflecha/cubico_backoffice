@@ -15,6 +15,23 @@ class CostCalculator {
     return costPerSpool / (filament.spoolWeightG / 1000);
   }
 
+  /// Das cores [ids], a mais cara por kg (num empate, a de id mais baixo).
+  /// A ficha de produto faz o custo com esta: assim nenhuma cor vendida dá prejuízo.
+  /// null se nenhuma das [ids] estiver em [filaments].
+  Filament? priciestFilament(List<Filament> filaments, Iterable<int> ids) {
+    Filament? best;
+    for (final f in filaments) {
+      if (!ids.contains(f.id)) continue;
+      final price = filamentPricePerKg(f);
+      if (best == null ||
+          price > filamentPricePerKg(best) ||
+          (price == filamentPricePerKg(best) && f.id < best.id)) {
+        best = f;
+      }
+    }
+    return best;
+  }
+
   /// O filamento que dá a cor a uma variante: o que leva mais gramas
   /// (num empate, o de id mais baixo). É o que a cor escolhida numa encomenda substitui.
   /// A mesma regra está na API (variantUnitCost, em src/costs.php).

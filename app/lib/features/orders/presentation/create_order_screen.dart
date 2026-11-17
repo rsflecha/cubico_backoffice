@@ -116,6 +116,10 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     });
   }
 
+  /// As cores disponíveis do produto desta variante (vazio = produto sem cores marcadas).
+  List<int> _colorsOf(Variant variant, List<Product> products) =>
+      products.where((p) => p.id == variant.productId).firstOrNull?.colorIds ?? const <int>[];
+
   /// Abre a lista do catálogo e junta a variante escolhida às linhas.
   Future<void> _addProduct(List<Product> products, List<Variant> variants) async {
     final chosen = await showDialog<Variant>(
@@ -145,8 +149,10 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       ),
     );
     if (chosen == null) return;
+    final colors = _colorsOf(chosen, products);
     setState(() {
-      _lines.add(_DraftLine(chosen));
+      // uma só cor disponível: já vem escolhida
+      _lines.add(_DraftLine(chosen)..filamentId = colors.length == 1 ? colors.single : null);
       _suggestShipping();
     });
   }
@@ -299,6 +305,10 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     if (draft.lines.isEmpty) return "Junta pelo menos um artigo.";
     if (draft.lines.any((l) => l.quantity < 1)) return "Cada artigo tem de ter quantidade 1 ou mais.";
     if (draft.lines.any((l) => l.unitPrice <= 0)) return "Cada artigo tem de ter preço.";
+    final products = ref.read(productsProvider).value ?? <Product>[];
+    if (_lines.any((l) => l.filamentId == null && _colorsOf(l.variant, products).isNotEmpty)) {
+      return "Escolhe a cor de cada artigo.";
+    }
     if (_delivery == DeliveryMethod.carrier &&
         _calc.shippingPrice(weightG: _totalWeight(components), zoneId: 1, rates: rates) == null) {
       return "O pacote é demasiado pesado para o correio (mais de 2 kg).";
@@ -625,12 +635,13 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     // a cor da receita (o filamento principal), para o texto da primeira opção do menu
     final recipeId = _calc.mainFilament(line.variant)?.filamentId;
     final recipe = filaments.where((f) => f.id == recipeId).firstOrNull;
-    // no menu: as cores disponíveis do produto (sem nenhuma marcada, todos os filamentos ativos);
-    // a da receita é a primeira opção, e o escolhido fica sempre (mesmo que tenha sido desativado)
+    // no menu: as cores disponíveis do produto, e escolher uma é obrigatório.
+    // Produto sem cores marcadas (dos antigos): "A da receita" e todos os filamentos ativos.
+    // O escolhido fica sempre na lista (mesmo que tenha sido desativado).
     final allowed = product?.colorIds ?? const <int>[];
+    final required = allowed.isNotEmpty;
     final colors = filaments
-        .where((f) => f.id == line.filamentId ||
-            (allowed.isEmpty ? f.isActive : allowed.contains(f.id) && f.id != recipeId))
+        .where((f) => f.id == line.filamentId || (required ? allowed.contains(f.id) : f.isActive))
         .toList();
 
     return Container(
@@ -712,15 +723,20 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               key: ValueKey("color-${line.hashCode}"),
               initialValue: line.filamentId,
               isExpanded: true,
-              decoration: const InputDecoration(labelText: "Cor"),
+              decoration: InputDecoration(
+                labelText: "Cor",
+                errorText: _submitted && required && line.filamentId == null ? "Escolhe a cor." : null,
+              ),
+              hint: const Text("Escolher cor"),
               items: [
-                DropdownMenuItem<int?>(
-                  value: null,
-                  child: Text(
-                    recipe == null ? "A da receita" : "A da receita (${recipe.colorName})",
-                    overflow: TextOverflow.ellipsis,
+                if (!required)
+                  DropdownMenuItem<int?>(
+                    value: null,
+                    child: Text(
+                      recipe == null ? "A da receita" : "A da receita (${recipe.colorName})",
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
                 for (final f in colors)
                   DropdownMenuItem<int?>(
                     value: f.id,
@@ -839,7 +855,7 @@ class _DraftLine {
         customization = TextEditingController();
 
   final Variant variant;
-  int? filamentId; // a cor escolhida; null = a cor da receita
+  int? filamentId; // a cor escolhida; null = por escolher (ou a da receita, num produto sem cores)
   final TextEditingController quantity;
   final TextEditingController price;
   final TextEditingController customization;

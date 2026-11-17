@@ -5,6 +5,7 @@ import 'package:cubico_backoffice/core/api/api_exception.dart';
 import 'package:cubico_backoffice/core/colors.dart';
 import 'package:cubico_backoffice/core/photos.dart';
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
+import 'package:cubico_backoffice/features/costs/domain/cost_calculator.dart';
 import 'package:cubico_backoffice/features/costs/domain/filament.dart';
 import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
@@ -38,6 +39,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   final _formKey = GlobalKey<FormState>(); // o "comando" do formulário
   // o "comando" do cartão de custo: lê-se a receita e o preço que lá estão escritos.
   // Uma key nova = um cartão novo (quando se muda de variante, recomeça com os dados dela).
+  static const _calc = CostCalculator();
   var _cardKey = GlobalKey<CostCardState>();
   int? _cardVariantId; // a variante que o cartão está a mostrar
   final _nameController = TextEditingController();
@@ -98,6 +100,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   /// Um produto novo tem de ter foto; um que já existe fica com a que tinha.
   bool get _missingPhoto => _original == null && _newPhoto == null;
+
+  /// Sem cores, a encomenda não tinha cor para escolher e o custo não tinha preço por kg.
+  bool get _missingColors => _colorIds.isEmpty;
 
   void _showMessage(String text) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
@@ -183,8 +188,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       _cardProblem = card?.problem();
     });
     final isValid = _formKey.currentState!.validate();
-    // a foto e o cartão não são campos do Form, por isso conferem-se à parte
-    if (!isValid || _missingPhoto || _cardProblem != null) return false;
+    // a foto, as cores e o cartão não são campos do Form, por isso conferem-se à parte
+    if (!isValid || _missingPhoto || _missingColors || _cardProblem != null) return false;
 
     setState(() => _saving = true);
 
@@ -235,6 +240,20 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         target ??= await variants.create(productId: id);
         if (isFresh || card.isChangedFrom(target)) {
           await variants.update(card.applyTo(target));
+        }
+        // as outras variantes: o custo passa a usar a cor mais cara das cores novas
+        // (as gramas ficam as mesmas)
+        final priciest = _calc.priciestFilament(ref.read(filamentsProvider).value ?? <Filament>[], colorIds);
+        if (priciest != null) {
+          for (final other in list.where((v) => v.id != target!.id)) {
+            final grams = other.filaments.fold<int>(0, (sum, f) => sum + f.grams);
+            if (grams <= 0) continue; // sem receita: fica para quando a abrires
+            final same = other.filaments.length == 1 && other.filaments.single.filamentId == priciest.id;
+            if (same) continue;
+            await variants.update(
+              other.copyWith(filaments: [VariantFilament(filamentId: priciest.id, grams: grams)]),
+            );
+          }
         }
       }
     } catch (error) {
@@ -306,14 +325,15 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   }
 
   /// As cores em que o produto se vende: um botão por filamento ativo.
-  /// Na encomenda, o menu "Cor" mostra só estas (e a da receita). Nenhuma = todas.
+  /// Na encomenda, o menu "Cor" mostra só estas; o custo usa a mais cara. Obrigatória pelo menos uma.
   Widget _colorsField(List<Filament> filaments) {
     final shown = filaments.where((f) => f.isActive || _colorIds.contains(f.id)).toList();
     return InputDecorator(
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         labelText: "Cores disponíveis",
         filled: false,
-        helperText: "Na encomenda, o menu \"Cor\" mostra só estas e a da receita. Nenhuma = todas.",
+        errorText: _submitted && _missingColors ? "Escolhe pelo menos uma cor." : null,
+        helperText: "Na encomenda escolhe-se uma destas. O custo do filamento usa a mais cara.",
         helperMaxLines: 2,
       ),
       child: shown.isEmpty
@@ -405,6 +425,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             key: _cardKey,
             variant: widget.productId == null ? null : selectedVariant,
             showName: variants.length > 1 || (selectedVariant?.name.isNotEmpty ?? false),
+            colorIds: _colorIds.toList(),
           )
         : null;
 

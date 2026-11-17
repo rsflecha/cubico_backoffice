@@ -68,21 +68,29 @@ void main() {
     await settle(tester);
     await tester.tap(find.text("Brindes").last);
     await settle(tester);
-    // cores disponíveis: só Orange Basic
-    await tester.tap(find.widgetWithText(FilterChip, "Orange Basic · PLA"));
-    await tester.pump();
+    // um só campo de gramas, e nada de filamento nem de peso à parte (as cores são à esquerda)
+    expect(find.widgetWithText(TextField, "Gramas"), findsOneWidget);
+    expect(find.text("Peso da peça"), findsNothing);
+    expect(find.text("Filamento total"), findsNothing);
+    expect(find.text("Adicionar cor"), findsNothing);
 
-    // sem receita nem preço: não grava, e diz o que falta
+    // sem cores, sem receita nem preço: não grava, e diz o que falta
     await tester.tap(find.text("Guardar"));
     await settle(tester);
+    expect(find.text("Escolhe pelo menos uma cor."), findsOneWidget);
     expect(find.text("Escreve as gramas de filamento."), findsOneWidget);
+
+    // cores disponíveis: Black Basic (13,43 €/kg) e Orange Basic (11,88 €/kg)
+    await tester.tap(find.widgetWithText(FilterChip, "Black Basic · PLA"));
+    await tester.tap(find.widgetWithText(FilterChip, "Orange Basic · PLA"));
+    await tester.pump();
+    expect(find.text("Custo feito com a cor mais cara das disponíveis."), findsOneWidget);
     final container = ProviderScope.containerOf(tester.element(find.byType(ProductFormScreen)));
     expect((await tester.runAsync(() => container.read(productRepositoryProvider).fetchAll()))!
         .where((p) => p.name == "Bola teste"), isEmpty);
 
     await tester.enterText(find.widgetWithText(TextField, "Gramas"), "50");
     await tester.enterText(find.widgetWithText(TextField, "Impressão"), "90");
-    await tester.enterText(find.widgetWithText(TextField, "Peso da peça"), "60");
     await tester.enterText(find.widgetWithText(TextField, "Preço de venda"), "12,50");
     await tester.pump();
     await tester.tap(find.text("Guardar"));
@@ -94,18 +102,18 @@ void main() {
     // o produto e a variante ficaram gravados, com tudo
     final product = (await tester.runAsync(() => container.read(productRepositoryProvider).fetchAll()))!
         .singleWhere((p) => p.name == "Bola teste");
-    expect(product.colorIds, [3]);
+    expect(product.colorIds, [1, 3]);
     final variants = (await tester.runAsync(() => container.read(variantRepositoryProvider).fetchByProduct(product.id)))!;
     expect(variants, hasLength(1));
     final v = variants.single;
     expect(v.name, ""); // modelo único
     expect(v.salePrice, 12.5);
     expect(v.printTimeMin, 90);
-    expect(v.weightG, 60);
+    expect(v.weightG, 50); // o peso é as gramas
     expect(v.filaments.single.grams, 50);
-    expect(v.filaments.single.filamentId, 1); // Black Basic, o primeiro da lista
+    expect(v.filaments.single.filamentId, 1); // Black Basic, a mais cara das duas
 
-    // a encomenda: o preço vem sozinho, e o menu da cor só tem a da receita e a Orange
+    // a encomenda: o preço vem sozinho; a cor é obrigatória e o menu só tem as duas
     router.go("/order");
     await settle(tester);
     await tester.tap(find.text("Adicionar produto do catálogo"));
@@ -114,10 +122,20 @@ void main() {
     await settle(tester);
     expect(find.widgetWithText(TextField, "Preço un."), findsOneWidget);
     expect((tester.widget<TextField>(find.widgetWithText(TextField, "Preço un.")).controller!).text, "12,50");
-    await tester.tap(find.text("A da receita (Black Basic)"));
+    expect(find.textContaining("A da receita"), findsNothing);
+    await tester.enterText(find.widgetWithText(TextField, "Nome ou referência"), "Ana");
+    await tester.tap(find.widgetWithText(FilledButton, "Criar encomenda"));
     await settle(tester);
+    expect(find.text("Escolhe a cor de cada artigo."), findsOneWidget);
+    expect(find.text("Escolher cor"), findsOneWidget);
+    await tester.tap(find.byType(DropdownButtonFormField<int?>));
+    await settle(tester);
+    expect(find.text("Black Basic · PLA"), findsWidgets);
     expect(find.text("Orange Basic · PLA"), findsWidgets);
     expect(find.text("Translucent · PETG"), findsNothing); // não está nas cores disponíveis
+    await tester.tap(find.text("Orange Basic · PLA").last);
+    await settle(tester);
+    expect(find.text("Escolhe a cor de cada artigo."), findsNothing);
   });
 
   testWidgets("editar: o Guardar grava a variante; sair com alterações pergunta primeiro", (tester) async {
@@ -141,12 +159,12 @@ void main() {
     await settle(tester);
     expect(find.text("lista"), findsNothing); // ficou na ficha
 
-    // grava: esta variante não tinha peso, e sem peso os portes saíam errados — pede-o
+    // grava: este produto ainda não tinha cores — pede-as
     await tester.tap(find.text("Guardar"));
     await settle(tester);
-    expect(find.text("Escreve o peso da peça (para os portes)."), findsOneWidget);
+    expect(find.text("Escolhe pelo menos uma cor."), findsOneWidget);
     expect(find.text("lista"), findsNothing);
-    await tester.enterText(find.widgetWithText(TextField, "Peso da peça"), "40");
+    await tester.tap(find.widgetWithText(FilterChip, "Orange Basic · PLA"));
     await tester.pump();
     await tester.tap(find.text("Guardar"));
     await settle(tester);
@@ -154,9 +172,10 @@ void main() {
     final container = ProviderScope.containerOf(tester.element(find.text("lista")));
     final v = (await tester.runAsync(() => container.read(variantRepositoryProvider).fetchByProduct(2)))!.single;
     expect(v.salePrice, 15);
-    expect(v.weightG, 40);
+    expect(v.weightG, 60); // não tinha peso: passa a ser as gramas
     expect(v.name, "Verde"); // o resto fica como estava
     expect(v.filaments.single.grams, 60);
+    expect(v.filaments.single.filamentId, 3); // a receita passa para a cor disponível
 
     // abrir e sair sem mexer: não pergunta nada
     router.push("/edit/2");

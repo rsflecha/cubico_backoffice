@@ -240,8 +240,9 @@ Para correr no PC: `php -S localhost:8080 -t public` dentro de `api` (ou o `inic
 | 16 | Etsy: conferir os SKU dos anúncios contra as variantes | ✅ |
 | 17 | Encomendas: cor de cada artigo (troca o filamento principal no custo) | ✅ |
 | 18 | Produtos: ficha única com um só Guardar; cores disponíveis (migração 006) | ✅ |
+| 19 | Produtos: cartão só com gramas e tempo; custo pela cor mais cara; cor obrigatória na encomenda | ✅ |
 
-**Limitações conhecidas:** um filamento por variante no cartão de custo; ainda não se criam nem apagam variantes; nas encomendas manuais, os portes reais usam só a zona Portugal; a produção ainda não desconta filamento do stock nem regista falhas; na API, "enviar para produção" à mão e "encomenda pronta sozinha" ainda correm na app, pelo ProductionService.
+**Limitações conhecidas:** um filamento por variante no cartão de custo (a cor mais cara das disponíveis); nas encomendas manuais, os portes reais usam só a zona Portugal; a produção ainda não desconta filamento do stock nem regista falhas; na API, "enviar para produção" à mão e "encomenda pronta sozinha" ainda correm na app, pelo ProductionService.
 
 **Para fazer depois:** impressora Bambu Lab A1 (pela nuvem da Bambu, não oficial).
 

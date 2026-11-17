@@ -17,14 +17,21 @@ import 'package:cubico_backoffice/features/products/presentation/products_provid
 /// A receita e o preço de UMA variante. Não grava nada sozinho: quem grava é a ficha do
 /// produto, com o seu único "Guardar", que lê o que está aqui por uma `GlobalKey<CostCardState>`
 /// (applyTo, isChangedFrom e problem).
+///
+/// Um campo por coisa: as gramas (que são também o peso, para os portes) e o tempo.
+/// As cores escolhem-se à esquerda, nas "Cores disponíveis"; o custo do filamento
+/// faz-se com a MAIS CARA delas, para nenhuma cor dar prejuízo.
 class CostCard extends ConsumerStatefulWidget {
-  const CostCard({super.key, this.variant, this.showName = false});
+  const CostCard({super.key, this.variant, this.showName = false, this.colorIds = const []});
 
   /// A variante a editar. null = produto novo (os campos começam vazios).
   final Variant? variant;
 
   /// Mostrar o campo "Nome da variante"? Só quando o produto tem variantes (Hamilton, Verstappen…).
   final bool showName;
+
+  /// As cores disponíveis do produto (ids dos filamentos), escolhidas na ficha.
+  final List<int> colorIds;
 
   @override
   ConsumerState<CostCard> createState() => CostCardState();
@@ -33,29 +40,18 @@ class CostCard extends ConsumerStatefulWidget {
 class CostCardState extends ConsumerState<CostCard> {
   static const _calc = CostCalculator();
 
-  // As cores da peça: uma linha por filamento, cada uma com as suas gramas.
-  // Uma peça de uma cor só tem uma linha (como era antes).
-  final List<_ColorLine> _lines = [];
   // Quantidade de cada componente: id do componente → quantidade.
   final Map<int, int> _componentQty = {};
   // vazios num produto novo: valores de exemplo podiam ficar gravados sem se dar por isso
+  final _gramsController = TextEditingController();
   final _minutesController = TextEditingController();
   final _priceController = TextEditingController();
-  // o nome e o peso da variante (só quando há uma variante escolhida); o SKU sai do nome
+  // o nome da variante (só com variantes); o SKU sai do nome
   final _nameController = TextEditingController();
-  final _weightController = TextEditingController();
 
   @override
   void dispose() {
-    for (final line in _lines) {
-      line.grams.dispose();
-    }
-    for (final c in [
-      _minutesController,
-      _priceController,
-      _nameController,
-      _weightController,
-    ]) {
+    for (final c in [_gramsController, _minutesController, _priceController, _nameController]) {
       c.dispose();
     }
     super.dispose();
@@ -65,72 +61,47 @@ class CostCardState extends ConsumerState<CostCard> {
   void initState() {
     super.initState();
     final v = widget.variant;
-    // todas as cores da receita (antes só se lia a primeira)
-    for (final f in v?.filaments ?? <VariantFilament>[]) {
-      _lines.add(_ColorLine(f.filamentId, "${f.grams}"));
-    }
-    // sem receita: uma linha com o primeiro filamento, e as gramas por escrever
-    if (_lines.isEmpty) _lines.add(_ColorLine(null, ""));
     if (v == null) return; // produto novo: campos vazios
 
+    // as gramas: a soma da receita (receitas antigas podiam ter várias cores);
+    // sem receita, o peso que estava gravado
+    final grams = v.filaments.fold<int>(0, (sum, f) => sum + f.grams);
+    final shown = grams > 0 ? grams : v.weightG;
+    _gramsController.text = shown > 0 ? "$shown" : "";
     _minutesController.text = "${v.printTimeMin}";
     _priceController.text = decimalField(v.salePrice);
     _nameController.text = v.name;
-    _weightController.text = "${v.weightG}";
 
     for (final line in v.components) {
       _componentQty[line.componentId] = line.quantity;
     }
   }
 
-  /// O filamento de uma linha. Sem escolha feita, é o primeiro da lista (como antes).
-  Filament? _filamentOf(_ColorLine line, List<Filament> filaments) =>
-      filaments.where((f) => f.id == line.filamentId).firstOrNull ??
-      filaments.firstOrNull;
-
-  /// A receita para gravar: um filamento por linha, com as gramas.
-  /// O mesmo filamento em duas linhas soma-se numa só: a base de dados
-  /// só aceita cada filamento uma vez por variante (chave variant_id + filament_id).
-  List<VariantFilament> _recipe(List<Filament> filaments) {
-    final grams = <int, int>{};
-    for (final line in _lines) {
-      final filament = _filamentOf(line, filaments);
-      final g = _read(line.grams).round();
-      if (filament == null || g <= 0) continue; // linha vazia: não entra
-      grams[filament.id] = (grams[filament.id] ?? 0) + g;
-    }
-    return [
-      for (final entry in grams.entries)
-        VariantFilament(filamentId: entry.key, grams: entry.value),
-    ];
-  }
-
-  /// Muda as cores. (Antes, o nome da variante acompanhava as cores; agora a variante
-  /// é um nome teu, como "Hamilton", e as cores são só a receita.)
-  void _changeColors(List<Filament> filaments, void Function() change) => setState(change);
-
-  /// Tira uma cor. O campo só se deita fora depois de sair do ecrã
-  /// (deitá-lo fora já, com o campo ainda desenhado, dava erro).
-  void _removeLine(_ColorLine line, List<Filament> filaments) {
-    _changeColors(filaments, () => _lines.remove(line));
-    WidgetsBinding.instance.addPostFrameCallback((_) => line.grams.dispose());
+  /// O filamento com que se faz o custo: a cor mais cara das disponíveis.
+  /// Sem cores escolhidas (ainda), o da receita gravada, ou o primeiro da lista.
+  Filament? _costFilament(List<Filament> filaments) {
+    final priciest = _calc.priciestFilament(filaments, widget.colorIds);
+    if (priciest != null) return priciest;
+    final saved = widget.variant == null ? null : _calc.mainFilament(widget.variant!);
+    return filaments.where((f) => f.id == saved?.filamentId).firstOrNull ?? filaments.firstOrNull;
   }
 
   /// A variante [base] com o que está escrito no cartão (ainda por gravar).
   Variant applyTo(Variant base) {
     final filaments = ref.read(filamentsProvider).value ?? <Filament>[];
+    final grams = _read(_gramsController).round();
+    final filament = _costFilament(filaments);
     return base.copyWith(
       // vazio = o próprio produto ("Modelo único"); o SKU é a API que o calcula a partir do nome
       name: widget.showName ? _nameController.text.trim() : base.name,
-      weightG: _read(_weightController).round(),
+      weightG: grams, // o peso da peça é o filamento que leva
       salePrice: _read(_priceController),
       printTimeMin: _read(_minutesController).round(),
-      // todas as cores (antes gravava-se só uma, e uma 2.ª cor perdia-se sem aviso)
-      filaments: _recipe(filaments),
+      // uma linha: as gramas, na cor mais cara (a da encomenda escolhe-se ao vender)
+      filaments: [if (filament != null && grams > 0) VariantFilament(filamentId: filament.id, grams: grams)],
       components: [
         for (final entry in _componentQty.entries)
-          if (entry.value > 0)
-            VariantComponent(componentId: entry.key, quantity: entry.value),
+          if (entry.value > 0) VariantComponent(componentId: entry.key, quantity: entry.value),
       ],
     );
   }
@@ -139,12 +110,11 @@ class CostCardState extends ConsumerState<CostCard> {
   /// (null = produto novo: conta como mudado se já se escreveu alguma coisa)
   bool isChangedFrom(Variant? base) {
     if (base == null) {
-      return [_minutesController, _priceController, _weightController, ..._lines.map((l) => l.grams)]
-              .any((c) => c.text.trim().isNotEmpty) ||
+      return [_gramsController, _minutesController, _priceController].any((c) => c.text.trim().isNotEmpty) ||
           _componentQty.values.any((q) => q > 0);
     }
     final now = applyTo(base);
-    // a ordem das linhas da receita não conta: compara-se ordenado
+    // a ordem das linhas não conta: compara-se ordenado
     String key(Iterable<String> items) => (items.toList()..sort()).join(",");
     return now.name != base.name ||
         now.weightG != base.weightG ||
@@ -159,10 +129,8 @@ class CostCardState extends ConsumerState<CostCard> {
   /// O primeiro problema que impede de gravar a variante, ou null.
   /// Sem preço, a encomenda chegava a 0,00 €; sem gramas nem tempo, o custo ficava a 0.
   String? problem() {
-    final filaments = ref.read(filamentsProvider).value ?? <Filament>[];
-    if (_recipe(filaments).isEmpty) return "Escreve as gramas de filamento.";
+    if (_read(_gramsController) <= 0) return "Escreve as gramas de filamento.";
     if (_read(_minutesController) <= 0) return "Escreve o tempo de impressão.";
-    if (_read(_weightController) <= 0) return "Escreve o peso da peça (para os portes).";
     if (_read(_priceController) <= 0) return "Escreve o preço de venda.";
     return null;
   }
@@ -180,34 +148,22 @@ class CostCardState extends ConsumerState<CostCard> {
     final etsy = channels.where((c) => c.code == "etsy").firstOrNull;
     final direct = channels.where((c) => c.code != "etsy").toList();
     final allComponents = ref.watch(componentsProvider).value ?? [];
-    final components = allComponents
-        .where((c) => c.kind == ComponentKind.component)
-        .toList();
-    final packaging = allComponents
-        .where((c) => c.kind == ComponentKind.packaging)
-        .toList();
+    final components = allComponents.where((c) => c.kind == ComponentKind.component).toList();
+    final packaging = allComponents.where((c) => c.kind == ComponentKind.packaging).toList();
     final settings = ref.watch(costSettingsProvider).value;
     final target = settings?.targetMarginPct ?? 60;
     final minimum = settings?.minMarginPct ?? 35;
     final rounding = settings?.rounding ?? 0.50;
 
     // 1. ler o que está escrito
+    final grams = _read(_gramsController);
     final minutes = _read(_minutesController);
     final price = _read(_priceController);
 
     // 2. fazer as contas (sempre de novo, a cada desenho)
-    // filamento: a soma de todas as cores, cada uma ao seu preço por kg
-    // (a mesma conta que a lista de variantes faz, por isso batem certo)
-    var filamentCost = 0.0;
-    var totalGrams = 0.0;
-    for (final line in _lines) {
-      final filament = _filamentOf(line, filaments);
-      final grams = _read(line.grams);
-      totalGrams += grams;
-      if (filament != null) {
-        filamentCost += _calc.filamentCost(grams: grams, filament: filament);
-      }
-    }
+    // filamento: as gramas ao preço por kg da cor mais cara das disponíveis
+    final costFilament = _costFilament(filaments);
+    final filamentCost = costFilament == null ? 0.0 : _calc.filamentCost(grams: grams, filament: costFilament);
     final perHour = ref.watch(printerCostPerHourProvider);
     final printing = _calc.printingCost(minutes: minutes, costPerHour: perHour);
     // componentes: quantidade × custo por unidade, somado para todos
@@ -249,9 +205,7 @@ class CostCardState extends ConsumerState<CostCard> {
     );
     // a barra vai até ao dobro do sugerido, ou 50% acima do preço guardado (o maior dos dois)
     final savedPrice = widget.variant?.salePrice ?? 0;
-    final sliderMax = math
-        .max(suggested * 2, savedPrice * 1.5)
-        .clamp(10.0, 1000.0);
+    final sliderMax = math.max(suggested * 2, savedPrice * 1.5).clamp(10.0, 1000.0);
 
     // 3. mostrar
     return Card(
@@ -261,110 +215,63 @@ class CostCardState extends ConsumerState<CostCard> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              widget.variant == null
-                  ? "Custo e margem"
-                  : "Custo e margem · ${widget.variant!.label}",
+              widget.variant == null ? "Custo e margem" : "Custo e margem · ${widget.variant!.label}",
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),
-            // o nome (só com variantes) e o peso; o SKU por baixo, só para ler (sai do nome)
-            ...[
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  if (!widget.showName) return _weightField();
-                  final name = TextField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: "Nome da variante",
-                      hintText: "Ex.: Hamilton",
-                      helperText: "Vazio = o produto não tem variantes.",
-                    ),
-                    onChanged: (_) => setState(() {}), // o SKU por baixo acompanha
-                  );
-                  final weight = _weightField();
-
-                  // com pouco espaço, o peso ficava espremido: passa para baixo do nome
-                  if (constraints.maxWidth < 420) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [name, const SizedBox(height: 12), weight],
-                    );
-                  }
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 3, child: name),
-                      const SizedBox(width: 12),
-                      Expanded(child: weight),
-                    ],
-                  );
-                },
+            // o nome (só com variantes); o SKU por baixo, só para ler (sai do nome)
+            if (widget.showName) ...[
+              TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: "Nome da variante",
+                  hintText: "Ex.: Hamilton",
+                  helperText: "Vazio = o produto não tem variantes.",
+                ),
+                onChanged: (_) => setState(() {}), // o SKU por baixo acompanha
               ),
-              const SizedBox(height: 8),
-              if (widget.showName && widget.variant != null) ...[
-                _skuLine(),
-                const SizedBox(height: 8),
-              ],
-              const SizedBox(height: 8),
+              if (widget.variant != null) ...[const SizedBox(height: 8), _skuLine()],
+              const SizedBox(height: 16),
             ],
-            // as cores: uma linha por filamento (filamento + gramas)
-            for (final (i, line) in _lines.indexed) ...[
-              if (i > 0) const SizedBox(height: 12),
-              _colorRow(line, i, filaments),
-            ],
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: () => _changeColors(filaments, () {
-                  // começa no primeiro filamento que ainda não está na receita
-                  final used = {for (final l in _lines) _filamentOf(l, filaments)?.id};
-                  final next = filaments.where((f) => !used.contains(f.id)).firstOrNull;
-                  _lines.add(_ColorLine(next?.id, ""));
-                }),
-                icon: const Icon(Icons.add),
-                label: const Text("Adicionar cor"),
-              ),
-            ),
-            if (_lines.length > 1)
-              Text(
-                "As gramas de cada cor estão no Bambu Studio, no consumo por filamento. "
-                "Já incluem o que se gasta nas trocas de cor.",
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            const SizedBox(height: 12),
+            // as gramas (são também o peso, para os portes) e o tempo, lado a lado
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: TextField(
-                    controller: _minutesController,
+                    controller: _gramsController,
                     style: AppTextStyles.mono,
                     decoration: const InputDecoration(
-                      labelText: "Impressão",
-                      suffixText: "min",
+                      labelText: "Gramas",
+                      suffixText: "g",
+                      helperText: "O peso da peça. Conta para os portes.",
+                      helperMaxLines: 2,
                     ),
                     keyboardType: TextInputType.number,
                     onChanged: (_) => setState(() {}),
                   ),
                 ),
                 const SizedBox(width: 12),
-                // o total das cores, para comparar com o peso da peça
                 Expanded(
-                  child: InputDecorator(
-                    decoration: const InputDecoration(
-                      labelText: "Filamento total",
-                      suffixText: "g",
-                      filled: false,
-                    ),
-                    child: Text(totalGrams.round().toString(), style: AppTextStyles.mono),
+                  child: TextField(
+                    controller: _minutesController,
+                    style: AppTextStyles.mono,
+                    decoration: const InputDecoration(labelText: "Impressão", suffixText: "min"),
+                    keyboardType: TextInputType.number,
+                    onChanged: (_) => setState(() {}),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             _row(
-              _lines.length > 1 ? "Filamento (${_lines.length} cores)" : "Filamento",
+              costFilament == null
+                  ? "Filamento"
+                  : "Filamento (${costFilament.colorName}, ${euroPer(_calc.filamentPricePerKg(costFilament), "kg")})",
               filamentCost,
             ),
+            if (widget.colorIds.length > 1)
+              Text("Custo feito com a cor mais cara das disponíveis.", style: Theme.of(context).textTheme.bodySmall),
             _row("Impressão", printing),
             const SizedBox(height: 12),
             Text("Componentes", style: Theme.of(context).textTheme.labelLarge),
@@ -380,9 +287,7 @@ class CostCardState extends ConsumerState<CostCard> {
               children: [
                 for (final p in packaging)
                   FilterChip(
-                    label: Text(
-                      "${p.name} · ${euro(_calc.componentUnitCost(p))}",
-                    ),
+                    label: Text("${p.name} · ${euro(_calc.componentUnitCost(p))}"),
                     selected: (_componentQty[p.id] ?? 0) > 0,
                     onSelected: (selected) => setState(() {
                       if (selected) {
@@ -406,10 +311,7 @@ class CostCardState extends ConsumerState<CostCard> {
                     controller: _priceController,
                     style: AppTextStyles.mono,
                     // o € como sufixo: a etiqueta curta cabe inteira no telemóvel
-                    decoration: const InputDecoration(
-                      labelText: "Preço de venda",
-                      suffixText: "€",
-                    ),
+                    decoration: const InputDecoration(labelText: "Preço de venda", suffixText: "€"),
                     keyboardType: TextInputType.number,
                     onChanged: (_) => setState(() {}),
                   ),
@@ -433,7 +335,12 @@ class CostCardState extends ConsumerState<CostCard> {
               builder: (context, constraints) {
                 final etsyBox = _marginBox("Etsy", etsyFees, etsyProfit, etsyMargin, target, minimum);
                 final directBox = _marginBox(
-                  "Venda direta", directFees, directProfit, directMargin, target, minimum,
+                  "Venda direta",
+                  directFees,
+                  directProfit,
+                  directMargin,
+                  target,
+                  minimum,
                   hint: direct.map((c) => c.name).join(", "),
                 );
                 if (constraints.maxWidth < 480) {
@@ -453,10 +360,7 @@ class CostCardState extends ConsumerState<CostCard> {
               },
             ),
             const SizedBox(height: 12),
-            _row(
-              "Preço sugerido (margem ${target.toStringAsFixed(0)}% na Etsy)",
-              suggested,
-            ),
+            _row("Preço sugerido (margem ${target.toStringAsFixed(0)}% na Etsy)", suggested),
             Text(
               "Um só preço para todos os canais: o sugerido já paga as taxas da Etsy; "
               "na venda direta ganhas mais.",
@@ -468,84 +372,11 @@ class CostCardState extends ConsumerState<CostCard> {
     );
   }
 
-  /// O peso da peça, para os portes.
-  Widget _weightField() => TextField(
-        controller: _weightController,
-        keyboardType: TextInputType.number,
-        style: AppTextStyles.mono,
-        decoration: const InputDecoration(
-          labelText: "Peso da peça",
-          suffixText: "g",
-          helperText: "Para os portes.",
-        ),
-        onChanged: (_) => setState(() {}),
-      );
-
-  /// Uma cor: o menu do filamento, as gramas e (havendo mais do que uma) o ✕ para a tirar.
-  Widget _colorRow(_ColorLine line, int index, List<Filament> filaments) {
-    final filament = _filamentOf(line, filaments);
-
-    return Row(
-      // a key é a própria linha: ao tirar uma cor do meio, as outras não trocam de estado
-      key: ObjectKey(line),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: DropdownButtonFormField<int>(
-            // a key muda com o filamento: o menu acompanha quando muda por fora
-            key: ValueKey(filament?.id),
-            initialValue: filament?.id,
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: _lines.length > 1 ? "Cor ${index + 1}" : "Filamento",
-            ),
-            hint: const Text("A carregar filamentos…"),
-            // fechado mostra a cor primeiro: no telemóvel o texto é cortado, e
-            // "PLA Blac…" em todas as linhas não deixava distinguir as cores
-            selectedItemBuilder: (context) => [
-              for (final f in filaments)
-                Text("${f.colorName} · ${f.material}", overflow: TextOverflow.ellipsis),
-            ],
-            items: [
-              for (final f in filaments)
-                DropdownMenuItem(
-                  value: f.id,
-                  child: Text(
-                    "${f.material} · ${f.colorName} — ${euroPer(_calc.filamentPricePerKg(f), "kg")}",
-                  ),
-                ),
-            ],
-            onChanged: (id) => _changeColors(filaments, () => line.filamentId = id),
-          ),
-        ),
-        const SizedBox(width: 8),
-        SizedBox(
-          width: 96,
-          child: TextField(
-            controller: line.grams,
-            style: AppTextStyles.mono,
-            decoration: const InputDecoration(labelText: "Gramas", suffixText: "g"),
-            keyboardType: TextInputType.number,
-            onChanged: (_) => setState(() {}),
-          ),
-        ),
-        if (_lines.length > 1)
-          IconButton(
-            tooltip: "Tirar esta cor",
-            onPressed: () => _removeLine(line, filaments),
-            icon: const Icon(Icons.close),
-          ),
-      ],
-    );
-  }
-
   /// O SKU que a variante vai ter com o nome escrito, e um aviso se for diferente do gravado
   /// (a Etsy liga as encomendas pelo SKU: se mudar aqui, tem de mudar lá).
   Widget _skuLine() {
     final v = widget.variant!;
-    final product = (ref.watch(productsProvider).value ?? [])
-        .where((p) => p.id == v.productId)
-        .firstOrNull;
+    final product = (ref.watch(productsProvider).value ?? []).where((p) => p.id == v.productId).firstOrNull;
     final next = product == null ? v.sku : variantSku(product.baseSku, _nameController.text);
     final changes = next != v.sku;
     return Column(
@@ -578,18 +409,12 @@ class CostCardState extends ConsumerState<CostCard> {
     final qty = _componentQty[c.id] ?? 0;
     return Row(
       children: [
-        Expanded(
-          child: Text(
-            "${c.name} · ${euroPer(_calc.componentUnitCost(c), "un.", decimals: 3)}",
-          ),
-        ),
+        Expanded(child: Text("${c.name} · ${euroPer(_calc.componentUnitCost(c), "un.", decimals: 3)}")),
         IconButton(
           icon: const Icon(Icons.remove),
           iconSize: 18,
           visualDensity: VisualDensity.compact,
-          onPressed: qty == 0
-              ? null
-              : () => setState(() => _componentQty[c.id] = qty - 1),
+          onPressed: qty == 0 ? null : () => setState(() => _componentQty[c.id] = qty - 1),
         ),
         Text("$qty", style: AppTextStyles.mono),
         IconButton(
@@ -639,27 +464,20 @@ class CostCardState extends ConsumerState<CostCard> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withValues(
-          alpha: 0.10,
-        ), // a mesma cor, muito clara, no fundo
+        color: color.withValues(alpha: 0.10), // a mesma cor, muito clara, no fundo
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-          if (hint != null && hint.isNotEmpty)
-            Text(hint, style: Theme.of(context).textTheme.bodySmall),
+          if (hint != null && hint.isNotEmpty) Text(hint, style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 4),
           Text("Taxas ${euro(fees)}", style: AppTextStyles.mono),
           const SizedBox(height: 4),
           Text(
             "${euro(profit)} · ${margin.toStringAsFixed(0)}%",
-            style: AppTextStyles.mono.copyWith(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
+            style: AppTextStyles.mono.copyWith(fontSize: 22, fontWeight: FontWeight.w700, color: color),
           ),
           const SizedBox(height: 8),
           LinearProgressIndicator(
@@ -675,12 +493,4 @@ class CostCardState extends ConsumerState<CostCard> {
       ),
     );
   }
-}
-
-/// Uma cor da peça: o filamento escolhido (null = o primeiro da lista) e as gramas.
-class _ColorLine {
-  _ColorLine(this.filamentId, String grams) : grams = TextEditingController(text: grams);
-
-  int? filamentId;
-  final TextEditingController grams;
 }
