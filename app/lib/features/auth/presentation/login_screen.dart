@@ -2,6 +2,7 @@ import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/features/auth/domain/app_user.dart';
 import 'package:cubico_backoffice/features/auth/domain/auth_repository.dart';
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -40,7 +41,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           .read(sessionProvider.notifier)
           .signIn(_email.text, _password.text, remember: _keepSession);
     } on AuthException catch (e) {
-      // palavra-passe errada: mostra a nossa mensagem
       setState(() {
         _loading = false;
         _error = e.message;
@@ -61,6 +61,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!mounted) return;
     context.go("/dashboard");
   }
+
+  /// O grupo de preenchimento automático só na app instalada (Android, iPhone), não na web.
+  Widget _autofill(Widget fields) => kIsWeb ? fields : AutofillGroup(child: fields);
 
   /// A palavra-passe, com o "olho" para a mostrar.
   Widget _passwordField() => TextField(
@@ -161,9 +164,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: 16),
             ],
             // o email e a palavra-passe numa "caixa" de preenchimento automático: o dispositivo
-            // percebe que são da mesma conta e, depois de entrar, pergunta se os quer guardar
-            AutofillGroup(
-              child: Column(
+            // percebe que são da mesma conta e, depois de entrar, pergunta se os quer guardar.
+            // Na WEB não: no browser do telemóvel, depois de uma palavra-passe errada, o campo
+            // ficava "preso" (não apagava nem aceitava letras). Na web ficam só os autofillHints.
+            _autofill(
+              Column(
                 children: [
                   TextField(
                     controller: _email,
