@@ -2,6 +2,7 @@ import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/features/auth/domain/app_user.dart';
 import 'package:cubico_backoffice/features/auth/domain/auth_repository.dart';
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -53,9 +54,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       });
       return;
     }
+    // entrou: avisa o dispositivo de que o preenchimento acabou bem. É isto que faz
+    // aparecer o "Guardar palavra-passe?" (Android, iPhone, browser). Só aqui, depois de a
+    // entrada dar certo: uma palavra-passe errada nunca é oferecida para guardar.
+    TextInput.finishAutofillContext();
     if (!mounted) return;
     context.go("/dashboard");
   }
+
+  /// A palavra-passe, com o "olho" para a mostrar.
+  Widget _passwordField() => TextField(
+        controller: _password,
+        obscureText: !_showPassword, // escondida, a não ser que se carregue no olho
+        autofillHints: const [AutofillHints.password],
+        decoration: InputDecoration(
+          labelText: "Palavra-passe",
+          suffixIcon: IconButton(
+            tooltip: _showPassword ? "Esconder a palavra-passe" : "Mostrar a palavra-passe",
+            icon: Icon(_showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+            onPressed: () => setState(() => _showPassword = !_showPassword),
+          ),
+        ),
+        onSubmitted: (_) => _signIn(),
+      );
 
   /// "Explorar em modo demo": escolher o papel.
   Future<void> _demo() async {
@@ -139,26 +160,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 16),
             ],
-            TextField(
-              controller: _email,
-              keyboardType: TextInputType.emailAddress,
-              autofillHints: const [AutofillHints.email],
-              decoration: const InputDecoration(labelText: "Email", hintText: "nome@exemplo.pt"),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _password,
-              obscureText: !_showPassword, // escondida, a não ser que se carregue no olho
-              autofillHints: const [AutofillHints.password],
-              decoration: InputDecoration(
-                labelText: "Palavra-passe",
-                suffixIcon: IconButton(
-                  tooltip: _showPassword ? "Esconder a palavra-passe" : "Mostrar a palavra-passe",
-                  icon: Icon(_showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined),
-                  onPressed: () => setState(() => _showPassword = !_showPassword),
-                ),
+            // o email e a palavra-passe numa "caixa" de preenchimento automático: o dispositivo
+            // percebe que são da mesma conta e, depois de entrar, pergunta se os quer guardar
+            AutofillGroup(
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _email,
+                    keyboardType: TextInputType.emailAddress,
+                    // username também: o Android e o iPhone guardam a conta por esse nome
+                    autofillHints: const [AutofillHints.email, AutofillHints.username],
+                    decoration: const InputDecoration(labelText: "Email", hintText: "nome@exemplo.pt"),
+                  ),
+                  const SizedBox(height: 16),
+                  _passwordField(),
+                ],
               ),
-              onSubmitted: (_) => _signIn(),
             ),
             const SizedBox(height: 8),
             CheckboxListTile(
