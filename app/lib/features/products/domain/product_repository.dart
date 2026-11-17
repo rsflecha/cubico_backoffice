@@ -11,6 +11,7 @@ abstract interface class ProductRepository {
     required String name,
     required int categoryId,
     required Uint8List photo,
+    List<int> colorIds = const [],
   });
 
   Future<Product> update(Product product);

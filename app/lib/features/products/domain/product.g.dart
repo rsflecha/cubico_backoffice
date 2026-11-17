@@ -20,6 +20,11 @@ _Product _$ProductFromJson(Map<String, dynamic> json) => _Product(
       ProductStatus.draft,
   isCustomizable: json['is_customizable'] as bool? ?? false,
   isPack: json['is_pack'] as bool? ?? false,
+  colorIds:
+      (json['color_ids'] as List<dynamic>?)
+          ?.map((e) => (e as num).toInt())
+          .toList() ??
+      const [],
 );
 
 Map<String, dynamic> _$ProductToJson(_Product instance) => <String, dynamic>{
@@ -34,6 +39,7 @@ Map<String, dynamic> _$ProductToJson(_Product instance) => <String, dynamic>{
   'status': _$ProductStatusEnumMap[instance.status]!,
   'is_customizable': instance.isCustomizable,
   'is_pack': instance.isPack,
+  'color_ids': instance.colorIds,
 };
 
 const _$ProductStatusEnumMap = {

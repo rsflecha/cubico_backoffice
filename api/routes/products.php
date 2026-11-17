@@ -36,13 +36,56 @@ function readProducts(?int $id = null): array
         . ' ORDER BY p.name';
     $stmt = db()->prepare($sql);
     $stmt->execute($id !== null ? [$id] : []);
-    return $stmt->fetchAll();
+    $rows = $stmt->fetchAll();
+
+    // as cores disponíveis de cada produto, numa só consulta
+    $colors = [];
+    $all = db()->query('SELECT product_id, filament_id FROM product_colors ORDER BY filament_id');
+    foreach ($all->fetchAll() as $c) {
+        $colors[(int) $c['product_id']][] = (int) $c['filament_id'];
+    }
+    foreach ($rows as &$row) {
+        $row['color_ids'] = $colors[(int) $row['id']] ?? [];
+    }
+    return $rows;
 }
 
-/** Um produto pronto para a app: os tipos certos e o endereço completo da foto. */
+/** Um produto pronto para a app: os tipos certos, o endereço da foto e as cores disponíveis. */
 function productJson(Request $request, array $row): array
 {
-    return typed($row, PRODUCT_TYPES) + ['photo_url' => photoUrl($request, $row['photo'] ?? null)];
+    return typed($row, PRODUCT_TYPES) + [
+        'photo_url' => photoUrl($request, $row['photo'] ?? null),
+        'color_ids' => $row['color_ids'] ?? [],
+    ];
+}
+
+/**
+ * Os ids das cores que vieram no pedido (null = o pedido não fala de cores: ficam como estão).
+ * Só valem filamentos que existem; os outros ignoram-se.
+ */
+function productColorIds(array $body): ?array
+{
+    if (!array_key_exists('color_ids', $body) || !is_array($body['color_ids'])) {
+        return null;
+    }
+    $ids = array_values(array_unique(array_map('intval', $body['color_ids'])));
+    if ($ids === []) {
+        return [];
+    }
+    $marks = implode(', ', array_fill(0, count($ids), '?'));
+    $stmt = db()->prepare("SELECT id FROM filaments WHERE id IN ($marks)");
+    $stmt->execute($ids);
+    return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+}
+
+/** Troca as cores disponíveis de um produto (chamar dentro da transação). */
+function saveProductColors(int $productId, array $colorIds): void
+{
+    db()->prepare('DELETE FROM product_colors WHERE product_id = ?')->execute([$productId]);
+    $insert = db()->prepare('INSERT INTO product_colors (product_id, filament_id) VALUES (?, ?)');
+    foreach ($colorIds as $filamentId) {
+        $insert->execute([$productId, $filamentId]);
+    }
 }
 
 /** Os valores das colunas que vieram no pedido, prontos para o SQL. */
@@ -91,6 +134,7 @@ $app->post('/api/products', function (Request $request, Response $response) {
         $pdo->prepare('INSERT INTO products (' . implode(', ', $columns) . ") VALUES ($marks)")->execute($values);
         $id = (int) $pdo->lastInsertId();
         $pdo->prepare('INSERT INTO product_photos (product_id, url, sort_order) VALUES (?, ?, 0)')->execute([$id, $photo]);
+        saveProductColors($id, productColorIds($body) ?? []);
         $pdo->commit();
     } catch (PDOException $e) {
         $pdo->rollBack();
@@ -113,7 +157,8 @@ $app->put('/api/products/{id}', function (Request $request, Response $response, 
     }
     $body = body($request);
     [$columns, $values] = productValues($body);
-    if ($columns === []) {
+    $colorIds = productColorIds($body);
+    if ($columns === [] && $colorIds === null) {
         return fail($response, 'Não há nada para mudar.', 422);
     }
 
@@ -133,9 +178,14 @@ $app->put('/api/products/{id}', function (Request $request, Response $response, 
     $pdo = db();
     try {
         $pdo->beginTransaction();
-        $pdo->prepare("UPDATE products SET $sets WHERE id = ?")->execute($values);
+        if ($columns !== []) {
+            $pdo->prepare("UPDATE products SET $sets WHERE id = ?")->execute($values);
+        }
         if ($categoryChanged) {
             refreshVariantSkus($id);
+        }
+        if ($colorIds !== null) {
+            saveProductColors($id, $colorIds);
         }
         $pdo->commit();
     } catch (PDOException $e) {

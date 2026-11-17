@@ -162,6 +162,8 @@ Pendente → Em produção → Pronta → Enviada → Entregue
   - **Preço de venda** com margem em tempo real (aviso abaixo da margem mínima) e **preço sugerido** pela margem alvo, já arredondado.
   - **Envio estimado**: peso da peça + embalagem → escalão e preço dos portes.
 - Na tabela de variantes, o **custo de produção** de cada variante (filamento + impressão + componentes + embalagem, sem taxas nem portes).
+- **Ficha única** (decidido a 2026-11-17): criar e editar são o MESMO ecrã — foto, nome, categoria e cores disponíveis à esquerda; receita e preço à direita. **Um só "Guardar"** grava o produto e a variante do cartão (antes havia um "Guardar variante" escondido no fundo do cartão, e um produto novo ficava com preço 0,00 €). Num produto novo os campos começam vazios (nada de valores de exemplo), e só grava com gramas, tempo, peso e preço. A tabela de variantes só aparece com duas ou mais; com uma, o produto é "modelo único" e tudo está no cartão. Sair, mudar de variante ou criar outra com alterações por gravar pergunta primeiro (Guardar / Descartar / Cancelar).
+- **Cores disponíveis por produto** (decidido a 2026-11-17, migração 006, tabela `product_colors`): os filamentos em que o produto se vende (ex.: a bola em Gold, White e Red). Na encomenda, o menu "Cor" mostra só estas e a da receita; sem nenhuma marcada, mostra todos os filamentos ativos.
 
 ### 5.5 Produção — como funciona
 

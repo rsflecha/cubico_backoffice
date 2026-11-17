@@ -22,6 +22,9 @@ abstract class Product with _$Product {
     ProductStatus status, // se nao vier, assume este valor
     @Default(false) bool isCustomizable, // se nao vier, assume este valor
     @Default(false) bool isPack, // se nao vier, assume este valor
+    // as cores em que se vende (ids dos filamentos): o menu "Cor" da encomenda mostra só estas.
+    // Vazio = todas as cores ativas.
+    @Default([]) List<int> colorIds,
   }) = _Product;
 
   factory Product.fromJson(Map<String, dynamic> json) =>

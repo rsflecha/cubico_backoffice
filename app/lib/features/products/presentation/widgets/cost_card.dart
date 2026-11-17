@@ -14,17 +14,23 @@ import 'package:cubico_backoffice/features/products/domain/variant.dart';
 import 'package:cubico_backoffice/features/products/domain/sku.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
 
+/// A receita e o preço de UMA variante. Não grava nada sozinho: quem grava é a ficha do
+/// produto, com o seu único "Guardar", que lê o que está aqui por uma `GlobalKey<CostCardState>`
+/// (applyTo, isChangedFrom e problem).
 class CostCard extends ConsumerStatefulWidget {
-  const CostCard({super.key, this.variant});
+  const CostCard({super.key, this.variant, this.showName = false});
 
-  /// A variante a editar. null = calculadora livre (produto novo).
+  /// A variante a editar. null = produto novo (os campos começam vazios).
   final Variant? variant;
 
+  /// Mostrar o campo "Nome da variante"? Só quando o produto tem variantes (Hamilton, Verstappen…).
+  final bool showName;
+
   @override
-  ConsumerState<CostCard> createState() => _CostCardState();
+  ConsumerState<CostCard> createState() => CostCardState();
 }
 
-class _CostCardState extends ConsumerState<CostCard> {
+class CostCardState extends ConsumerState<CostCard> {
   static const _calc = CostCalculator();
 
   // As cores da peça: uma linha por filamento, cada uma com as suas gramas.
@@ -32,10 +38,9 @@ class _CostCardState extends ConsumerState<CostCard> {
   final List<_ColorLine> _lines = [];
   // Quantidade de cada componente: id do componente → quantidade.
   final Map<int, int> _componentQty = {};
-  var _savingVariant = false; // desliga o botão enquanto grava
-
-  final _minutesController = TextEditingController(text: "540");
-  final _priceController = TextEditingController(text: "29");
+  // vazios num produto novo: valores de exemplo podiam ficar gravados sem se dar por isso
+  final _minutesController = TextEditingController();
+  final _priceController = TextEditingController();
   // o nome e o peso da variante (só quando há uma variante escolhida); o SKU sai do nome
   final _nameController = TextEditingController();
   final _weightController = TextEditingController();
@@ -64,9 +69,9 @@ class _CostCardState extends ConsumerState<CostCard> {
     for (final f in v?.filaments ?? <VariantFilament>[]) {
       _lines.add(_ColorLine(f.filamentId, "${f.grams}"));
     }
-    // sem receita: uma linha com o primeiro filamento e um valor de exemplo
-    if (_lines.isEmpty) _lines.add(_ColorLine(null, "180"));
-    if (v == null) return; // sem variante: ficam os valores de exemplo
+    // sem receita: uma linha com o primeiro filamento, e as gramas por escrever
+    if (_lines.isEmpty) _lines.add(_ColorLine(null, ""));
+    if (v == null) return; // produto novo: campos vazios
 
     _minutesController.text = "${v.printTimeMin}";
     _priceController.text = decimalField(v.salePrice);
@@ -111,17 +116,12 @@ class _CostCardState extends ConsumerState<CostCard> {
     WidgetsBinding.instance.addPostFrameCallback((_) => line.grams.dispose());
   }
 
-  /// Junta o que está no cartão numa variante e grava-a.
-  Future<void> _saveVariant() async {
-    final v = widget.variant!;
+  /// A variante [base] com o que está escrito no cartão (ainda por gravar).
+  Variant applyTo(Variant base) {
     final filaments = ref.read(filamentsProvider).value ?? <Filament>[];
-    setState(() => _savingVariant = true);
-
-    // vazio = o próprio produto ("Modelo único"); o SKU é a API que o calcula a partir do nome
-    final name = _nameController.text.trim();
-
-    final updated = v.copyWith(
-      name: name,
+    return base.copyWith(
+      // vazio = o próprio produto ("Modelo único"); o SKU é a API que o calcula a partir do nome
+      name: widget.showName ? _nameController.text.trim() : base.name,
       weightG: _read(_weightController).round(),
       salePrice: _read(_priceController),
       printTimeMin: _read(_minutesController).round(),
@@ -133,26 +133,38 @@ class _CostCardState extends ConsumerState<CostCard> {
             VariantComponent(componentId: entry.key, quantity: entry.value),
       ],
     );
+  }
 
-    try {
-      await ref.read(variantRepositoryProvider).update(updated);
-    } catch (error) {
-      // por exemplo: "Já existe uma variante com esse nome neste produto."
-      if (!mounted) return;
-      setState(() => _savingVariant = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Não foi possível guardar: $error")),
-      );
-      return;
+  /// Há alguma coisa escrita que ainda não está gravada em [base]?
+  /// (null = produto novo: conta como mudado se já se escreveu alguma coisa)
+  bool isChangedFrom(Variant? base) {
+    if (base == null) {
+      return [_minutesController, _priceController, _weightController, ..._lines.map((l) => l.grams)]
+              .any((c) => c.text.trim().isNotEmpty) ||
+          _componentQty.values.any((q) => q > 0);
     }
-    ref.invalidate(variantsProvider(v.productId));
-    ref.invalidate(allVariantsProvider);
+    final now = applyTo(base);
+    // a ordem das linhas da receita não conta: compara-se ordenado
+    String key(Iterable<String> items) => (items.toList()..sort()).join(",");
+    return now.name != base.name ||
+        now.weightG != base.weightG ||
+        (now.salePrice - base.salePrice).abs() > 0.001 ||
+        now.printTimeMin != base.printTimeMin ||
+        key(now.filaments.map((f) => "${f.filamentId}:${f.grams}")) !=
+            key(base.filaments.map((f) => "${f.filamentId}:${f.grams}")) ||
+        key(now.components.map((c) => "${c.componentId}:${c.quantity}")) !=
+            key(base.components.map((c) => "${c.componentId}:${c.quantity}"));
+  }
 
-    if (!mounted) return;
-    setState(() => _savingVariant = false);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text("Variante \"${name.isEmpty ? "Modelo único" : name}\" guardada.")));
+  /// O primeiro problema que impede de gravar a variante, ou null.
+  /// Sem preço, a encomenda chegava a 0,00 €; sem gramas nem tempo, o custo ficava a 0.
+  String? problem() {
+    final filaments = ref.read(filamentsProvider).value ?? <Filament>[];
+    if (_recipe(filaments).isEmpty) return "Escreve as gramas de filamento.";
+    if (_read(_minutesController) <= 0) return "Escreve o tempo de impressão.";
+    if (_read(_weightController) <= 0) return "Escreve o peso da peça (para os portes).";
+    if (_read(_priceController) <= 0) return "Escreve o preço de venda.";
+    return null;
   }
 
   /// Lê um número de um campo. Aceita vírgula ("29,90") e devolve 0 se estiver vazio.
@@ -255,10 +267,11 @@ class _CostCardState extends ConsumerState<CostCard> {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 16),
-            // o nome e o peso da variante; o SKU por baixo, só para ler (sai do nome)
-            if (widget.variant != null) ...[
+            // o nome (só com variantes) e o peso; o SKU por baixo, só para ler (sai do nome)
+            ...[
               LayoutBuilder(
                 builder: (context, constraints) {
+                  if (!widget.showName) return _weightField();
                   final name = TextField(
                     controller: _nameController,
                     decoration: const InputDecoration(
@@ -268,16 +281,7 @@ class _CostCardState extends ConsumerState<CostCard> {
                     ),
                     onChanged: (_) => setState(() {}), // o SKU por baixo acompanha
                   );
-                  final weight = TextField(
-                    controller: _weightController,
-                    keyboardType: TextInputType.number,
-                    style: AppTextStyles.mono,
-                    decoration: const InputDecoration(
-                      labelText: "Peso",
-                      suffixText: "g",
-                      helperText: "Para os portes.",
-                    ),
-                  );
+                  final weight = _weightField();
 
                   // com pouco espaço, o peso ficava espremido: passa para baixo do nome
                   if (constraints.maxWidth < 420) {
@@ -297,8 +301,11 @@ class _CostCardState extends ConsumerState<CostCard> {
                 },
               ),
               const SizedBox(height: 8),
-              _skuLine(),
-              const SizedBox(height: 16),
+              if (widget.showName && widget.variant != null) ...[
+                _skuLine(),
+                const SizedBox(height: 8),
+              ],
+              const SizedBox(height: 8),
             ],
             // as cores: uma linha por filamento (filamento + gramas)
             for (final (i, line) in _lines.indexed) ...[
@@ -455,28 +462,25 @@ class _CostCardState extends ConsumerState<CostCard> {
               "na venda direta ganhas mais.",
               style: Theme.of(context).textTheme.bodySmall,
             ),
-            if (widget.variant != null) ...[
-              const SizedBox(height: 12),
-              FilledButton(
-                onPressed: _savingVariant
-                    ? null
-                    : _saveVariant,
-                child: _savingVariant
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text("Guardar variante"),
-              ),
-            ],
           ],
         ),
       ),
     );
   }
 
-  /// Uma linha com o nome à esquerda e o valor em € à direita.
+  /// O peso da peça, para os portes.
+  Widget _weightField() => TextField(
+        controller: _weightController,
+        keyboardType: TextInputType.number,
+        style: AppTextStyles.mono,
+        decoration: const InputDecoration(
+          labelText: "Peso da peça",
+          suffixText: "g",
+          helperText: "Para os portes.",
+        ),
+        onChanged: (_) => setState(() {}),
+      );
+
   /// Uma cor: o menu do filamento, as gramas e (havendo mais do que uma) o ✕ para a tirar.
   Widget _colorRow(_ColorLine line, int index, List<Filament> filaments) {
     final filament = _filamentOf(line, filaments);

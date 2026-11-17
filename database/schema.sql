@@ -155,6 +155,15 @@ CREATE TABLE product_photos (
   FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- as cores em que o produto se vende (o menu "Cor" da encomenda); migração 006
+CREATE TABLE product_colors (
+  product_id  INT UNSIGNED      NOT NULL,
+  filament_id SMALLINT UNSIGNED NOT NULL,
+  PRIMARY KEY (product_id, filament_id),
+  FOREIGN KEY (product_id)  REFERENCES products(id)  ON DELETE CASCADE,
+  FOREIGN KEY (filament_id) REFERENCES filaments(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE variants (
   id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   product_id      INT UNSIGNED NOT NULL,

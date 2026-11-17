@@ -625,8 +625,13 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     // a cor da receita (o filamento principal), para o texto da primeira opção do menu
     final recipeId = _calc.mainFilament(line.variant)?.filamentId;
     final recipe = filaments.where((f) => f.id == recipeId).firstOrNull;
-    // no menu: os filamentos ativos (e o escolhido, mesmo que entretanto tenha sido desativado)
-    final colors = filaments.where((f) => f.isActive || f.id == line.filamentId).toList();
+    // no menu: as cores disponíveis do produto (sem nenhuma marcada, todos os filamentos ativos);
+    // a da receita é a primeira opção, e o escolhido fica sempre (mesmo que tenha sido desativado)
+    final allowed = product?.colorIds ?? const <int>[];
+    final colors = filaments
+        .where((f) => f.id == line.filamentId ||
+            (allowed.isEmpty ? f.isActive : allowed.contains(f.id) && f.id != recipeId))
+        .toList();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),

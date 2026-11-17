@@ -17,11 +17,22 @@ class VariantsSection extends ConsumerWidget {
     required this.productId,
     this.selectedVariantId,
     this.onSelect,
+    this.canLeave,
   });
 
   final int productId;
   final int? selectedVariantId; // qual está escolhida (para a pintar)
   final ValueChanged<Variant>? onSelect; // chamada quando se toca numa linha
+  /// Antes de mudar de variante ou criar outra: a ficha pergunta se há alterações por gravar.
+  /// Devolve false para ficar onde está.
+  final Future<bool> Function()? canLeave;
+
+  /// Escolhe outra variante, se a ficha deixar (não perde o que está escrito).
+  Future<void> _select(Variant v) async {
+    if (v.id == selectedVariantId) return;
+    if (canLeave != null && !await canLeave!()) return;
+    onSelect?.call(v);
+  }
 
   /// Pergunta o nome (Hamilton, Verstappen…), cria a variante e escolhe-a no cartão de custo.
   /// A API copia-lhe o preço, o tempo, o peso e a receita da primeira variante.
@@ -39,6 +50,9 @@ class VariantsSection extends ConsumerWidget {
       ),
     );
     if (name == null || !context.mounted) return; // cancelou
+    // a nova copia a receita GRAVADA da primeira: o que está por gravar tem de ir antes
+    if (canLeave != null && !await canLeave!()) return;
+    if (!context.mounted) return;
 
     final Variant created;
     try {
@@ -137,8 +151,13 @@ class VariantsSection extends ConsumerWidget {
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, stack) => Text("Erro: $error"),
               data: (list) {
-                if (list.isEmpty) {
-                  return const Text("Este produto ainda não tem variantes.");
+                // uma só (o próprio produto): não há tabela, a receita e o preço estão no cartão
+                if (list.length <= 1) {
+                  return Text(
+                    "Sem variantes: vende-se como modelo único (receita e preço no cartão). "
+                    "Junta variantes se houver versões com nomes, como Hamilton e Verstappen.",
+                    style: Theme.of(context).textTheme.bodySmall,
+                  );
                 }
 
                 /// O custo de produção de uma variante.
@@ -160,7 +179,7 @@ class VariantsSection extends ConsumerWidget {
                               ListTile(
                                 contentPadding: const EdgeInsets.only(left: 4),
                                 selected: v.id == selectedVariantId,
-                                onTap: () => onSelect?.call(v),
+                                onTap: () => _select(v),
                                 title: Text(v.label),
                                 subtitle: Text(
                                   "${v.sku} · ${_formatHours(v.printTimeMin)}",
@@ -236,7 +255,7 @@ class VariantsSection extends ConsumerWidget {
                                 for (final v in list)
                                   DataRow(
                                     selected: v.id == selectedVariantId,
-                                    onSelectChanged: (_) => onSelect?.call(v),
+                                    onSelectChanged: (_) => _select(v),
                                     cells: [
                                       DataCell(Text(v.label)),
                                       DataCell(
@@ -279,7 +298,7 @@ class VariantsSection extends ConsumerWidget {
                 );
               },
             ),
-            if (canSeeCosts) ...[
+            if (canSeeCosts && (variants.value?.length ?? 0) > 1) ...[
               const SizedBox(height: 8),
               Text(
                 "* Custo de produção: filamento + impressão + componentes + embalagem, "
@@ -356,7 +375,7 @@ class _VariantNameDialogState extends State<_VariantNameDialog> {
             Text(
               widget.hasUnnamed
                   ? "Este produto tem um \"Modelo único\". Dá-lhe também um nome (ex.: Hamilton) "
-                      "no cartão de custo, para as variantes se distinguirem."
+                      "no cartão de custo, para as variantes se distinguirem. A nova começa com a receita dele."
                   : "Começa com o preço, o tempo e a receita da primeira variante. Acerta o que mudar.",
               style: Theme.of(context).textTheme.bodySmall,
             ),
