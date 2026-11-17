@@ -14,6 +14,7 @@ import 'package:cubico_backoffice/features/products/domain/product.dart';
 import 'package:cubico_backoffice/features/products/domain/variant.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
 import 'package:cubico_backoffice/features/production/presentation/production_providers.dart';
+import 'package:cubico_backoffice/core/colors.dart';
 import 'package:cubico_backoffice/core/formatting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -49,9 +50,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
   @override
   void dispose() {
-    for (final c in [_customerName, _customerContact, _notes]) {
-      c.dispose();
-    }
+    // cada controller deita-se fora UMA vez (duas dava "used after being disposed")
     for (final line in _lines) {
       line.dispose();
     }
@@ -251,7 +250,13 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       }) {
     final qty = parseDecimal(line.quantity.text).round();
     final unitPrice = parseDecimal(line.price.text);
-    final customization = line.customization.text.trim();
+    // a cor escolhida vai à frente da personalização: "Cor: White · CARLA".
+    // É este texto que aparece na tarefa de produção.
+    final color = filaments.where((f) => f.id == line.filamentId).firstOrNull;
+    final customization = [
+      if (color != null) "Cor: ${color.colorName}",
+      line.customization.text.trim(),
+    ].where((part) => part.isNotEmpty).join(" · ");
 
     return OrderLine(
       id: 0,
@@ -259,12 +264,14 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       quantity: qty,
       unitPrice: unitPrice,
       customization: customization.isEmpty ? null : customization,
-      // a fotografia do custo de produção, neste momento
+      filamentId: color?.id,
+      // a fotografia do custo de produção, neste momento (com o preço da cor escolhida)
       unitCost: _calc.variantProductionCost(
         variant: line.variant,
         filaments: filaments,
         components: components,
         costPerHour: perHour,
+        colorFilamentId: color?.id,
       ),
       // as percentagens do canal sobre esta linha; os portes cobrados e o valor fixo
       // contam uma vez, na primeira linha; a taxa de anúncio conta por unidade
@@ -434,7 +441,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         _section(
           "3 · Artigos",
           [
-            for (final line in _lines) _lineCard(line, products),
+            for (final line in _lines) _lineCard(line, products, filaments),
             OutlinedButton.icon(
               onPressed: () => _addProduct(products, variants),
               icon: const Icon(Icons.add),
@@ -550,7 +557,15 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       ],
     );
 
-    final summary = _summaryCard(channel, draft, problem, canSeeCosts);
+    // ao carregar em "Criar", o rascunho monta-se OUTRA VEZ, nesse momento: há campos
+    // (personalização, contacto, notas) que não redesenham o ecrã quando se escreve neles,
+    // e o `draft` acima podia já não ter o último texto escrito
+    void create() {
+      final fresh = _draftOrder(channel, filaments, components, perHour, rates);
+      _create(fresh, _problem(fresh, channel, components, rates));
+    }
+
+    final summary = _summaryCard(channel, draft, problem, canSeeCosts, create);
 
     return Scaffold(
       appBar: AppBar(title: const Text("Criar encomenda")),
@@ -605,8 +620,13 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   }
 
   /// O cartão de uma linha: produto e variante, quantidade, preço, personalização.
-  Widget _lineCard(_DraftLine line, List<Product> products) {
+  Widget _lineCard(_DraftLine line, List<Product> products, List<Filament> filaments) {
     final product = products.where((p) => p.id == line.variant.productId).firstOrNull;
+    // a cor da receita (o filamento principal), para o texto da primeira opção do menu
+    final recipeId = _calc.mainFilament(line.variant)?.filamentId;
+    final recipe = filaments.where((f) => f.id == recipeId).firstOrNull;
+    // no menu: os filamentos ativos (e o escolhido, mesmo que entretanto tenha sido desativado)
+    final colors = filaments.where((f) => f.isActive || f.id == line.filamentId).toList();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -682,6 +702,40 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                 ],
               ),
             const SizedBox(height: 8),
+            // a cor: por omissão a da receita; outra cor muda o custo e vai para a produção
+            DropdownButtonFormField<int?>(
+              key: ValueKey("color-${line.hashCode}"),
+              initialValue: line.filamentId,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: "Cor"),
+              items: [
+                DropdownMenuItem<int?>(
+                  value: null,
+                  child: Text(
+                    recipe == null ? "A da receita" : "A da receita (${recipe.colorName})",
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                for (final f in colors)
+                  DropdownMenuItem<int?>(
+                    value: f.id,
+                    child: Row(
+                      children: [
+                        CircleAvatar(radius: 6, backgroundColor: colorFromHex(f.colorHex)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "${f.colorName} · ${f.material}",
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+              onChanged: (id) => setState(() => line.filamentId = id),
+            ),
+            const SizedBox(height: 8),
           TextField(
             controller: line.customization,
             decoration: const InputDecoration(
@@ -696,7 +750,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   }
 
   /// O resumo à direita: as contas vêm do próprio rascunho da encomenda.
-  Widget _summaryCard(SalesChannel? channel, Order draft, String? problem, bool canSeeCosts) {
+  Widget _summaryCard(
+      SalesChannel? channel, Order draft, String? problem, bool canSeeCosts, VoidCallback onCreate) {
     final margin = draft.total > 0 ? draft.profit / draft.total * 100 : 0;
 
     Widget line(String label, String value, {bool bold = false, Color? color}) => Padding(
@@ -750,7 +805,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               const SizedBox(height: 8),
             ],
             FilledButton(
-              onPressed: _saving ? null : () => _create(draft, problem),
+              onPressed: _saving ? null : onCreate,
               child: _saving
                   ? const SizedBox(
                 width: 20,
@@ -779,6 +834,7 @@ class _DraftLine {
         customization = TextEditingController();
 
   final Variant variant;
+  int? filamentId; // a cor escolhida; null = a cor da receita
   final TextEditingController quantity;
   final TextEditingController price;
   final TextEditingController customization;

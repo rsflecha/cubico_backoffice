@@ -132,6 +132,9 @@ abstract class OrderLine with _$OrderLine {
     String? customization, // "nome: Ana", "cor: azul"…
     required double unitCost, // custo de produção, no dia da venda
     @Default(0) double channelFee, // taxa do canal desta linha
+    // a cor escolhida ao criar (null = a da receita). Só vai NO PEDIDO: a API usa-a
+    // para o custo; ao ler as encomendas não vem (a cor fica escrita na personalização)
+    int? filamentId,
   }) = _OrderLine;
 
   factory OrderLine.fromJson(Map<String, dynamic> json) =>

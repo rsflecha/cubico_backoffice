@@ -362,7 +362,10 @@ mixin _$OrderLine {
  int get id; int get variantId; int get quantity; double get unitPrice;// preço de venda de cada unidade
  double get discount; String? get customization;// "nome: Ana", "cor: azul"…
  double get unitCost;// custo de produção, no dia da venda
- double get channelFee;
+ double get channelFee;// taxa do canal desta linha
+// a cor escolhida ao criar (null = a da receita). Só vai NO PEDIDO: a API usa-a
+// para o custo; ao ler as encomendas não vem (a cor fica escrita na personalização)
+ int? get filamentId;
 /// Create a copy of OrderLine
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -375,16 +378,16 @@ $OrderLineCopyWith<OrderLine> get copyWith => _$OrderLineCopyWithImpl<OrderLine>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrderLine&&(identical(other.id, id) || other.id == id)&&(identical(other.variantId, variantId) || other.variantId == variantId)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unitPrice, unitPrice) || other.unitPrice == unitPrice)&&(identical(other.discount, discount) || other.discount == discount)&&(identical(other.customization, customization) || other.customization == customization)&&(identical(other.unitCost, unitCost) || other.unitCost == unitCost)&&(identical(other.channelFee, channelFee) || other.channelFee == channelFee));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrderLine&&(identical(other.id, id) || other.id == id)&&(identical(other.variantId, variantId) || other.variantId == variantId)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unitPrice, unitPrice) || other.unitPrice == unitPrice)&&(identical(other.discount, discount) || other.discount == discount)&&(identical(other.customization, customization) || other.customization == customization)&&(identical(other.unitCost, unitCost) || other.unitCost == unitCost)&&(identical(other.channelFee, channelFee) || other.channelFee == channelFee)&&(identical(other.filamentId, filamentId) || other.filamentId == filamentId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,variantId,quantity,unitPrice,discount,customization,unitCost,channelFee);
+int get hashCode => Object.hash(runtimeType,id,variantId,quantity,unitPrice,discount,customization,unitCost,channelFee,filamentId);
 
 @override
 String toString() {
-  return 'OrderLine(id: $id, variantId: $variantId, quantity: $quantity, unitPrice: $unitPrice, discount: $discount, customization: $customization, unitCost: $unitCost, channelFee: $channelFee)';
+  return 'OrderLine(id: $id, variantId: $variantId, quantity: $quantity, unitPrice: $unitPrice, discount: $discount, customization: $customization, unitCost: $unitCost, channelFee: $channelFee, filamentId: $filamentId)';
 }
 
 
@@ -395,7 +398,7 @@ abstract mixin class $OrderLineCopyWith<$Res>  {
   factory $OrderLineCopyWith(OrderLine value, $Res Function(OrderLine) _then) = _$OrderLineCopyWithImpl;
 @useResult
 $Res call({
- int id, int variantId, int quantity, double unitPrice, double discount, String? customization, double unitCost, double channelFee
+ int id, int variantId, int quantity, double unitPrice, double discount, String? customization, double unitCost, double channelFee, int? filamentId
 });
 
 
@@ -412,7 +415,7 @@ class _$OrderLineCopyWithImpl<$Res>
 
 /// Create a copy of OrderLine
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? variantId = null,Object? quantity = null,Object? unitPrice = null,Object? discount = null,Object? customization = freezed,Object? unitCost = null,Object? channelFee = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? variantId = null,Object? quantity = null,Object? unitPrice = null,Object? discount = null,Object? customization = freezed,Object? unitCost = null,Object? channelFee = null,Object? filamentId = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,variantId: null == variantId ? _self.variantId : variantId // ignore: cast_nullable_to_non_nullable
@@ -422,7 +425,8 @@ as double,discount: null == discount ? _self.discount : discount // ignore: cast
 as double,customization: freezed == customization ? _self.customization : customization // ignore: cast_nullable_to_non_nullable
 as String?,unitCost: null == unitCost ? _self.unitCost : unitCost // ignore: cast_nullable_to_non_nullable
 as double,channelFee: null == channelFee ? _self.channelFee : channelFee // ignore: cast_nullable_to_non_nullable
-as double,
+as double,filamentId: freezed == filamentId ? _self.filamentId : filamentId // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 
@@ -507,10 +511,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int variantId,  int quantity,  double unitPrice,  double discount,  String? customization,  double unitCost,  double channelFee)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int variantId,  int quantity,  double unitPrice,  double discount,  String? customization,  double unitCost,  double channelFee,  int? filamentId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OrderLine() when $default != null:
-return $default(_that.id,_that.variantId,_that.quantity,_that.unitPrice,_that.discount,_that.customization,_that.unitCost,_that.channelFee);case _:
+return $default(_that.id,_that.variantId,_that.quantity,_that.unitPrice,_that.discount,_that.customization,_that.unitCost,_that.channelFee,_that.filamentId);case _:
   return orElse();
 
 }
@@ -528,10 +532,10 @@ return $default(_that.id,_that.variantId,_that.quantity,_that.unitPrice,_that.di
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int variantId,  int quantity,  double unitPrice,  double discount,  String? customization,  double unitCost,  double channelFee)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int variantId,  int quantity,  double unitPrice,  double discount,  String? customization,  double unitCost,  double channelFee,  int? filamentId)  $default,) {final _that = this;
 switch (_that) {
 case _OrderLine():
-return $default(_that.id,_that.variantId,_that.quantity,_that.unitPrice,_that.discount,_that.customization,_that.unitCost,_that.channelFee);case _:
+return $default(_that.id,_that.variantId,_that.quantity,_that.unitPrice,_that.discount,_that.customization,_that.unitCost,_that.channelFee,_that.filamentId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -548,10 +552,10 @@ return $default(_that.id,_that.variantId,_that.quantity,_that.unitPrice,_that.di
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int variantId,  int quantity,  double unitPrice,  double discount,  String? customization,  double unitCost,  double channelFee)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int variantId,  int quantity,  double unitPrice,  double discount,  String? customization,  double unitCost,  double channelFee,  int? filamentId)?  $default,) {final _that = this;
 switch (_that) {
 case _OrderLine() when $default != null:
-return $default(_that.id,_that.variantId,_that.quantity,_that.unitPrice,_that.discount,_that.customization,_that.unitCost,_that.channelFee);case _:
+return $default(_that.id,_that.variantId,_that.quantity,_that.unitPrice,_that.discount,_that.customization,_that.unitCost,_that.channelFee,_that.filamentId);case _:
   return null;
 
 }
@@ -563,7 +567,7 @@ return $default(_that.id,_that.variantId,_that.quantity,_that.unitPrice,_that.di
 @JsonSerializable()
 
 class _OrderLine implements OrderLine {
-  const _OrderLine({required this.id, required this.variantId, this.quantity = 1, required this.unitPrice, this.discount = 0, this.customization, required this.unitCost, this.channelFee = 0});
+  const _OrderLine({required this.id, required this.variantId, this.quantity = 1, required this.unitPrice, this.discount = 0, this.customization, required this.unitCost, this.channelFee = 0, this.filamentId});
   factory _OrderLine.fromJson(Map<String, dynamic> json) => _$OrderLineFromJson(json);
 
 @override final  int id;
@@ -577,6 +581,10 @@ class _OrderLine implements OrderLine {
 @override final  double unitCost;
 // custo de produção, no dia da venda
 @override@JsonKey() final  double channelFee;
+// taxa do canal desta linha
+// a cor escolhida ao criar (null = a da receita). Só vai NO PEDIDO: a API usa-a
+// para o custo; ao ler as encomendas não vem (a cor fica escrita na personalização)
+@override final  int? filamentId;
 
 /// Create a copy of OrderLine
 /// with the given fields replaced by the non-null parameter values.
@@ -591,16 +599,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OrderLine&&(identical(other.id, id) || other.id == id)&&(identical(other.variantId, variantId) || other.variantId == variantId)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unitPrice, unitPrice) || other.unitPrice == unitPrice)&&(identical(other.discount, discount) || other.discount == discount)&&(identical(other.customization, customization) || other.customization == customization)&&(identical(other.unitCost, unitCost) || other.unitCost == unitCost)&&(identical(other.channelFee, channelFee) || other.channelFee == channelFee));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OrderLine&&(identical(other.id, id) || other.id == id)&&(identical(other.variantId, variantId) || other.variantId == variantId)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unitPrice, unitPrice) || other.unitPrice == unitPrice)&&(identical(other.discount, discount) || other.discount == discount)&&(identical(other.customization, customization) || other.customization == customization)&&(identical(other.unitCost, unitCost) || other.unitCost == unitCost)&&(identical(other.channelFee, channelFee) || other.channelFee == channelFee)&&(identical(other.filamentId, filamentId) || other.filamentId == filamentId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,variantId,quantity,unitPrice,discount,customization,unitCost,channelFee);
+int get hashCode => Object.hash(runtimeType,id,variantId,quantity,unitPrice,discount,customization,unitCost,channelFee,filamentId);
 
 @override
 String toString() {
-  return 'OrderLine(id: $id, variantId: $variantId, quantity: $quantity, unitPrice: $unitPrice, discount: $discount, customization: $customization, unitCost: $unitCost, channelFee: $channelFee)';
+  return 'OrderLine(id: $id, variantId: $variantId, quantity: $quantity, unitPrice: $unitPrice, discount: $discount, customization: $customization, unitCost: $unitCost, channelFee: $channelFee, filamentId: $filamentId)';
 }
 
 
@@ -611,7 +619,7 @@ abstract mixin class _$OrderLineCopyWith<$Res> implements $OrderLineCopyWith<$Re
   factory _$OrderLineCopyWith(_OrderLine value, $Res Function(_OrderLine) _then) = __$OrderLineCopyWithImpl;
 @override @useResult
 $Res call({
- int id, int variantId, int quantity, double unitPrice, double discount, String? customization, double unitCost, double channelFee
+ int id, int variantId, int quantity, double unitPrice, double discount, String? customization, double unitCost, double channelFee, int? filamentId
 });
 
 
@@ -628,7 +636,7 @@ class __$OrderLineCopyWithImpl<$Res>
 
 /// Create a copy of OrderLine
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? variantId = null,Object? quantity = null,Object? unitPrice = null,Object? discount = null,Object? customization = freezed,Object? unitCost = null,Object? channelFee = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? variantId = null,Object? quantity = null,Object? unitPrice = null,Object? discount = null,Object? customization = freezed,Object? unitCost = null,Object? channelFee = null,Object? filamentId = freezed,}) {
   return _then(_OrderLine(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,variantId: null == variantId ? _self.variantId : variantId // ignore: cast_nullable_to_non_nullable
@@ -638,7 +646,8 @@ as double,discount: null == discount ? _self.discount : discount // ignore: cast
 as double,customization: freezed == customization ? _self.customization : customization // ignore: cast_nullable_to_non_nullable
 as String?,unitCost: null == unitCost ? _self.unitCost : unitCost // ignore: cast_nullable_to_non_nullable
 as double,channelFee: null == channelFee ? _self.channelFee : channelFee // ignore: cast_nullable_to_non_nullable
-as double,
+as double,filamentId: freezed == filamentId ? _self.filamentId : filamentId // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 

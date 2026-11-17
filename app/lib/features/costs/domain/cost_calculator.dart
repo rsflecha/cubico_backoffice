@@ -15,6 +15,21 @@ class CostCalculator {
     return costPerSpool / (filament.spoolWeightG / 1000);
   }
 
+  /// O filamento que dá a cor a uma variante: o que leva mais gramas
+  /// (num empate, o de id mais baixo). É o que a cor escolhida numa encomenda substitui.
+  /// A mesma regra está na API (variantUnitCost, em src/costs.php).
+  VariantFilament? mainFilament(Variant variant) {
+    VariantFilament? best;
+    for (final line in variant.filaments) {
+      if (best == null ||
+          line.grams > best.grams ||
+          (line.grams == best.grams && line.filamentId < best.filamentId)) {
+        best = line;
+      }
+    }
+    return best;
+  }
+
   /// Custo do filamento gasto numa peça.
   double filamentCost({required double grams, required Filament filament}) {
     return grams * filamentPricePerKg(filament) / 1000;
@@ -99,13 +114,17 @@ class CostCalculator {
     required List<Filament> filaments,
     required List<Component> components,
     required double costPerHour,
+    int? colorFilamentId, // a cor escolhida na encomenda: troca o filamento principal
   }) {
     var total = 0.0;
+    final main = mainFilament(variant);
 
     // filamentos: cada linha da receita
     for (final line in variant.filaments) {
+      // a linha principal passa a usar a cor escolhida (as gramas ficam iguais)
+      final id = colorFilamentId != null && identical(line, main) ? colorFilamentId : line.filamentId;
       final filament = filaments
-          .where((f) => f.id == line.filamentId)
+          .where((f) => f.id == id)
           .firstOrNull;
       if (filament != null) {
         total += filamentCost(grams: line.grams.toDouble(), filament: filament);

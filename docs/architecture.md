@@ -238,6 +238,7 @@ Para correr no PC: `php -S localhost:8080 -t public` dentro de `api` (ou o `inic
 | 14 | Etsy: ligar a loja e importar as encomendas | ✅ |
 | 15 | Clientes: telemóvel e localidade pelo código postal | ✅ |
 | 16 | Etsy: conferir os SKU dos anúncios contra as variantes | ✅ |
+| 17 | Encomendas: cor de cada artigo (troca o filamento principal no custo) | ✅ |
 
 **Limitações conhecidas:** um filamento por variante no cartão de custo; ainda não se criam nem apagam variantes; nas encomendas manuais, os portes reais usam só a zona Portugal; a produção ainda não desconta filamento do stock nem regista falhas; na API, "enviar para produção" à mão e "encomenda pronta sozinha" ainda correm na app, pelo ProductionService.
 

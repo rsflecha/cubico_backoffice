@@ -99,6 +99,7 @@ _OrderLine _$OrderLineFromJson(Map<String, dynamic> json) => _OrderLine(
   customization: json['customization'] as String?,
   unitCost: (json['unit_cost'] as num).toDouble(),
   channelFee: (json['channel_fee'] as num?)?.toDouble() ?? 0,
+  filamentId: (json['filament_id'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$OrderLineToJson(_OrderLine instance) =>
@@ -111,4 +112,5 @@ Map<String, dynamic> _$OrderLineToJson(_OrderLine instance) =>
       'customization': instance.customization,
       'unit_cost': instance.unitCost,
       'channel_fee': instance.channelFee,
+      'filament_id': instance.filamentId,
     };

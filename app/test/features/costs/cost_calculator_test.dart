@@ -206,4 +206,62 @@ void main() {
       expect(calc.shippingPrice(weightG: 80, zoneId: 4, rates: rates), isNull);
     });
   });
+
+  group("Cor escolhida na encomenda", () {
+    // dourado a 40 €/kg, branco a 20 €/kg, preto (o pormenor) a 22,50 €/kg
+    const gold = Filament(id: 7, material: "PLA", colorName: "Gold", listPrice: 40, paidPrice: 40);
+    const white = Filament(id: 8, material: "PLA", colorName: "White", listPrice: 20, paidPrice: 20);
+    const filaments = [pla, gold, white];
+    // a bola: 100 g de dourado (a cor) + 10 g de preto (o pormenor)
+    const ball = Variant(
+      id: 1,
+      productId: 1,
+      name: "",
+      sku: "CD3-DEC-01",
+      salePrice: 10,
+      filaments: [
+        VariantFilament(filamentId: 1, grams: 10),
+        VariantFilament(filamentId: 7, grams: 100),
+      ],
+    );
+    double cost({int? color}) => calc.variantProductionCost(
+          variant: ball,
+          filaments: filaments,
+          components: const [],
+          costPerHour: 0,
+          colorFilamentId: color,
+        );
+
+    test("o filamento principal é o que leva mais gramas", () {
+      expect(calc.mainFilament(ball)?.filamentId, 7);
+    });
+
+    test("num empate de gramas, fica o de id mais baixo (como na API)", () {
+      const tie = Variant(id: 2, productId: 1, name: "", sku: "X", salePrice: 1, filaments: [
+        VariantFilament(filamentId: 8, grams: 50),
+        VariantFilament(filamentId: 7, grams: 50),
+      ]);
+      expect(calc.mainFilament(tie)?.filamentId, 7);
+    });
+
+    test("sem cor escolhida: o custo da receita", () {
+      // 100 g × 40 + 10 g × 22,50 = 4,00 + 0,225
+      expect(cost(), closeTo(4.225, 0.0001));
+    });
+
+    test("em branco: as 100 g passam ao preço do branco, o pormenor fica", () {
+      // 100 g × 20 + 10 g × 22,50 = 2,00 + 0,225
+      expect(cost(color: 8), closeTo(2.225, 0.0001));
+    });
+
+    test("uma variante sem receita não muda", () {
+      const empty = Variant(id: 3, productId: 1, name: "", sku: "Y", salePrice: 1);
+      expect(calc.mainFilament(empty), isNull);
+      expect(
+        calc.variantProductionCost(
+            variant: empty, filaments: filaments, components: const [], costPerHour: 0, colorFilamentId: 8),
+        0,
+      );
+    });
+  });
 }

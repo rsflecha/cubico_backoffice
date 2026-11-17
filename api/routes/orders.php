@@ -104,6 +104,21 @@ $app->post('/api/orders', function (Request $request, Response $response) {
         return fail($response, 'Junta pelo menos um artigo.', 422);
     }
 
+    // a cor escolhida em cada artigo (opcional): tem de ser um filamento que existe
+    $colors = [];
+    $colorStmt = db()->prepare('SELECT id FROM filaments WHERE id = ?');
+    foreach (array_values($lines) as $i => $l) {
+        if (!isset($l['filament_id']) || $l['filament_id'] === null || $l['filament_id'] === '') {
+            continue;
+        }
+        $colorStmt->execute([(int) $l['filament_id']]);
+        $color = $colorStmt->fetch();
+        if (!$color) {
+            return fail($response, 'A cor escolhida já não existe. Escolhe outra.', 422);
+        }
+        $colors[$i] = $color;
+    }
+
     $perHour = printerCostPerHour();
     $byCarrier = ($body['delivery_method'] ?? '') === 'carrier';
 
@@ -159,13 +174,16 @@ $app->post('/api/orders', function (Request $request, Response $response) {
             $qty = max(1, (int) ($l['quantity'] ?? 1));
             $unitPrice = (float) ($l['unit_price'] ?? 0);
             $fee = channelLineFee($channel, $qty * $unitPrice, $qty, $i === 0 ? $shippingCharged : 0.0, $i === 0);
+            // a cor escolhida conta no custo; o texto "Cor: White" já vem na personalização (a app escreve-o)
+            $color = $colors[$i] ?? null;
+            $customization = trim((string) ($l['customization'] ?? ''));
             $insert->execute([
                 $orderId,
                 (int) $l['variant_id'],
                 $qty,
                 $unitPrice,
-                ($cz = trim((string) ($l['customization'] ?? ''))) === '' ? null : $cz,
-                variantUnitCost((int) $l['variant_id'], $perHour),
+                $customization === '' ? null : mb_substr($customization, 0, 255), // a coluna é VARCHAR(255)
+                variantUnitCost((int) $l['variant_id'], $perHour, $color ? (int) $color['id'] : null),
                 $fee,
             ]);
         }

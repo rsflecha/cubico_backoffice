@@ -141,6 +141,7 @@ Pendente → Em produção → Pronta → Enviada → Entregue
 ```
 
 - **Criar encomenda**, em 5 passos: Origem (**Pessoalmente, Instagram ou Facebook**) → **Para quem?** (só um nome ou referência e contacto opcional — **não cria ficha de cliente**; pode, se quiseres, associar a um cliente existente) → Artigos (variante, qtd., preço editável, personalização) → Entrega (em mão, levantamento, CTT com morada e portes) → Pagamento e notas. Resumo com total, custo e lucro estimados.
+- **Cor de cada artigo** (2026-11-17): cada artigo da encomenda manual tem um menu "Cor" com os filamentos ativos (por omissão, a cor da receita). A cor escolhida troca o filamento **principal** da receita (o que leva mais gramas; num empate, o de id mais baixo), com as mesmas gramas, e o custo usa o preço dessa cor. O texto "Cor: White" vai à frente da personalização, e é isso que aparece na produção. Assim a mesma bola sai em dourado ou em branco sem criar outro produto. Sem migração: a cor fica escrita na personalização; a API recebe `filament_id` só para fazer o custo.
 
 ### 5.4 Produtos
 - **Lista de produtos com painel de Categorias** à esquerda: cada categoria mostra quantos produtos tem; tocar numa categoria filtra a lista.

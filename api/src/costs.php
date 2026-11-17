@@ -26,8 +26,14 @@ function printerCostPerHour(): float
         + (float) $printer['yearly_maintenance'] / max(1, (int) $printer['yearly_hours']);
 }
 
-/** Custo de produção de uma unidade de uma variante: filamento + impressão + componentes. */
-function variantUnitCost(int $variantId, float $costPerHour): float
+/**
+ * Custo de produção de uma unidade de uma variante: filamento + impressão + componentes.
+ *
+ * $colorFilamentId (opcional): a cor escolhida na encomenda. Troca o filamento PRINCIPAL da
+ * receita (o que leva mais gramas) por este, com as mesmas gramas. Assim a mesma bola pode
+ * sair em dourado ou em branco sem criar outro produto, e o custo usa o preço certo.
+ */
+function variantUnitCost(int $variantId, float $costPerHour, ?int $colorFilamentId = null): float
 {
     $stmt = db()->prepare('SELECT print_time_min FROM variants WHERE id = ?');
     $stmt->execute([$variantId]);
@@ -35,10 +41,20 @@ function variantUnitCost(int $variantId, float $costPerHour): float
     $total = $minutes / 60 * $costPerHour;
 
     $filaments = db()->prepare(
-        'SELECT vf.grams, f.* FROM variant_filaments vf JOIN filaments f ON f.id = vf.filament_id WHERE vf.variant_id = ?'
+        'SELECT vf.grams, f.* FROM variant_filaments vf JOIN filaments f ON f.id = vf.filament_id
+         WHERE vf.variant_id = ? ORDER BY vf.grams DESC, vf.filament_id'
     );
     $filaments->execute([$variantId]);
-    foreach ($filaments->fetchAll() as $f) {
+    $recipe = $filaments->fetchAll();
+    // a cor escolhida toma o lugar do filamento principal (o 1.º: ordenado por gramas)
+    if ($colorFilamentId !== null && $recipe !== []) {
+        $chosen = db()->prepare('SELECT * FROM filaments WHERE id = ?');
+        $chosen->execute([$colorFilamentId]);
+        if ($row = $chosen->fetch()) {
+            $recipe[0] = ['grams' => $recipe[0]['grams']] + $row;
+        }
+    }
+    foreach ($recipe as $f) {
         $total += (int) $f['grams'] * filamentPricePerKg($f) / 1000;
     }
 
