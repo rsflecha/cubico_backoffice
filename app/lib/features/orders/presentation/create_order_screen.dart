@@ -120,6 +120,12 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   List<int> _colorsOf(Variant variant, List<Product> products) =>
       products.where((p) => p.id == variant.productId).firstOrNull?.colorIds ?? const <int>[];
 
+  /// A variante de um produto "modelo único" (uma só, sem nome), ou null.
+  Variant? _singleModel(Product product, List<Variant> variants) {
+    final own = variants.where((v) => v.productId == product.id).toList();
+    return own.length == 1 && own.single.isUnnamed ? own.single : null;
+  }
+
   /// Abre a lista do catálogo e junta a variante escolhida às linhas.
   Future<void> _addProduct(List<Product> products, List<Variant> variants) async {
     final chosen = await showDialog<Variant>(
@@ -128,8 +134,19 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         title: const Text("Escolher produto"),
         children: [
           for (final product in products)
-          // só os produtos que têm variantes
-            if (variants.any((v) => v.productId == product.id)) ...[
+            // modelo único (uma variante sem nome): uma linha só, "Produto … preço"
+            if (_singleModel(product, variants) case final v?)
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(context, v),
+                child: Row(
+                  children: [
+                    Expanded(child: Text(product.name, style: const TextStyle(fontWeight: FontWeight.w700))),
+                    Text(euro(v.salePrice), style: AppTextStyles.mono),
+                  ],
+                ),
+              )
+            // com variantes: o nome do produto por cima, e uma linha por variante
+            else if (variants.any((v) => v.productId == product.id)) ...[
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
                 child: Text(product.name, style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -664,7 +681,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             Text(
-              "${line.variant.label} · ${line.variant.sku}",
+              // modelo único: só o SKU (o "Modelo único" não diz nada)
+              line.variant.isUnnamed ? line.variant.sku : "${line.variant.label} · ${line.variant.sku}",
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],

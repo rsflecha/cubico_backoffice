@@ -118,7 +118,11 @@ void main() {
     await settle(tester);
     await tester.tap(find.text("Adicionar produto do catálogo"));
     await settle(tester);
-    await tester.tap(find.descendant(of: find.byType(SimpleDialog), matching: find.text("12,50 €")));
+    // modelo único: uma linha "Bola teste … 12,50 €", sem "Modelo único"
+    final dialog = find.byType(SimpleDialog);
+    expect(find.descendant(of: dialog, matching: find.text("Bola teste")), findsOneWidget);
+    expect(find.descendant(of: dialog, matching: find.text("Modelo único")), findsNothing);
+    await tester.tap(find.descendant(of: dialog, matching: find.text("12,50 €")));
     await settle(tester);
     expect(find.widgetWithText(TextField, "Preço un."), findsOneWidget);
     expect((tester.widget<TextField>(find.widgetWithText(TextField, "Preço un.")).controller!).text, "12,50");

@@ -42,6 +42,13 @@ void main() {
     expect(find.textContaining("na Etsy)"), findsOneWidget); // o sugerido conta com a Etsy
   });
 
+  testWidgets("embalagem e componentes mostram o tamanho (para saber que caixa é)", (tester) async {
+    await show(tester, 900);
+    expect(find.widgetWithText(FilterChip, "Caixa 15 × 10 × 5 cm · 0,48 €"), findsOneWidget);
+    expect(find.text("Papel de seda · 0,06 €"), findsOneWidget); // sem tamanho: só o nome
+    expect(find.textContaining("Parafuso M3 10 mm · "), findsOneWidget);
+  });
+
   testWidgets("no telemóvel: uma por baixo da outra", (tester) async {
     await show(tester, 400);
     final etsy = tester.getTopLeft(find.text("Etsy"));

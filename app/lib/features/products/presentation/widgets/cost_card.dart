@@ -287,7 +287,7 @@ class CostCardState extends ConsumerState<CostCard> {
               children: [
                 for (final p in packaging)
                   FilterChip(
-                    label: Text("${p.name} · ${euro(_calc.componentUnitCost(p))}"),
+                    label: Text("${_withSize(p)} · ${euro(_calc.componentUnitCost(p))}"),
                     selected: (_componentQty[p.id] ?? 0) > 0,
                     onSelected: (selected) => setState(() {
                       if (selected) {
@@ -409,7 +409,7 @@ class CostCardState extends ConsumerState<CostCard> {
     final qty = _componentQty[c.id] ?? 0;
     return Row(
       children: [
-        Expanded(child: Text("${c.name} · ${euroPer(_calc.componentUnitCost(c), "un.", decimals: 3)}")),
+        Expanded(child: Text("${_withSize(c)} · ${euroPer(_calc.componentUnitCost(c), "un.", decimals: 3)}")),
         IconButton(
           icon: const Icon(Icons.remove),
           iconSize: 18,
@@ -425,6 +425,13 @@ class CostCardState extends ConsumerState<CostCard> {
         ),
       ],
     );
+  }
+
+  /// O nome com o tamanho, para saber que caixa ou que saco é: "Caixa 15 × 10 × 5 cm".
+  /// Sem tamanho escrito (Custos e preços → Componentes), só o nome.
+  String _withSize(Component c) {
+    final size = c.sizeLabel?.trim() ?? "";
+    return size.isEmpty ? c.name : "${c.name} $size";
   }
 
   /// As taxas de um canal para uma unidade vendida a este preço (0 sem canal).

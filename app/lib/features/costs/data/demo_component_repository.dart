@@ -37,7 +37,7 @@ class DemoComponentRepository implements ComponentRepository {
       id: 4,
       name: "Caixa",
       kind: ComponentKind.packaging,
-      sizeLabel: "S",
+      sizeLabel: "15 × 10 × 5 cm",
       weightG: 40,
       packPrice: 4.80,
       unitsPerPack: 10,
