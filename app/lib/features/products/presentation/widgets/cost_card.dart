@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:cubico_backoffice/features/costs/domain/component.dart';
 import 'package:cubico_backoffice/features/costs/domain/filament.dart';
+import 'package:cubico_backoffice/features/costs/domain/sales_channel.dart';
 import 'package:cubico_backoffice/features/products/domain/variant.dart';
 import 'package:cubico_backoffice/features/products/domain/sku.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
@@ -29,8 +30,6 @@ class _CostCardState extends ConsumerState<CostCard> {
   // As cores da peça: uma linha por filamento, cada uma com as suas gramas.
   // Uma peça de uma cor só tem uma linha (como era antes).
   final List<_ColorLine> _lines = [];
-  // Canal escolhido (null = usa o primeiro, a Etsy).
-  int? _channelId;
   // Quantidade de cada componente: id do componente → quantidade.
   final Map<int, int> _componentQty = {};
   var _savingVariant = false; // desliga o botão enquanto grava
@@ -165,9 +164,9 @@ class _CostCardState extends ConsumerState<CostCard> {
   Widget build(BuildContext context) {
     final filaments = ref.watch(filamentsProvider).value ?? <Filament>[];
     final channels = ref.watch(salesChannelsProvider).value ?? [];
-    final channel =
-        channels.where((c) => c.id == _channelId).firstOrNull ??
-        channels.firstOrNull;
+    // a Etsy (as taxas); os outros canais são a venda direta
+    final etsy = channels.where((c) => c.code == "etsy").firstOrNull;
+    final direct = channels.where((c) => c.code != "etsy").toList();
     final allComponents = ref.watch(componentsProvider).value ?? [];
     final components = allComponents
         .where((c) => c.kind == ComponentKind.component)
@@ -214,27 +213,27 @@ class _CostCardState extends ConsumerState<CostCard> {
     }
 
     final production = filamentCost + printing + componentsCost + packagingCost;
-    final fees = _calc.channelFees(
-      price: price,
-      transactionPct: channel?.transactionFee ?? 0,
-      processingPct: channel?.processingFee ?? 0,
-      flatFee: channel?.flatFee ?? 0,
-      listingFee: channel?.listingFee ?? 0,
-    );
-    final margin = _calc.marginPct(
-      price: price,
-      productionCost: production,
-      fees: fees,
-    );
-    final profit = price - production - fees;
+
+    // um preço para todos os canais; mostram-se as duas contas lado a lado:
+    // a Etsy (com as taxas) e a venda direta (Instagram, Facebook, em mão)
+    final etsyFees = _feesFor(etsy, price);
+    final directFees = direct.isEmpty
+        ? 0.0
+        : direct.map((c) => _feesFor(c, price)).reduce(math.max); // se algum tiver taxas, conta a maior
+    final etsyProfit = price - production - etsyFees;
+    final directProfit = price - production - directFees;
+    final etsyMargin = _calc.marginPct(price: price, productionCost: production, fees: etsyFees);
+    final directMargin = _calc.marginPct(price: price, productionCost: production, fees: directFees);
+    // o preço sugerido conta com as taxas da Etsy (o canal mais caro):
+    // assim a margem alvo vale na Etsy, e na venda direta fica acima
     final suggested = _calc.suggestedPrice(
       productionCost: production,
       targetMarginPct: target,
       rounding: rounding,
-      transactionPct: channel?.transactionFee ?? 0,
-      processingPct: channel?.processingFee ?? 0,
-      flatFee: channel?.flatFee ?? 0,
-      listingFee: channel?.listingFee ?? 0,
+      transactionPct: etsy?.transactionFee ?? 0,
+      processingPct: etsy?.processingFee ?? 0,
+      flatFee: etsy?.flatFee ?? 0,
+      listingFee: etsy?.listingFee ?? 0,
     );
     // a barra vai até ao dobro do sugerido, ou 50% acima do preço guardado (o maior dos dois)
     final savedPrice = widget.variant?.salePrice ?? 0;
@@ -354,18 +353,6 @@ class _CostCardState extends ConsumerState<CostCard> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              children: [
-                for (final c in channels)
-                  ChoiceChip(
-                    label: Text(c.name),
-                    selected: c.id == channel?.id,
-                    onSelected: (_) => setState(() => _channelId = c.id),
-                  ),
-              ],
-            ),
             const SizedBox(height: 12),
             _row(
               _lines.length > 1 ? "Filamento (${_lines.length} cores)" : "Filamento",
@@ -401,9 +388,8 @@ class _CostCardState extends ConsumerState<CostCard> {
               ],
             ),
             _row("Embalagem", packagingCost),
-            _row("Taxas ${channel?.name ?? ""}", fees),
             const Divider(),
-            _row("Custo total", production + fees),
+            _row("Custo de produção", production),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -435,11 +421,39 @@ class _CostCardState extends ConsumerState<CostCard> {
               ],
             ),
             const SizedBox(height: 16),
-            _marginBox(profit, margin, target, minimum),
+            // as duas contas lado a lado (uma por baixo da outra no telemóvel)
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final etsyBox = _marginBox("Etsy", etsyFees, etsyProfit, etsyMargin, target, minimum);
+                final directBox = _marginBox(
+                  "Venda direta", directFees, directProfit, directMargin, target, minimum,
+                  hint: direct.map((c) => c.name).join(", "),
+                );
+                if (constraints.maxWidth < 480) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [etsyBox, const SizedBox(height: 12), directBox],
+                  );
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: etsyBox),
+                    const SizedBox(width: 12),
+                    Expanded(child: directBox),
+                  ],
+                );
+              },
+            ),
             const SizedBox(height: 12),
             _row(
-              "Preço sugerido (margem ${target.toStringAsFixed(0)}%)",
+              "Preço sugerido (margem ${target.toStringAsFixed(0)}% na Etsy)",
               suggested,
+            ),
+            Text(
+              "Um só preço para todos os canais: o sugerido já paga as taxas da Etsy; "
+              "na venda direta ganhas mais.",
+              style: Theme.of(context).textTheme.bodySmall,
             ),
             if (widget.variant != null) ...[
               const SizedBox(height: 12),
@@ -584,12 +598,27 @@ class _CostCardState extends ConsumerState<CostCard> {
     );
   }
 
+  /// As taxas de um canal para uma unidade vendida a este preço (0 sem canal).
+  double _feesFor(SalesChannel? c, double price) => c == null
+      ? 0
+      : _calc.channelFees(
+          price: price,
+          transactionPct: c.transactionFee,
+          processingPct: c.processingFee,
+          flatFee: c.flatFee,
+          listingFee: c.listingFee,
+        );
+
+  /// A conta de um canal: taxas, lucro e margem, com a cor da margem.
   Widget _marginBox(
+    String title,
+    double fees,
     double profit,
     double margin,
     double target,
-    double minimum,
-  ) {
+    double minimum, {
+    String? hint,
+  }) {
     final Color color;
     final String message;
     if (margin >= target) {
@@ -614,12 +643,16 @@ class _CostCardState extends ConsumerState<CostCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Margem"),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+          if (hint != null && hint.isNotEmpty)
+            Text(hint, style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 4),
+          Text("Taxas ${euro(fees)}", style: AppTextStyles.mono),
           const SizedBox(height: 4),
           Text(
             "${euro(profit)} · ${margin.toStringAsFixed(0)}%",
             style: AppTextStyles.mono.copyWith(
-              fontSize: 24,
+              fontSize: 22,
               fontWeight: FontWeight.w700,
               color: color,
             ),
