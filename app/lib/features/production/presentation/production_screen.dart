@@ -99,7 +99,7 @@ class ProductionScreen extends ConsumerWidget {
                 "",
           );
 
-          // PC: 4 colunas lado a lado. iPad: 2 por linha, em grelha. Telemóvel: a deslizar.
+          // PC: 4 colunas lado a lado. iPad: 2 por linha, em grelha. Telemóvel: umas por baixo das outras.
           final Widget board;
           if (isWide) {
             board = SingleChildScrollView(
@@ -138,14 +138,13 @@ class ProductionScreen extends ConsumerWidget {
               ),
             );
           } else {
-            board = ListView(
-              scrollDirection: Axis.horizontal,
+            // telemóvel: antes as colunas deslizavam para o lado e as outras ficavam escondidas.
+            // Agora vai tudo para baixo, com a largura toda, e o cartão da impressora desliza junto.
+            return ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                for (var i = 0; i < columns.length; i++) ...[
-                  if (i > 0) const SizedBox(width: 12),
-                  SizedBox(width: 280, child: SingleChildScrollView(child: columns[i])),
-                ],
+                banner,
+                for (final column in columns) ...[const SizedBox(height: 12), column],
               ],
             );
           }
