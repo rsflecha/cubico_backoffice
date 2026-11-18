@@ -24,6 +24,17 @@ function adminCount(): int
     return (int) db()->query("SELECT COUNT(*) FROM users WHERE is_active = 1 AND role = 'admin'")->fetchColumn();
 }
 
+/** Uma palavra-passe provisória: 12 caracteres aleatórios, sem letras que se confundem (0/O, 1/l/I). */
+function temporaryPassword(): string
+{
+    $alphabet = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    $temporary = '';
+    for ($i = 0; $i < 12; $i++) {
+        $temporary .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+    }
+    return $temporary;
+}
+
 // GET /api/users
 $app->get('/api/users', function (Request $request, Response $response) {
     return json($response, readUsers());
@@ -39,12 +50,7 @@ $app->post('/api/users', function (Request $request, Response $response) {
         return fail($response, 'Falta o nome, ou o email não é válido.', 422);
     }
 
-    // 12 caracteres aleatórios, sem letras que se confundem (0/O, 1/l/I)
-    $alphabet = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    $temporary = '';
-    for ($i = 0; $i < 12; $i++) {
-        $temporary .= $alphabet[random_int(0, strlen($alphabet) - 1)];
-    }
+    $temporary = temporaryPassword();
 
     try {
         db()->prepare('INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)')
@@ -59,6 +65,24 @@ $app->post('/api/users', function (Request $request, Response $response) {
         'user' => readUsers((int) db()->lastInsertId())[0],
         'temporary_password' => $temporary,
     ], 201);
+})->add($requireAdmin)->add($requireAuth);
+
+// POST /api/users/{id}/password → nova palavra-passe provisória (quem se esqueceu da sua).
+// Só o administrador, e nunca para si próprio (para isso há o "Mudar palavra-passe").
+// A provisória só existe nesta resposta: na base de dados fica só o hash.
+$app->post('/api/users/{id}/password', function (Request $request, Response $response, array $args) {
+    $id = (int) $args['id'];
+    $current = readUsers($id)[0] ?? null;
+    if ($current === null) {
+        return fail($response, 'Este utilizador já não existe.', 404);
+    }
+    if ($id === $request->getAttribute('userId')) {
+        return fail($response, 'Para a tua, usa "Mudar palavra-passe".', 409);
+    }
+    $temporary = temporaryPassword();
+    db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+        ->execute([password_hash($temporary, PASSWORD_DEFAULT), $id]);
+    return json($response, ['temporary_password' => $temporary]);
 })->add($requireAdmin)->add($requireAuth);
 
 // PUT /api/users/{id} → mudar o nome ou o papel

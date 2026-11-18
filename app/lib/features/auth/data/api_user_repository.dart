@@ -38,6 +38,12 @@ class ApiUserRepository implements UserRepository {
       });
 
   @override
+  Future<String?> resetPassword(int id) => apiCall(() async {
+        final response = await _dio.post<Map<String, dynamic>>("/users/$id/password");
+        return response.data!["temporary_password"] as String?;
+      });
+
+  @override
   Future<void> delete(int id) => apiCall(() async {
         await _dio.delete<void>("/users/$id");
       });

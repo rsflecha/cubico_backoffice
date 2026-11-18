@@ -38,6 +38,12 @@ class DemoUserRepository implements UserRepository {
   }
 
   @override
+  Future<String?> resetPassword(int id) async {
+    await _latency();
+    return null; // no modo demo não há palavras-passe
+  }
+
+  @override
   Future<void> delete(int id) async {
     await _latency();
     _items.removeWhere((u) => u.id == id);

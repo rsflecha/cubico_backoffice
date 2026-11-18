@@ -10,6 +10,10 @@ abstract interface class UserRepository {
 
   Future<AppUser> update(AppUser user);
 
+  /// Dá uma palavra-passe provisória nova a outro utilizador (esqueceu-se da sua).
+  /// Com a API, devolve-a (só existe nesta resposta). No modo demo é null.
+  Future<String?> resetPassword(int id);
+
   /// Retira o acesso (com a API, desativa: as encomendas guardam quem as criou).
   Future<void> delete(int id);
 }

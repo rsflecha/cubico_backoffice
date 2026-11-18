@@ -74,7 +74,47 @@ class UsersSection extends ConsumerWidget {
     // com a API: mostrar a palavra-passe provisória, que só existe agora
     final password = temporary;
     if (password == null || !context.mounted) return;
-    await showDialog<void>(
+    await _showTemporary(context, "Dá esta palavra-passe a ${draft.name}, para entrar a primeira vez:", password);
+  }
+
+  /// Pergunta, e dá uma palavra-passe provisória nova a quem se esqueceu da sua.
+  Future<void> _resetPassword(BuildContext context, WidgetRef ref, AppUser u) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Nova palavra-passe para ${u.name}?"),
+        content: const Text("A antiga deixa de funcionar. Vais ver uma palavra-passe provisória para lhe dares."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancelar")),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text("Gerar")),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    String? temporary;
+    var failed = true;
+    await _run(context, ref, () async {
+      temporary = await ref.read(userRepositoryProvider).resetPassword(u.id);
+      failed = false;
+    });
+    if (failed || !context.mounted) return;
+    final password = temporary;
+    if (password == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No modo demo não há palavras-passe.")),
+      );
+      return;
+    }
+    await _showTemporary(
+      context,
+      "Dá esta palavra-passe a ${u.name}. Depois de entrar, muda-a em \"Mudar palavra-passe\":",
+      password,
+    );
+  }
+
+  /// A palavra-passe provisória, que só se vê esta vez.
+  Future<void> _showTemporary(BuildContext context, String message, String password) {
+    return showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Palavra-passe provisória"),
@@ -82,7 +122,7 @@ class UsersSection extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Dá esta palavra-passe a ${draft.name}, para entrar a primeira vez:"),
+            Text(message),
             const SizedBox(height: 12),
             SelectableText(
               password,
@@ -168,15 +208,18 @@ class UsersSection extends ConsumerWidget {
             ? null
             : PopupMenuButton<String>(
                 tooltip: "Ações",
-                onSelected: (action) => action == "role"
-                    ? _changeRole(context, ref, u, other)
-                    : _remove(context, ref, u),
+                onSelected: (action) => switch (action) {
+                  "role" => _changeRole(context, ref, u, other),
+                  "password" => _resetPassword(context, ref, u),
+                  _ => _remove(context, ref, u),
+                },
                 itemBuilder: (context) => [
                   PopupMenuItem(
                     value: "role",
                     enabled: canChangeRole,
                     child: Text("Passar a ${_roleLabel(other).toLowerCase()}"),
                   ),
+                  const PopupMenuItem(value: "password", child: Text("Nova palavra-passe")),
                   const PopupMenuItem(value: "remove", child: Text("Retirar acesso")),
                 ],
               ),
@@ -199,6 +242,13 @@ class UsersSection extends ConsumerWidget {
             ],
             onChanged: canChangeRole ? (role) => _changeRole(context, ref, u, role!) : null,
           ),
+          // a chave: palavra-passe provisória nova (em ti não: tens o "Mudar palavra-passe")
+          if (!isMe)
+            IconButton(
+              tooltip: "Nova palavra-passe",
+              icon: const Icon(Icons.key_outlined),
+              onPressed: () => _resetPassword(context, ref, u),
+            ),
           IconButton(
             tooltip: "Retirar acesso",
             icon: const Icon(Icons.person_remove_outlined),
