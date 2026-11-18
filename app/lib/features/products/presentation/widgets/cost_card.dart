@@ -284,24 +284,29 @@ class CostCardState extends ConsumerState<CostCard> {
             const SizedBox(height: 12),
             Text("Embalagem", style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final p in packaging)
-                  FilterChip(
-                    label: Text("${_withSize(p)} · ${euro(_calc.componentUnitCost(p))}"),
-                    selected: (_componentQty[p.id] ?? 0) > 0,
-                    onSelected: (selected) => setState(() {
-                      if (selected) {
-                        _componentQty[p.id] = 1;
-                      } else {
-                        _componentQty.remove(p.id);
-                      }
-                    }),
-                  ),
-              ],
-            ),
+            // telemóvel: uma embalagem por linha, com a largura toda (como as cores)
+            if (MediaQuery.sizeOf(context).width < 600)
+              for (final p in packaging)
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: Text("${_withSize(p)} · ${euro(_calc.componentUnitCost(p))}"),
+                  value: (_componentQty[p.id] ?? 0) > 0,
+                  onChanged: (on) => _togglePackaging(p.id, on ?? false),
+                )
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final p in packaging)
+                    FilterChip(
+                      label: Text("${_withSize(p)} · ${euro(_calc.componentUnitCost(p))}"),
+                      selected: (_componentQty[p.id] ?? 0) > 0,
+                      onSelected: (on) => _togglePackaging(p.id, on),
+                    ),
+                ],
+              ),
             _row("Embalagem", packagingCost),
             const Divider(),
             _row("Custo de produção", production),
@@ -432,6 +437,15 @@ class CostCardState extends ConsumerState<CostCard> {
 
   /// O nome com o tamanho, para saber que caixa ou que saco é: "Caixa 15 × 10 × 5 cm".
   /// Sem tamanho escrito (Custos e preços → Componentes), só o nome.
+  /// Marca ou desmarca uma embalagem (1 unidade).
+  void _togglePackaging(int id, bool on) => setState(() {
+        if (on) {
+          _componentQty[id] = 1;
+        } else {
+          _componentQty.remove(id);
+        }
+      });
+
   String _withSize(Component c) {
     final size = c.sizeLabel?.trim() ?? "";
     return size.isEmpty ? c.name : "${c.name} $size";

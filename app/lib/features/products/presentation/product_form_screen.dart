@@ -328,6 +328,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   /// Na encomenda, o menu "Cor" mostra só estas; o custo usa a mais cara. Obrigatória pelo menos uma.
   Widget _colorsField(List<Filament> filaments) {
     final shown = filaments.where((f) => f.isActive || _colorIds.contains(f.id)).toList();
+    // telemóvel: uma cor por linha, com a largura toda (como a embalagem)
+    final narrow = MediaQuery.sizeOf(context).width < 600;
     return InputDecorator(
       decoration: InputDecoration(
         labelText: "Cores disponíveis",
@@ -338,24 +340,40 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       ),
       child: shown.isEmpty
           ? const Text("Ainda não há filamentos (Custos e preços → Filamentos).")
-          : Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final f in shown)
-                  FilterChip(
-                    avatar: CircleAvatar(radius: 6, backgroundColor: colorFromHex(f.colorHex)),
-                    label: Text("${f.colorName} · ${f.material}"),
-                    selected: _colorIds.contains(f.id),
-                    onSelected: (on) => setState(() {
-                      _colorIds = {..._colorIds};
-                      on ? _colorIds.add(f.id) : _colorIds.remove(f.id);
-                    }),
-                  ),
-              ],
-            ),
+          : narrow
+              ? Column(
+                  children: [
+                    for (final f in shown)
+                      CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        secondary: CircleAvatar(radius: 8, backgroundColor: colorFromHex(f.colorHex)),
+                        title: Text("${f.colorName} · ${f.material}"),
+                        value: _colorIds.contains(f.id),
+                        onChanged: (on) => _toggleColor(f.id, on ?? false),
+                      ),
+                  ],
+                )
+              : Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final f in shown)
+                      FilterChip(
+                        avatar: CircleAvatar(radius: 6, backgroundColor: colorFromHex(f.colorHex)),
+                        label: Text("${f.colorName} · ${f.material}"),
+                        selected: _colorIds.contains(f.id),
+                        onSelected: (on) => _toggleColor(f.id, on),
+                      ),
+                  ],
+                ),
     );
   }
+
+  void _toggleColor(int id, bool on) => setState(() {
+        _colorIds = {..._colorIds};
+        on ? _colorIds.add(id) : _colorIds.remove(id);
+      });
 
   Future<void> _delete() async {
     final confirmed = await showDialog<bool>(
