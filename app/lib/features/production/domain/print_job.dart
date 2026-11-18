@@ -59,3 +59,17 @@ abstract class PrintJob with _$PrintJob {
     return left.round();
   }
 }
+
+/// Quanto tempo uma tarefa concluída fica à vista no quadro.
+const doneVisibleFor = Duration(days: 1);
+
+/// As tarefas concluídas que o quadro ainda mostra: as acabadas nas últimas 24 horas,
+/// das mais recentes para as mais antigas. As outras não se apagam: só saem do quadro.
+/// Uma concluída sem hora de fim (dados antigos) conta como antiga.
+List<PrintJob> recentlyDone(Iterable<PrintJob> jobs, DateTime now) {
+  final since = now.subtract(doneVisibleFor);
+  return jobs
+      .where((j) => j.status == PrintJobStatus.done && j.finishedAt != null && j.finishedAt!.isAfter(since))
+      .toList()
+    ..sort((a, b) => b.finishedAt!.compareTo(a.finishedAt!));
+}

@@ -70,14 +70,18 @@ class ProductionScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text("Erro: $error")),
         data: (list) {
+          // «Concluído» mostra só as das últimas 24 horas; as outras ficam gravadas, fora do quadro
+          final done = recentlyDone(list, DateTime.now());
+          final hiddenDone = list.where((j) => j.status == PrintJobStatus.done).length - done.length;
           final columns = [
             for (final status in PrintJobStatus.values)
               _column(
                 context,
                 ref,
                 status,
-                list.where((j) => j.status == status).toList(),
+                status == PrintJobStatus.done ? done : list.where((j) => j.status == status).toList(),
                 variants,
+                hidden: status == PrintJobStatus.done ? hiddenDone : 0,
               ),
           ];
 
@@ -170,8 +174,9 @@ class ProductionScreen extends ConsumerWidget {
       WidgetRef ref,
       PrintJobStatus status,
       List<PrintJob> jobs,
-      List<Variant> variants,
-      ) {
+      List<Variant> variants, {
+      int hidden = 0, // as concluídas há mais de 24 horas, que já não aparecem
+    }) {
     return DragTarget<PrintJob>(
       // só aceita tarefas que venham de OUTRA coluna
       onWillAcceptWithDetails: (details) => details.data.status != status,
@@ -209,6 +214,14 @@ class ProductionScreen extends ConsumerWidget {
                 child: Text("Vazio", style: TextStyle(color: Color(0xFF71717A))),
               ),
             for (final job in jobs) _card(context, ref, job, variants),
+            if (hidden > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  "+$hidden concluída${hidden == 1 ? "" : "s"} há mais de 1 dia",
+                  style: const TextStyle(color: Color(0xFF71717A)),
+                ),
+              ),
           ],
         ),
       ),
