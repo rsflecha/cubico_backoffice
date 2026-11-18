@@ -326,7 +326,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     if (_lines.any((l) => l.filamentId == null && _colorsOf(l.variant, products).isNotEmpty)) {
       return "Escolhe a cor de cada artigo.";
     }
+    // o colaborador não recebe a tabela dos portes (rates vazia): quem confere o peso é a API
     if (_delivery == DeliveryMethod.carrier &&
+        rates.isNotEmpty &&
         _calc.shippingPrice(weightG: _totalWeight(components), zoneId: 1, rates: rates) == null) {
       return "O pacote é demasiado pesado para o correio (mais de 2 kg).";
     }
@@ -518,9 +520,12 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                     decoration: InputDecoration(
                       labelText: "Portes cobrados ao cliente",
                       suffixText: "€",
-                      helperText: ctt == null
-                          ? "$weight g: acima do limite do correio"
-                          : "CTT Registado, $weight g: ${euro(ctt)}",
+                      // sem a tabela dos portes (colaborador), não há sugestão: escreve-se à mão
+                      helperText: rates.isEmpty
+                          ? null
+                          : ctt == null
+                              ? "$weight g: acima do limite do correio"
+                              : "CTT Registado, $weight g: ${euro(ctt)}",
                     ),
                     // a partir do momento em que escreves, o valor é teu
                     onChanged: (_) => setState(() => _shippingEdited = true),
@@ -660,6 +665,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     final colors = filaments
         .where((f) => f.id == line.filamentId || (required ? allowed.contains(f.id) : f.isActive))
         .toList();
+    final lineQty = parseDecimal(line.quantity.text).round();
+    final linePrice = parseDecimal(line.price.text);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -734,6 +741,16 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                   SizedBox(width: 120, child: price),
                   remove,
                 ],
+              ),
+            // com mais de 1 unidade, o valor da linha: "4 × 3,50 € = 14,00 €"
+            if (lineQty > 1)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  "$lineQty × ${euro(linePrice)} = ${euro(lineQty * linePrice)}",
+                  textAlign: TextAlign.right,
+                  style: AppTextStyles.mono.copyWith(fontWeight: FontWeight.w700),
+                ),
               ),
             const SizedBox(height: 8),
             // a cor: por omissão a da receita; outra cor muda o custo e vai para a produção

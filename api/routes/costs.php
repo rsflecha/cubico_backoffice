@@ -6,7 +6,8 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 // ═══════════════ Custos e preços ═══════════════
 // Tudo o que custa produzir e enviar. Só o administrador vê e muda,
-// exceto os canais, que o colaborador vê sem as taxas (precisa deles para criar encomendas).
+// exceto os canais, que o colaborador vê sem as taxas, e os filamentos, que vê sem os preços
+// (precisa deles para criar encomendas: são as cores).
 
 // ─────────── Filamentos ───────────
 tableRoutes($app, '/api/filaments', 'filaments', [
@@ -23,7 +24,8 @@ tableRoutes($app, '/api/filaments', 'filaments', [
     'min_stock_g' => 'int',
     'is_active' => 'bool',
 ], required: ['material', 'color_name', 'list_price', 'paid_price'], canCreate: true,
-   orderBy: 'material, color_name', requireAuth: $requireAuth, requireAdmin: $requireAdmin);
+   orderBy: 'material, color_name', requireAuth: $requireAuth, requireAdmin: $requireAdmin,
+   hiddenFromStaff: ['list_price', 'paid_price', 'shipping_cost', 'spools_in_order']);
 
 // ─────────── Embalagens e componentes ───────────
 tableRoutes($app, '/api/components', 'components', [

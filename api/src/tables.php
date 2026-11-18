@@ -7,7 +7,8 @@ use Slim\App;
 
 /**
  * Cria os pedidos habituais de uma tabela simples:
- *   GET    {path}        → a lista         (só o administrador, ou todos com sessão se $everyoneCanList)
+ *   GET    {path}        → a lista         (só o administrador, ou todos com sessão se $everyoneCanList
+ *                                            ou se houver $hiddenFromStaff: o colaborador recebe-a sem essas colunas)
  *   POST   {path}        → criar           (se $canCreate)
  *   PUT    {path}/{id}   → mudar uma linha
  * Criar e mudar são sempre só para o administrador.
@@ -32,6 +33,7 @@ function tableRoutes(
     callable $requireAuth,
     callable $requireAdmin,
     bool $everyoneCanList = false,
+    array $hiddenFromStaff = [],
 ): void {
     // as colunas que a app pode mudar: todas menos o id e as datas automáticas
     $readOnly = ['id', 'created_at', 'updated_at'];
@@ -44,11 +46,16 @@ function tableRoutes(
     };
 
     // GET → a lista
-    $list = $app->get($path, function (Request $request, Response $response) use ($table, $types, $orderBy) {
+    $list = $app->get($path, function (Request $request, Response $response) use ($table, $types, $orderBy, $hiddenFromStaff) {
         $rows = db()->query("SELECT * FROM $table ORDER BY $orderBy")->fetchAll();
-        return json($response, array_map(fn ($row) => typed($row, $types), $rows));
+        $isAdmin = $request->getAttribute('role') === 'admin';
+        return json($response, array_map(function ($row) use ($types, $isAdmin, $hiddenFromStaff) {
+            $item = typed($row, $types);
+            // esconder no servidor, e não só no ecrã: o colaborador nem recebe estes valores
+            return $isAdmin ? $item : array_diff_key($item, array_flip($hiddenFromStaff));
+        }, $rows));
     });
-    if (!$everyoneCanList) {
+    if (!$everyoneCanList && $hiddenFromStaff === []) {
         $list->add($requireAdmin);
     }
     $list->add($requireAuth);

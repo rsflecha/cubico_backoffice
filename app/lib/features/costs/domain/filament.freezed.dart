@@ -15,7 +15,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Filament {
 
- int get id; String get material; String? get brand; String get colorName; String? get colorHex; double get listPrice; double get paidPrice;// o valor por omissao vive aqui: o JSON pode nao trazer o campo
+ int get id; String get material; String? get brand; String get colorName; String? get colorHex;// o colaborador recebe os filamentos sem os preços (só precisa das cores): ficam a 0
+ double get listPrice; double get paidPrice;// o valor por omissao vive aqui: o JSON pode nao trazer o campo
  int get spoolWeightG;// se nao vier, assume este valor
  double get shippingCost;// se nao vier, assume este valor
  int get spoolsInOrder;// se nao vier, assume este valor
@@ -225,7 +226,7 @@ return $default(_that.id,_that.material,_that.brand,_that.colorName,_that.colorH
 @JsonSerializable()
 
 class _Filament extends Filament {
-  const _Filament({required this.id, required this.material, this.brand, required this.colorName, this.colorHex, required this.listPrice, required this.paidPrice, this.spoolWeightG = 1000, this.shippingCost = 0, this.spoolsInOrder = 1, this.minStockG = 250, this.isActive = true}): super._();
+  const _Filament({required this.id, required this.material, this.brand, required this.colorName, this.colorHex, this.listPrice = 0, this.paidPrice = 0, this.spoolWeightG = 1000, this.shippingCost = 0, this.spoolsInOrder = 1, this.minStockG = 250, this.isActive = true}): super._();
   factory _Filament.fromJson(Map<String, dynamic> json) => _$FilamentFromJson(json);
 
 @override final  int id;
@@ -233,8 +234,9 @@ class _Filament extends Filament {
 @override final  String? brand;
 @override final  String colorName;
 @override final  String? colorHex;
-@override final  double listPrice;
-@override final  double paidPrice;
+// o colaborador recebe os filamentos sem os preços (só precisa das cores): ficam a 0
+@override@JsonKey() final  double listPrice;
+@override@JsonKey() final  double paidPrice;
 // o valor por omissao vive aqui: o JSON pode nao trazer o campo
 @override@JsonKey() final  int spoolWeightG;
 // se nao vier, assume este valor

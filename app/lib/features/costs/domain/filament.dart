@@ -12,8 +12,9 @@ abstract class Filament with _$Filament {
     String? brand,
     required String colorName,
     String? colorHex,
-    required double listPrice,
-    required double paidPrice,
+    // o colaborador recebe os filamentos sem os preços (só precisa das cores): ficam a 0
+    @Default(0) double listPrice,
+    @Default(0) double paidPrice,
 
     // o valor por omissao vive aqui: o JSON pode nao trazer o campo
     @Default(1000) int spoolWeightG, // se nao vier, assume este valor
