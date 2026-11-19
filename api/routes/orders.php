@@ -184,11 +184,13 @@ $app->post('/api/orders', function (Request $request, Response $response) {
             $fee = channelLineFee($channel, $qty * $unitPrice, $qty, $i === 0 ? $shippingCharged : 0.0, $i === 0);
             // a cor escolhida conta no custo; o texto "Cor: White" já vem na personalização (a app escreve-o)
             $color = $colors[$i] ?? null;
-            $unitCost = variantUnitCost((int) $l['variant_id'], $perHour, $color ? (int) $color['id'] : null);
-            // 2 cores: o custo fica pela mais cara das duas (do lado seguro)
-            if (isset($colors2[$i])) {
-                $unitCost = max($unitCost, variantUnitCost((int) $l['variant_id'], $perHour, (int) $colors2[$i]['id']));
-            }
+            // 2 cores: as gramas de cada cor ao preço dela (sem as gramas da Cor 2: a mais cara das duas)
+            $unitCost = variantUnitCost(
+                (int) $l['variant_id'],
+                $perHour,
+                $color ? (int) $color['id'] : null,
+                isset($colors2[$i]) ? (int) $colors2[$i]['id'] : null
+            );
             $customization = trim((string) ($l['customization'] ?? ''));
             $insert->execute([
                 $orderId,

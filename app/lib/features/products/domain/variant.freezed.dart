@@ -19,7 +19,8 @@ mixin _$Variant {
  int get printTimeMin;// se nao vier, assume este valor
  int get plateCount;// se nao vier, assume este valor
  int get weightG;// se nao vier, assume este valor
- bool get isActive; List<VariantFilament> get filaments;// que filamentos e quantas gramas
+// produtos a 2 cores: quantas das gramas são da Cor 2 (a Cor 1 é o resto); 0 = 1 cor
+@JsonKey(name: "grams_color_2") int get gramsColor2; bool get isActive; List<VariantFilament> get filaments;// que filamentos e quantas gramas
  List<VariantComponent> get components;
 /// Create a copy of Variant
 /// with the given fields replaced by the non-null parameter values.
@@ -33,16 +34,16 @@ $VariantCopyWith<Variant> get copyWith => _$VariantCopyWithImpl<Variant>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Variant&&(identical(other.id, id) || other.id == id)&&(identical(other.productId, productId) || other.productId == productId)&&(identical(other.name, name) || other.name == name)&&(identical(other.sku, sku) || other.sku == sku)&&(identical(other.salePrice, salePrice) || other.salePrice == salePrice)&&(identical(other.printerId, printerId) || other.printerId == printerId)&&(identical(other.modelFile, modelFile) || other.modelFile == modelFile)&&(identical(other.etsyListingId, etsyListingId) || other.etsyListingId == etsyListingId)&&(identical(other.printTimeMin, printTimeMin) || other.printTimeMin == printTimeMin)&&(identical(other.plateCount, plateCount) || other.plateCount == plateCount)&&(identical(other.weightG, weightG) || other.weightG == weightG)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&const DeepCollectionEquality().equals(other.filaments, filaments)&&const DeepCollectionEquality().equals(other.components, components));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Variant&&(identical(other.id, id) || other.id == id)&&(identical(other.productId, productId) || other.productId == productId)&&(identical(other.name, name) || other.name == name)&&(identical(other.sku, sku) || other.sku == sku)&&(identical(other.salePrice, salePrice) || other.salePrice == salePrice)&&(identical(other.printerId, printerId) || other.printerId == printerId)&&(identical(other.modelFile, modelFile) || other.modelFile == modelFile)&&(identical(other.etsyListingId, etsyListingId) || other.etsyListingId == etsyListingId)&&(identical(other.printTimeMin, printTimeMin) || other.printTimeMin == printTimeMin)&&(identical(other.plateCount, plateCount) || other.plateCount == plateCount)&&(identical(other.weightG, weightG) || other.weightG == weightG)&&(identical(other.gramsColor2, gramsColor2) || other.gramsColor2 == gramsColor2)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&const DeepCollectionEquality().equals(other.filaments, filaments)&&const DeepCollectionEquality().equals(other.components, components));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,productId,name,sku,salePrice,printerId,modelFile,etsyListingId,printTimeMin,plateCount,weightG,isActive,const DeepCollectionEquality().hash(filaments),const DeepCollectionEquality().hash(components));
+int get hashCode => Object.hash(runtimeType,id,productId,name,sku,salePrice,printerId,modelFile,etsyListingId,printTimeMin,plateCount,weightG,gramsColor2,isActive,const DeepCollectionEquality().hash(filaments),const DeepCollectionEquality().hash(components));
 
 @override
 String toString() {
-  return 'Variant(id: $id, productId: $productId, name: $name, sku: $sku, salePrice: $salePrice, printerId: $printerId, modelFile: $modelFile, etsyListingId: $etsyListingId, printTimeMin: $printTimeMin, plateCount: $plateCount, weightG: $weightG, isActive: $isActive, filaments: $filaments, components: $components)';
+  return 'Variant(id: $id, productId: $productId, name: $name, sku: $sku, salePrice: $salePrice, printerId: $printerId, modelFile: $modelFile, etsyListingId: $etsyListingId, printTimeMin: $printTimeMin, plateCount: $plateCount, weightG: $weightG, gramsColor2: $gramsColor2, isActive: $isActive, filaments: $filaments, components: $components)';
 }
 
 
@@ -53,7 +54,7 @@ abstract mixin class $VariantCopyWith<$Res>  {
   factory $VariantCopyWith(Variant value, $Res Function(Variant) _then) = _$VariantCopyWithImpl;
 @useResult
 $Res call({
- int id, int productId, String name, String sku, double salePrice, int? printerId, String? modelFile, String? etsyListingId, int printTimeMin, int plateCount, int weightG, bool isActive, List<VariantFilament> filaments, List<VariantComponent> components
+ int id, int productId, String name, String sku, double salePrice, int? printerId, String? modelFile, String? etsyListingId, int printTimeMin, int plateCount, int weightG,@JsonKey(name: "grams_color_2") int gramsColor2, bool isActive, List<VariantFilament> filaments, List<VariantComponent> components
 });
 
 
@@ -70,7 +71,7 @@ class _$VariantCopyWithImpl<$Res>
 
 /// Create a copy of Variant
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? productId = null,Object? name = null,Object? sku = null,Object? salePrice = null,Object? printerId = freezed,Object? modelFile = freezed,Object? etsyListingId = freezed,Object? printTimeMin = null,Object? plateCount = null,Object? weightG = null,Object? isActive = null,Object? filaments = null,Object? components = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? productId = null,Object? name = null,Object? sku = null,Object? salePrice = null,Object? printerId = freezed,Object? modelFile = freezed,Object? etsyListingId = freezed,Object? printTimeMin = null,Object? plateCount = null,Object? weightG = null,Object? gramsColor2 = null,Object? isActive = null,Object? filaments = null,Object? components = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,productId: null == productId ? _self.productId : productId // ignore: cast_nullable_to_non_nullable
@@ -83,6 +84,7 @@ as String?,etsyListingId: freezed == etsyListingId ? _self.etsyListingId : etsyL
 as String?,printTimeMin: null == printTimeMin ? _self.printTimeMin : printTimeMin // ignore: cast_nullable_to_non_nullable
 as int,plateCount: null == plateCount ? _self.plateCount : plateCount // ignore: cast_nullable_to_non_nullable
 as int,weightG: null == weightG ? _self.weightG : weightG // ignore: cast_nullable_to_non_nullable
+as int,gramsColor2: null == gramsColor2 ? _self.gramsColor2 : gramsColor2 // ignore: cast_nullable_to_non_nullable
 as int,isActive: null == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
 as bool,filaments: null == filaments ? _self.filaments : filaments // ignore: cast_nullable_to_non_nullable
 as List<VariantFilament>,components: null == components ? _self.components : components // ignore: cast_nullable_to_non_nullable
@@ -171,10 +173,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int productId,  String name,  String sku,  double salePrice,  int? printerId,  String? modelFile,  String? etsyListingId,  int printTimeMin,  int plateCount,  int weightG,  bool isActive,  List<VariantFilament> filaments,  List<VariantComponent> components)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int productId,  String name,  String sku,  double salePrice,  int? printerId,  String? modelFile,  String? etsyListingId,  int printTimeMin,  int plateCount,  int weightG, @JsonKey(name: "grams_color_2")  int gramsColor2,  bool isActive,  List<VariantFilament> filaments,  List<VariantComponent> components)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Variant() when $default != null:
-return $default(_that.id,_that.productId,_that.name,_that.sku,_that.salePrice,_that.printerId,_that.modelFile,_that.etsyListingId,_that.printTimeMin,_that.plateCount,_that.weightG,_that.isActive,_that.filaments,_that.components);case _:
+return $default(_that.id,_that.productId,_that.name,_that.sku,_that.salePrice,_that.printerId,_that.modelFile,_that.etsyListingId,_that.printTimeMin,_that.plateCount,_that.weightG,_that.gramsColor2,_that.isActive,_that.filaments,_that.components);case _:
   return orElse();
 
 }
@@ -192,10 +194,10 @@ return $default(_that.id,_that.productId,_that.name,_that.sku,_that.salePrice,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int productId,  String name,  String sku,  double salePrice,  int? printerId,  String? modelFile,  String? etsyListingId,  int printTimeMin,  int plateCount,  int weightG,  bool isActive,  List<VariantFilament> filaments,  List<VariantComponent> components)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int productId,  String name,  String sku,  double salePrice,  int? printerId,  String? modelFile,  String? etsyListingId,  int printTimeMin,  int plateCount,  int weightG, @JsonKey(name: "grams_color_2")  int gramsColor2,  bool isActive,  List<VariantFilament> filaments,  List<VariantComponent> components)  $default,) {final _that = this;
 switch (_that) {
 case _Variant():
-return $default(_that.id,_that.productId,_that.name,_that.sku,_that.salePrice,_that.printerId,_that.modelFile,_that.etsyListingId,_that.printTimeMin,_that.plateCount,_that.weightG,_that.isActive,_that.filaments,_that.components);case _:
+return $default(_that.id,_that.productId,_that.name,_that.sku,_that.salePrice,_that.printerId,_that.modelFile,_that.etsyListingId,_that.printTimeMin,_that.plateCount,_that.weightG,_that.gramsColor2,_that.isActive,_that.filaments,_that.components);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -212,10 +214,10 @@ return $default(_that.id,_that.productId,_that.name,_that.sku,_that.salePrice,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int productId,  String name,  String sku,  double salePrice,  int? printerId,  String? modelFile,  String? etsyListingId,  int printTimeMin,  int plateCount,  int weightG,  bool isActive,  List<VariantFilament> filaments,  List<VariantComponent> components)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int productId,  String name,  String sku,  double salePrice,  int? printerId,  String? modelFile,  String? etsyListingId,  int printTimeMin,  int plateCount,  int weightG, @JsonKey(name: "grams_color_2")  int gramsColor2,  bool isActive,  List<VariantFilament> filaments,  List<VariantComponent> components)?  $default,) {final _that = this;
 switch (_that) {
 case _Variant() when $default != null:
-return $default(_that.id,_that.productId,_that.name,_that.sku,_that.salePrice,_that.printerId,_that.modelFile,_that.etsyListingId,_that.printTimeMin,_that.plateCount,_that.weightG,_that.isActive,_that.filaments,_that.components);case _:
+return $default(_that.id,_that.productId,_that.name,_that.sku,_that.salePrice,_that.printerId,_that.modelFile,_that.etsyListingId,_that.printTimeMin,_that.plateCount,_that.weightG,_that.gramsColor2,_that.isActive,_that.filaments,_that.components);case _:
   return null;
 
 }
@@ -227,7 +229,7 @@ return $default(_that.id,_that.productId,_that.name,_that.sku,_that.salePrice,_t
 @JsonSerializable()
 
 class _Variant extends Variant {
-  const _Variant({required this.id, required this.productId, required this.name, required this.sku, required this.salePrice, this.printerId, this.modelFile, this.etsyListingId, this.printTimeMin = 0, this.plateCount = 1, this.weightG = 0, this.isActive = true, final  List<VariantFilament> filaments = const [], final  List<VariantComponent> components = const []}): _filaments = filaments,_components = components,super._();
+  const _Variant({required this.id, required this.productId, required this.name, required this.sku, required this.salePrice, this.printerId, this.modelFile, this.etsyListingId, this.printTimeMin = 0, this.plateCount = 1, this.weightG = 0, @JsonKey(name: "grams_color_2") this.gramsColor2 = 0, this.isActive = true, final  List<VariantFilament> filaments = const [], final  List<VariantComponent> components = const []}): _filaments = filaments,_components = components,super._();
   factory _Variant.fromJson(Map<String, dynamic> json) => _$VariantFromJson(json);
 
 @override final  int id;
@@ -245,6 +247,8 @@ class _Variant extends Variant {
 // se nao vier, assume este valor
 @override@JsonKey() final  int weightG;
 // se nao vier, assume este valor
+// produtos a 2 cores: quantas das gramas são da Cor 2 (a Cor 1 é o resto); 0 = 1 cor
+@override@JsonKey(name: "grams_color_2") final  int gramsColor2;
 @override@JsonKey() final  bool isActive;
  final  List<VariantFilament> _filaments;
 @override@JsonKey() List<VariantFilament> get filaments {
@@ -276,16 +280,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Variant&&(identical(other.id, id) || other.id == id)&&(identical(other.productId, productId) || other.productId == productId)&&(identical(other.name, name) || other.name == name)&&(identical(other.sku, sku) || other.sku == sku)&&(identical(other.salePrice, salePrice) || other.salePrice == salePrice)&&(identical(other.printerId, printerId) || other.printerId == printerId)&&(identical(other.modelFile, modelFile) || other.modelFile == modelFile)&&(identical(other.etsyListingId, etsyListingId) || other.etsyListingId == etsyListingId)&&(identical(other.printTimeMin, printTimeMin) || other.printTimeMin == printTimeMin)&&(identical(other.plateCount, plateCount) || other.plateCount == plateCount)&&(identical(other.weightG, weightG) || other.weightG == weightG)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&const DeepCollectionEquality().equals(other._filaments, _filaments)&&const DeepCollectionEquality().equals(other._components, _components));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Variant&&(identical(other.id, id) || other.id == id)&&(identical(other.productId, productId) || other.productId == productId)&&(identical(other.name, name) || other.name == name)&&(identical(other.sku, sku) || other.sku == sku)&&(identical(other.salePrice, salePrice) || other.salePrice == salePrice)&&(identical(other.printerId, printerId) || other.printerId == printerId)&&(identical(other.modelFile, modelFile) || other.modelFile == modelFile)&&(identical(other.etsyListingId, etsyListingId) || other.etsyListingId == etsyListingId)&&(identical(other.printTimeMin, printTimeMin) || other.printTimeMin == printTimeMin)&&(identical(other.plateCount, plateCount) || other.plateCount == plateCount)&&(identical(other.weightG, weightG) || other.weightG == weightG)&&(identical(other.gramsColor2, gramsColor2) || other.gramsColor2 == gramsColor2)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&const DeepCollectionEquality().equals(other._filaments, _filaments)&&const DeepCollectionEquality().equals(other._components, _components));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,productId,name,sku,salePrice,printerId,modelFile,etsyListingId,printTimeMin,plateCount,weightG,isActive,const DeepCollectionEquality().hash(_filaments),const DeepCollectionEquality().hash(_components));
+int get hashCode => Object.hash(runtimeType,id,productId,name,sku,salePrice,printerId,modelFile,etsyListingId,printTimeMin,plateCount,weightG,gramsColor2,isActive,const DeepCollectionEquality().hash(_filaments),const DeepCollectionEquality().hash(_components));
 
 @override
 String toString() {
-  return 'Variant(id: $id, productId: $productId, name: $name, sku: $sku, salePrice: $salePrice, printerId: $printerId, modelFile: $modelFile, etsyListingId: $etsyListingId, printTimeMin: $printTimeMin, plateCount: $plateCount, weightG: $weightG, isActive: $isActive, filaments: $filaments, components: $components)';
+  return 'Variant(id: $id, productId: $productId, name: $name, sku: $sku, salePrice: $salePrice, printerId: $printerId, modelFile: $modelFile, etsyListingId: $etsyListingId, printTimeMin: $printTimeMin, plateCount: $plateCount, weightG: $weightG, gramsColor2: $gramsColor2, isActive: $isActive, filaments: $filaments, components: $components)';
 }
 
 
@@ -296,7 +300,7 @@ abstract mixin class _$VariantCopyWith<$Res> implements $VariantCopyWith<$Res> {
   factory _$VariantCopyWith(_Variant value, $Res Function(_Variant) _then) = __$VariantCopyWithImpl;
 @override @useResult
 $Res call({
- int id, int productId, String name, String sku, double salePrice, int? printerId, String? modelFile, String? etsyListingId, int printTimeMin, int plateCount, int weightG, bool isActive, List<VariantFilament> filaments, List<VariantComponent> components
+ int id, int productId, String name, String sku, double salePrice, int? printerId, String? modelFile, String? etsyListingId, int printTimeMin, int plateCount, int weightG,@JsonKey(name: "grams_color_2") int gramsColor2, bool isActive, List<VariantFilament> filaments, List<VariantComponent> components
 });
 
 
@@ -313,7 +317,7 @@ class __$VariantCopyWithImpl<$Res>
 
 /// Create a copy of Variant
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? productId = null,Object? name = null,Object? sku = null,Object? salePrice = null,Object? printerId = freezed,Object? modelFile = freezed,Object? etsyListingId = freezed,Object? printTimeMin = null,Object? plateCount = null,Object? weightG = null,Object? isActive = null,Object? filaments = null,Object? components = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? productId = null,Object? name = null,Object? sku = null,Object? salePrice = null,Object? printerId = freezed,Object? modelFile = freezed,Object? etsyListingId = freezed,Object? printTimeMin = null,Object? plateCount = null,Object? weightG = null,Object? gramsColor2 = null,Object? isActive = null,Object? filaments = null,Object? components = null,}) {
   return _then(_Variant(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,productId: null == productId ? _self.productId : productId // ignore: cast_nullable_to_non_nullable
@@ -326,6 +330,7 @@ as String?,etsyListingId: freezed == etsyListingId ? _self.etsyListingId : etsyL
 as String?,printTimeMin: null == printTimeMin ? _self.printTimeMin : printTimeMin // ignore: cast_nullable_to_non_nullable
 as int,plateCount: null == plateCount ? _self.plateCount : plateCount // ignore: cast_nullable_to_non_nullable
 as int,weightG: null == weightG ? _self.weightG : weightG // ignore: cast_nullable_to_non_nullable
+as int,gramsColor2: null == gramsColor2 ? _self.gramsColor2 : gramsColor2 // ignore: cast_nullable_to_non_nullable
 as int,isActive: null == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
 as bool,filaments: null == filaments ? _self._filaments : filaments // ignore: cast_nullable_to_non_nullable
 as List<VariantFilament>,components: null == components ? _self._components : components // ignore: cast_nullable_to_non_nullable

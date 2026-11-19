@@ -381,7 +381,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         decoration: const InputDecoration(
           labelText: "Cores por peça",
           filled: false,
-          helperText: "Com 2, a encomenda pede «Cor 1» e «Cor 2». O custo usa a mais cara das duas.",
+          helperText: "Com 2, a encomenda pede «Cor 1» e «Cor 2». No custo, à direita, escreve as gramas de cada cor.",
           helperMaxLines: 2,
         ),
         child: Align(
@@ -471,6 +471,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             variant: widget.productId == null ? null : selectedVariant,
             showName: variants.length > 1 || (selectedVariant?.name.isNotEmpty ?? false),
             colorIds: _colorIds.toList(),
+            twoColors: _colorsPerPiece == 2,
           )
         : null;
 

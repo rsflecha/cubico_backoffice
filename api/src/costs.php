@@ -32,12 +32,24 @@ function printerCostPerHour(): float
  * $colorFilamentId (opcional): a cor escolhida na encomenda. Troca o filamento PRINCIPAL da
  * receita (o que leva mais gramas) por este, com as mesmas gramas. Assim a mesma bola pode
  * sair em dourado ou em branco sem criar outro produto, e o custo usa o preço certo.
+ *
+ * $color2FilamentId (opcional): a Cor 2 de um produto a 2 cores. As gramas da Cor 2
+ * (variants.grams_color_2) saem do filamento principal e contam ao preço desta cor.
+ * Se a variante não tiver as gramas da Cor 2, fica pela mais cara das duas (do lado seguro).
  */
-function variantUnitCost(int $variantId, float $costPerHour, ?int $colorFilamentId = null): float
+function variantUnitCost(int $variantId, float $costPerHour, ?int $colorFilamentId = null, ?int $color2FilamentId = null): float
 {
-    $stmt = db()->prepare('SELECT print_time_min FROM variants WHERE id = ?');
+    $stmt = db()->prepare('SELECT print_time_min, grams_color_2 FROM variants WHERE id = ?');
     $stmt->execute([$variantId]);
-    $minutes = (int) $stmt->fetchColumn();
+    $variant = $stmt->fetch() ?: ['print_time_min' => 0, 'grams_color_2' => 0];
+    $grams2 = (int) $variant['grams_color_2'];
+    if ($color2FilamentId !== null && $grams2 <= 0) {
+        return max(
+            variantUnitCost($variantId, $costPerHour, $colorFilamentId),
+            variantUnitCost($variantId, $costPerHour, $color2FilamentId)
+        );
+    }
+    $minutes = (int) $variant['print_time_min'];
     $total = $minutes / 60 * $costPerHour;
 
     $filaments = db()->prepare(
@@ -52,6 +64,16 @@ function variantUnitCost(int $variantId, float $costPerHour, ?int $colorFilament
         $chosen->execute([$colorFilamentId]);
         if ($row = $chosen->fetch()) {
             $recipe[0] = ['grams' => $recipe[0]['grams']] + $row;
+        }
+    }
+    // 2 cores: as gramas da Cor 2 passam do filamento principal para a Cor 2
+    if ($color2FilamentId !== null && $recipe !== []) {
+        $chosen = db()->prepare('SELECT * FROM filaments WHERE id = ?');
+        $chosen->execute([$color2FilamentId]);
+        if ($row = $chosen->fetch()) {
+            $moved = min($grams2, (int) $recipe[0]['grams']);
+            $recipe[0]['grams'] = (int) $recipe[0]['grams'] - $moved;
+            $recipe[] = ['grams' => $moved] + $row;
         }
     }
     foreach ($recipe as $f) {

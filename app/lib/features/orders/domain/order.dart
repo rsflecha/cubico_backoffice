@@ -136,7 +136,7 @@ abstract class OrderLine with _$OrderLine {
     // para o custo; ao ler as encomendas não vem (a cor fica escrita na personalização)
     int? filamentId,
     // a segunda cor, num produto a 2 cores (a árvore de Natal). Também só vai no pedido:
-    // a API faz o custo pela mais cara das duas
+    // a API conta as gramas da Cor 2 ao preço desta cor
     @JsonKey(name: "filament_id_2") int? filamentId2,
   }) = _OrderLine;
 

@@ -282,6 +282,7 @@ const VARIANT_TYPES = [
     'print_time_min' => 'int',
     'plate_count' => 'int',
     'weight_g' => 'int',
+    'grams_color_2' => 'int',
     'printer_id' => 'int',
     'model_file' => 'string',
     'etsy_listing_id' => 'string',
@@ -394,14 +395,15 @@ $app->post('/api/variants', function (Request $request, Response $response) {
     $pdo->beginTransaction();
     try {
         $pdo->prepare(
-            'INSERT INTO variants (product_id, name, sku, sale_price, print_time_min, plate_count, weight_g, printer_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO variants (product_id, name, sku, sale_price, print_time_min, plate_count, weight_g, grams_color_2, printer_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
         )->execute([
             $productId, $name, $sku,
             $first['sale_price'] ?? 0,
             $first['print_time_min'] ?? 0,
             $first['plate_count'] ?? 1,
             $first['weight_g'] ?? 0,
+            $first['grams_color_2'] ?? 0,
             $first['printer_id'] ?? null,
         ]);
         $id = (int) $pdo->lastInsertId();
@@ -428,7 +430,7 @@ $app->put('/api/variants/{id}', function (Request $request, Response $response, 
     }
     $body = body($request);
     // o sku não se escreve: é a API que o dá (o número da variante; o nome não entra)
-    $writable = ['name', 'sale_price', 'print_time_min', 'plate_count', 'weight_g',
+    $writable = ['name', 'sale_price', 'print_time_min', 'plate_count', 'weight_g', 'grams_color_2',
         'printer_id', 'model_file', 'etsy_listing_id', 'is_active'];
     $columns = array_values(array_filter($writable, fn ($c) => array_key_exists($c, $body)));
     $values = array_map(fn ($c) => dbValue($body[$c], VARIANT_TYPES[$c]), $columns);

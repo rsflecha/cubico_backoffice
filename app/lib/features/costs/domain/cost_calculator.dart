@@ -132,19 +132,40 @@ class CostCalculator {
     required List<Component> components,
     required double costPerHour,
     int? colorFilamentId, // a cor escolhida na encomenda: troca o filamento principal
+    int? color2FilamentId, // a Cor 2, num produto a 2 cores
   }) {
+    // 2 cores sem as gramas da Cor 2 gravadas: a mais cara das duas (do lado seguro), como na API
+    if (color2FilamentId != null && variant.gramsColor2 <= 0) {
+      double withColor(int id) => variantProductionCost(
+          variant: variant, filaments: filaments, components: components,
+          costPerHour: costPerHour, colorFilamentId: id);
+      final first = colorFilamentId == null
+          ? variantProductionCost(variant: variant, filaments: filaments, components: components, costPerHour: costPerHour)
+          : withColor(colorFilamentId);
+      final second = withColor(color2FilamentId);
+      return first > second ? first : second;
+    }
+
     var total = 0.0;
     final main = mainFilament(variant);
+    Filament? find(int id) => filaments.where((f) => f.id == id).firstOrNull;
 
     // filamentos: cada linha da receita
     for (final line in variant.filaments) {
-      // a linha principal passa a usar a cor escolhida (as gramas ficam iguais)
-      final id = colorFilamentId != null && identical(line, main) ? colorFilamentId : line.filamentId;
-      final filament = filaments
-          .where((f) => f.id == id)
-          .firstOrNull;
+      final isMain = identical(line, main);
+      // a linha principal passa a usar a cor escolhida
+      final id = colorFilamentId != null && isMain ? colorFilamentId : line.filamentId;
+      var grams = line.grams;
+      // 2 cores: as gramas da Cor 2 saem da principal e contam ao preço da Cor 2
+      if (isMain && color2FilamentId != null) {
+        final moved = variant.gramsColor2 < grams ? variant.gramsColor2 : grams;
+        grams -= moved;
+        final second = find(color2FilamentId);
+        if (second != null) total += filamentCost(grams: moved.toDouble(), filament: second);
+      }
+      final filament = find(id);
       if (filament != null) {
-        total += filamentCost(grams: line.grams.toDouble(), filament: filament);
+        total += filamentCost(grams: grams.toDouble(), filament: filament);
       }
     }
 

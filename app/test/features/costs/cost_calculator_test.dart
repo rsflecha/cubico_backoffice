@@ -263,5 +263,22 @@ void main() {
         0,
       );
     });
+
+    test("2 cores: as gramas da Cor 2 saem da principal e contam ao preço dela", () {
+      // a árvore: 100 g, das quais 30 g são a Cor 2
+      const tree = Variant(id: 4, productId: 1, name: "", sku: "Z", salePrice: 1, gramsColor2: 30,
+          filaments: [VariantFilament(filamentId: 7, grams: 100)]);
+      // Cor 1 branco (70 g × 20) + Cor 2 dourado (30 g × 40) = 1,40 + 1,20
+      expect(calc.variantProductionCost(variant: tree, filaments: filaments, components: const [],
+          costPerHour: 0, colorFilamentId: 8, color2FilamentId: 7), closeTo(2.60, 0.0001));
+    });
+
+    test("2 cores sem as gramas da Cor 2: a mais cara das duas", () {
+      const tree = Variant(id: 5, productId: 1, name: "", sku: "Z", salePrice: 1,
+          filaments: [VariantFilament(filamentId: 7, grams: 100)]);
+      // 100 g ao preço do dourado (o mais caro): 4,00
+      expect(calc.variantProductionCost(variant: tree, filaments: filaments, components: const [],
+          costPerHour: 0, colorFilamentId: 8, color2FilamentId: 7), closeTo(4.00, 0.0001));
+    });
   });
 }

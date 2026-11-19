@@ -1,4 +1,5 @@
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
+import 'package:cubico_backoffice/features/products/domain/variant.dart';
 import 'package:cubico_backoffice/features/products/presentation/widgets/cost_card.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,13 +12,13 @@ class _Demo extends DemoModeNotifier {
 }
 
 void main() {
-  Future<void> show(WidgetTester tester, double width) async {
+  Future<void> show(WidgetTester tester, double width, {Widget card = const CostCard()}) async {
     tester.view.physicalSize = Size(width, 3000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(ProviderScope(
       overrides: [demoModeProvider.overrideWith(_Demo.new)],
-      child: const MaterialApp(home: Scaffold(body: SingleChildScrollView(child: CostCard()))),
+      child: MaterialApp(home: Scaffold(body: SingleChildScrollView(child: card))),
     ));
     // os repositórios demo fingem a demora da rede (Future.delayed): deixa passar esse tempo
     await tester.pump(const Duration(seconds: 2));
@@ -54,5 +55,33 @@ void main() {
     final etsy = tester.getTopLeft(find.text("Etsy"));
     final direct = tester.getTopLeft(find.text("Venda direta"));
     expect(direct.dy, greaterThan(etsy.dy));
+  });
+
+  testWidgets("2 cores: pede as gramas da Cor 1 e da Cor 2, e grava o total e a Cor 2", (tester) async {
+    final key = GlobalKey<CostCardState>();
+    const base = Variant(id: 1, productId: 1, name: "", sku: "CD3-NAT-01", salePrice: 20,
+        weightG: 105, gramsColor2: 25, filaments: [VariantFilament(filamentId: 1, grams: 105)]);
+    await show(tester, 900, card: CostCard(key: key, variant: base, twoColors: true));
+    // o total gravado (105) divide-se: Cor 1 = 80, Cor 2 = 25
+    expect(find.widgetWithText(TextField, "Gramas · Cor 1"), findsOneWidget);
+    expect(find.widgetWithText(TextField, "80"), findsOneWidget);
+    expect(find.widgetWithText(TextField, "25"), findsOneWidget);
+    expect(find.textContaining("Total: 105 g"), findsOneWidget);
+    expect(key.currentState!.isChangedFrom(base), isFalse);
+
+    await tester.enterText(find.widgetWithText(TextField, "25"), "40");
+    await tester.pump();
+    final saved = key.currentState!.applyTo(base);
+    expect(saved.weightG, 120);
+    expect(saved.gramsColor2, 40);
+    expect(saved.filaments.single.grams, 120); // o custo continua a ser o total
+    expect(key.currentState!.isChangedFrom(base), isTrue);
+  });
+
+  testWidgets("1 cor: um só campo de gramas, e a Cor 2 fica a 0", (tester) async {
+    final key = GlobalKey<CostCardState>();
+    await show(tester, 900, card: CostCard(key: key));
+    expect(find.widgetWithText(TextField, "Gramas"), findsOneWidget);
+    expect(find.textContaining("Cor 2"), findsNothing);
   });
 }

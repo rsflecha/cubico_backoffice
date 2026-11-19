@@ -294,17 +294,15 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         "Cor: ${color.colorName}",
       line.customization.text.trim(),
     ].where((part) => part.isNotEmpty).join(" · ");
-    // o custo, aqui como na API: com 2 cores, pela mais cara das duas
-    double costWith(int? colorId) => _calc.variantProductionCost(
-          variant: line.variant,
-          filaments: filaments,
-          components: components,
-          costPerHour: perHour,
-          colorFilamentId: colorId,
-        );
-    final unitCost = color2 == null
-        ? costWith(color?.id)
-        : [costWith(color?.id), costWith(color2.id)].reduce((a, b) => a > b ? a : b);
+    // o custo, aqui como na API: com 2 cores, as gramas de cada cor ao preço dela
+    final unitCost = _calc.variantProductionCost(
+      variant: line.variant,
+      filaments: filaments,
+      components: components,
+      costPerHour: perHour,
+      colorFilamentId: color?.id,
+      color2FilamentId: color2?.id,
+    );
 
     return OrderLine(
       id: 0,

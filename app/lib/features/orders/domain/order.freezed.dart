@@ -366,7 +366,7 @@ mixin _$OrderLine {
 // a cor escolhida ao criar (null = a da receita). Só vai NO PEDIDO: a API usa-a
 // para o custo; ao ler as encomendas não vem (a cor fica escrita na personalização)
  int? get filamentId;// a segunda cor, num produto a 2 cores (a árvore de Natal). Também só vai no pedido:
-// a API faz o custo pela mais cara das duas
+// a API conta as gramas da Cor 2 ao preço desta cor
 @JsonKey(name: "filament_id_2") int? get filamentId2;
 /// Create a copy of OrderLine
 /// with the given fields replaced by the non-null parameter values.
@@ -589,7 +589,7 @@ class _OrderLine implements OrderLine {
 // para o custo; ao ler as encomendas não vem (a cor fica escrita na personalização)
 @override final  int? filamentId;
 // a segunda cor, num produto a 2 cores (a árvore de Natal). Também só vai no pedido:
-// a API faz o custo pela mais cara das duas
+// a API conta as gramas da Cor 2 ao preço desta cor
 @override@JsonKey(name: "filament_id_2") final  int? filamentId2;
 
 /// Create a copy of OrderLine

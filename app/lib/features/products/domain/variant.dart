@@ -22,6 +22,8 @@ abstract class Variant with _$Variant {
     @Default(0) int printTimeMin, // se nao vier, assume este valor
     @Default(1) int plateCount, // se nao vier, assume este valor
     @Default(0) int weightG, // se nao vier, assume este valor
+    // produtos a 2 cores: quantas das gramas são da Cor 2 (a Cor 1 é o resto); 0 = 1 cor
+    @JsonKey(name: "grams_color_2") @Default(0) int gramsColor2,
     @Default(true) bool isActive,
     @Default([])
     List<VariantFilament> filaments, // que filamentos e quantas gramas
