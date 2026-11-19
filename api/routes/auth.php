@@ -66,6 +66,7 @@ $app->post('/api/auth/password', function (Request $request, Response $response)
 
     $hash = password_hash($new, PASSWORD_DEFAULT);
     db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([$hash, $user['id']]);
+    deletePasskeys((int) $user['id']); // o Face ID tem de ser ativado outra vez
     $user['password_hash'] = $hash;
     return json($response, ['token' => makeToken($user, $remember)]);
 })->add($requireAuth);

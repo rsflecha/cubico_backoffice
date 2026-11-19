@@ -1,4 +1,5 @@
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
+import 'package:cubico_backoffice/features/auth/presentation/passkey_widgets.dart';
 import 'package:cubico_backoffice/features/auth/presentation/change_password_dialog.dart';
 import 'package:cubico_backoffice/features/etsy/presentation/etsy_section.dart';
 import 'package:cubico_backoffice/features/settings/presentation/widgets/users_section.dart';
@@ -41,6 +42,9 @@ class SettingsScreen extends ConsumerWidget {
                       title: const Text("Mudar palavra-passe"),
                       onTap: () => showChangePasswordDialog(context),
                     ),
+                  // Face ID / impressão digital: só no site, e não no modo demo (não há servidor)
+                  if (!ref.watch(demoModeProvider) && ref.watch(passkeysAvailableProvider))
+                    const PasskeysTile(),
                   ListTile(
                     leading: const Icon(Icons.logout),
                     title: const Text("Terminar sessão"),

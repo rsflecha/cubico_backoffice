@@ -15,7 +15,8 @@ Future<void> showChangePasswordDialog(BuildContext context) async {
   if (changed == true && context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text("Palavra-passe mudada. As sessões noutros aparelhos foram terminadas."),
+        content: Text("Palavra-passe mudada. As sessões noutros aparelhos foram terminadas, "
+            "e o Face ID tem de ser ativado outra vez."),
       ),
     );
   }
@@ -77,6 +78,7 @@ class _ChangePasswordDialogState extends ConsumerState<ChangePasswordDialog> {
       return;
     }
     if (!mounted) return;
+    ref.invalidate(passkeysProvider); // a API apagou-as: a lista nas Definições fica vazia
     Navigator.pop(context, true);
   }
 

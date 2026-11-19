@@ -2,6 +2,7 @@ import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/features/auth/domain/app_user.dart';
 import 'package:cubico_backoffice/features/auth/domain/auth_repository.dart';
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
+import 'package:cubico_backoffice/features/auth/presentation/passkey_widgets.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -204,6 +205,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               )
                   : const Text("Entrar"),
             ),
+            // Face ID / impressão digital: só no site, num browser que saiba
+            if (ref.watch(passkeysAvailableProvider)) ...[
+              const SizedBox(height: 12),
+              PasskeySignInButton(
+                remember: _keepSession,
+                onSignedIn: () => context.go("/dashboard"),
+              ),
+            ],
             const SizedBox(height: 16),
             const Row(
               children: [

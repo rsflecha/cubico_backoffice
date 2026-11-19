@@ -21,6 +21,7 @@ require __DIR__ . '/../src/production.php'; // encomenda paga → produção soz
 require __DIR__ . '/../src/etsy.php';   // a ligação à Etsy (OAuth e pedidos)
 require __DIR__ . '/../src/etsy_sync.php'; // a importação das encomendas da Etsy
 require __DIR__ . '/../src/etsy_listings.php'; // conferir os SKU dos anúncios
+require __DIR__ . '/../src/passkeys.php'; // entrar com Face ID / impressão digital
 require __DIR__ . '/../src/cors.php';   // quem pode usar a API a partir de um browser
 
 $app = AppFactory::create();
@@ -34,6 +35,7 @@ $app->add($cors);
 // as rotas, um ficheiro por módulo
 require __DIR__ . '/../routes/health.php';
 require __DIR__ . '/../routes/auth.php';
+require __DIR__ . '/../routes/passkeys.php';
 require __DIR__ . '/../routes/categories.php';
 require __DIR__ . '/../routes/costs.php';
 require __DIR__ . '/../routes/products.php';

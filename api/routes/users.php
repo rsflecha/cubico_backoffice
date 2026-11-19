@@ -82,6 +82,7 @@ $app->post('/api/users/{id}/password', function (Request $request, Response $res
     $temporary = temporaryPassword();
     db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?')
         ->execute([password_hash($temporary, PASSWORD_DEFAULT), $id]);
+    deletePasskeys($id); // e o Face ID dos aparelhos dele deixa de entrar
     return json($response, ['temporary_password' => $temporary]);
 })->add($requireAdmin)->add($requireAuth);
 

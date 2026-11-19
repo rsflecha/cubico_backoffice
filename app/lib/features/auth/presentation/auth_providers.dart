@@ -1,18 +1,36 @@
 import 'dart:async';
 
 import 'package:cubico_backoffice/core/api/api_client.dart';
+import 'package:cubico_backoffice/core/passkeys/passkey_bridge.dart';
 import 'package:cubico_backoffice/features/auth/data/api_auth_repository.dart';
+import 'package:cubico_backoffice/features/auth/data/api_passkey_repository.dart';
 import 'package:cubico_backoffice/features/auth/data/api_user_repository.dart';
 import 'package:cubico_backoffice/features/auth/data/demo_user_repository.dart';
 import 'package:cubico_backoffice/features/auth/data/session_storage.dart';
 import 'package:cubico_backoffice/features/auth/domain/app_user.dart';
 import 'package:cubico_backoffice/features/auth/domain/auth_repository.dart';
+import 'package:cubico_backoffice/features/auth/domain/passkey.dart';
 import 'package:cubico_backoffice/features/auth/domain/user_repository.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Qual é o repositório de autenticação: a API a sério.
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return ApiAuthRepository(ref.watch(dioProvider), ref.watch(tokenStoreProvider));
+});
+
+/// O Face ID / impressão digital (passkeys): a API e o browser.
+final passkeyRepositoryProvider = Provider<PasskeyRepository>((ref) {
+  return ApiPasskeyRepository(ref.watch(dioProvider), ref.watch(tokenStoreProvider));
+});
+
+/// Há Face ID / impressão digital aqui? Só no site (web), num browser que saiba.
+/// (A app de Windows e a APK ainda não; e no modo demo não há servidor para o guardar.)
+final passkeysAvailableProvider = Provider<bool>((ref) => kIsWeb && const PasskeyBridge().supported);
+
+/// Os meus aparelhos com Face ID.
+final passkeysProvider = FutureProvider<List<Passkey>>((ref) {
+  return ref.watch(passkeyRepositoryProvider).fetchAll();
 });
 
 /// Onde fica guardada a sessão do "Manter sessão".
@@ -64,6 +82,17 @@ class SessionNotifier extends Notifier<AppUser?> {
     final user = await ref
         .read(authRepositoryProvider)
         .signIn(email: email, password: password, remember: remember);
+    await _start(user, remember);
+  }
+
+  /// Entra com o Face ID / impressão digital. Lança PasskeyException se falhar.
+  Future<void> signInWithPasskey(PreparedPasskey prepared, {bool remember = false}) async {
+    final user = await ref.read(passkeyRepositoryProvider).signIn(prepared, remember: remember);
+    await _start(user, remember);
+  }
+
+  /// Já entrou (com palavra-passe ou Face ID): abre a sessão.
+  Future<void> _start(AppUser user, bool remember) async {
     ref.read(demoModeProvider.notifier).set(false); // sessão a sério: os dados vêm da API
     ref.read(loginMessageProvider.notifier).set(null);
     _remember = remember;
