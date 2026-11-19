@@ -105,6 +105,10 @@ $app->delete('/api/auth/passkeys/{id:[0-9]+}', function (Request $request, Respo
 // POST /api/auth/passkeys/login/options → um desafio novo. Não pede o email:
 // o aparelho mostra as contas que tem para este site.
 $app->post('/api/auth/passkeys/login/options', function (Request $request, Response $response) {
+    $blocked = loginBlockedMinutes(loginKeys(null)); // o mesmo limite por IP do login
+    if ($blocked !== null) {
+        return fail($response, loginBlockedMessage($blocked), 429);
+    }
     $rpId = passkeyRpId($request);
     if ($rpId === null) {
         return fail($response, PASSKEY_NO_SITE, 422);
@@ -122,6 +126,16 @@ $app->post('/api/auth/passkeys/login/options', function (Request $request, Respo
 $app->post('/api/auth/passkeys/login', function (Request $request, Response $response) {
     // a mesma mensagem para tudo o que falha, de propósito (como no login com palavra-passe)
     $denied = 'Não foi possível entrar com o Face ID. Usa a palavra-passe.';
+    // aqui não há email: conta-se só pelo IP, juntamente com as falhas do login normal
+    $keys = loginKeys(null);
+    $blocked = loginBlockedMinutes($keys);
+    if ($blocked !== null) {
+        return fail($response, loginBlockedMessage($blocked), 429);
+    }
+    $deny = function () use ($response, $keys, $denied): Response {
+        recordLoginFailure($keys);
+        return fail($response, $denied, 401);
+    };
     $rpId = passkeyRpId($request);
     if ($rpId === null) {
         return fail($response, PASSKEY_NO_SITE, 422);
@@ -141,16 +155,16 @@ $app->post('/api/auth/passkeys/login', function (Request $request, Response $res
     $stmt->execute([(string) ($body['id'] ?? ''), $rpId]);
     $row = $stmt->fetch();
     if (!$row) {
-        return fail($response, $denied, 401);
+        return $deny();
     }
     // o aparelho diz de quem é a chave: tem de ser a mesma pessoa
     $handle = b64urlDecode((string) ($body['user_handle'] ?? ''));
     if ($handle !== '' && $handle !== 'cubico-user-' . $row['id']) {
-        return fail($response, $denied, 401);
+        return $deny();
     }
     $clientData = b64urlDecode((string) ($body['client_data_json'] ?? ''));
     if (!passkeyOriginMatches($clientData, $request)) {
-        return fail($response, $denied, 401);
+        return $deny();
     }
     $lib = passkeyLib($rpId);
     try {
@@ -164,7 +178,7 @@ $app->post('/api/auth/passkeys/login', function (Request $request, Response $res
             true
         );
     } catch (WebAuthnException) {
-        return fail($response, $denied, 401);
+        return $deny();
     }
 
     $count = $lib->getSignatureCounter();

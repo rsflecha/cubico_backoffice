@@ -83,6 +83,7 @@ API (dentro de `api/`):
 - `typed()` converte DECIMAL e BOOLEAN antes de responder; `fail()` responde com mensagens em português.
 - Transações quando se grava em várias tabelas. As contas oficiais (custo, taxas, portes) são feitas na API (`src/costs.php`).
 - O colaborador nunca recebe custos, taxas nem portes pagos.
+- Login com limite de tentativas (`src/login_limit.php`, migração 011): 5 falhas por email ou 30 por IP em 15 minutos dão 429. O Face ID conta só pelo IP. Entrar bem limpa as falhas do email, não as do IP.
 - Mudanças a bases de dados existentes: nova migração em `database/migrations/` (numerada), e atualizar `schema.sql`/`seed.sql`.
 
 ## Servidor (alojamento cPanel)

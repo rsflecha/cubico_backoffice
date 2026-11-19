@@ -26,8 +26,9 @@ class ApiAuthRepository implements AuthRepository {
       _tokens.token = data["token"] as String; // guarda o "bilhete" para os próximos pedidos
       return AppUser.fromJson(data["user"] as Map<String, dynamic>);
     } on DioException catch (e) {
-      // 401: email ou palavra-passe errados → a mensagem que a API mandou
-      if (e.response?.statusCode == 401) {
+      // 401: email ou palavra-passe errados; 429: demasiadas tentativas → a mensagem que a API mandou
+      final status = e.response?.statusCode;
+      if (status == 401 || status == 429) {
         final body = e.response?.data;
         final message = body is Map && body["error"] is String
             ? body["error"] as String

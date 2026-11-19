@@ -49,6 +49,15 @@ CREATE TABLE passkey_challenges (
   INDEX (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- as tentativas de login falhadas (migração 011): sha256 de "email:…" ou "ip:…", guardadas 1 dia
+CREATE TABLE login_attempts (
+  id         BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  key_hash   CHAR(64) CHARACTER SET ascii NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX (key_hash, created_at),
+  INDEX (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- ───────────── Configuracao ─────────────
 
 CREATE TABLE settings (

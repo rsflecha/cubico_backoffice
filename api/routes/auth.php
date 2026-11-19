@@ -14,15 +14,28 @@ $app->post('/api/auth/login', function (Request $request, Response $response) {
     $password = (string) ($body['password'] ?? '');
     $remember = ($body['remember'] ?? false) === true;
 
+    // demasiadas falhas neste email ou neste IP? nem se confere a palavra-passe
+    $keys = loginKeys($email);
+    $blocked = loginBlockedMinutes($keys);
+    if ($blocked !== null) {
+        return fail($response, loginBlockedMessage($blocked), 429);
+    }
+
     // o "?" é preenchido pelo PDO de forma segura (nunca juntar texto do utilizador ao SQL)
     $stmt = db()->prepare('SELECT * FROM users WHERE email = ? AND is_active = 1');
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 
+    // sem utilizador, confere-se na mesma contra um hash qualquer: assim a resposta demora
+    // o mesmo tempo, e não dá para descobrir pelo relógio que emails têm conta
+    $passwordOk = password_verify($password, $user ? $user['password_hash'] : LOGIN_DUMMY_HASH);
+
     // a mesma mensagem para email errado e palavra-passe errada, de propósito
-    if (!$user || !password_verify($password, $user['password_hash'])) {
+    if (!$user || !$passwordOk) {
+        recordLoginFailure($keys);
         return fail($response, 'Email ou palavra-passe errados.', 401);
     }
+    clearLoginFailures($email);
 
     db()->prepare('UPDATE users SET last_login_at = NOW() WHERE id = ?')->execute([$user['id']]);
     return json($response, ['token' => makeToken($user, $remember), 'user' => publicUser($user)]);
