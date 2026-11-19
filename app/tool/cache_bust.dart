@@ -1,12 +1,15 @@
 // Corre DEPOIS de `flutter build web`:   dart run tool/cache_bust.dart
 //
-// Porquê: o alojamento tem um nginx à frente que guarda o main.dart.js na cache dele
-// (não liga ao Cache-Control do .htaccess, e não o podemos limpar). Depois de publicar,
-// os browsers continuavam a receber a versão ANTIGA durante muito tempo.
+// Porquê: o alojamento tem um nginx à frente que guarda os .js na cache dele (não liga ao
+// Cache-Control do .htaccess, e não o podemos limpar). Depois de publicar, os browsers
+// continuavam a receber a versão ANTIGA do main.dart.js e do flutter_bootstrap.js.
 //
-// Solução: o endereço muda a cada build — main.dart.js?v=<impressão digital do ficheiro>.
-// Um endereço novo nunca está na cache. O index.html e o flutter_bootstrap.js não ficam
-// presos na cache do nginx, por isso são eles que levam o endereço novo.
+// Solução: os endereços mudam a cada build — main.dart.js?v=<impressão digital>.
+// Um endereço novo nunca está na cache. Só o index.html não fica preso no nginx,
+// por isso é por ele que a versão nova entra:
+//   index.html → flutter_bootstrap.js?v=… → main.dart.js?v=…
+//   index.html → passkeys.js?v=…
+// Pode correr-se mais de uma vez: troca a versão que lá estiver.
 import 'dart:io';
 
 void main() {
@@ -18,26 +21,24 @@ void main() {
   }
   final version = _fingerprint(main.readAsBytesSync());
 
-  // 1. o flutter_bootstrap.js: o caminho do main.dart.js
-  _replace(
-    File("${web.path}/flutter_bootstrap.js"),
-    '"mainJsPath":"main.dart.js"',
-    '"mainJsPath":"main.dart.js?v=$version"',
-  );
-  // 2. o index.html: o passkeys.js (Face ID)
-  _replace(File("${web.path}/index.html"), 'src="passkeys.js"', 'src="passkeys.js?v=$version"');
+  _version(File("${web.path}/flutter_bootstrap.js"), '"mainJsPath":"main.dart.js', '"', version);
+  final index = File("${web.path}/index.html");
+  _version(index, 'src="flutter_bootstrap.js', '"', version);
+  _version(index, 'src="passkeys.js', '"', version);
 
-  stdout.writeln("Versão $version nos endereços do main.dart.js e do passkeys.js.");
+  stdout.writeln("Versão $version: index.html → flutter_bootstrap.js → main.dart.js, e passkeys.js.");
 }
 
-/// Troca [from] por [to]. Falha alto se não encontrar: melhor parar do que publicar sem a versão.
-void _replace(File file, String from, String to) {
+/// Põe "?v=[version]" a seguir a [prefix] (antes de [end]), trocando um "?v=" que já lá esteja.
+/// Falha alto se não encontrar: melhor parar do que publicar sem a versão.
+void _version(File file, String prefix, String end, String version) {
   final text = file.readAsStringSync();
-  if (!text.contains(from)) {
-    stderr.writeln("Não encontrei «$from» em ${file.path}. O Flutter mudou o formato?");
+  final pattern = RegExp("${RegExp.escape(prefix)}(\\?v=[0-9a-f]+)?${RegExp.escape(end)}");
+  if (!pattern.hasMatch(text)) {
+    stderr.writeln("Não encontrei «$prefix» em ${file.path}. O Flutter mudou o formato?");
     exit(1);
   }
-  file.writeAsStringSync(text.replaceFirst(from, to));
+  file.writeAsStringSync(text.replaceFirst(pattern, "$prefix?v=$version$end"));
 }
 
 /// FNV-1a de 32 bits, em hex: muda sempre que o ficheiro muda (não precisa de pacotes).

@@ -52,7 +52,7 @@ App (dentro de `app/`):
 - `dart run build_runner build` — depois de mudar modelos Freezed
 - `flutter analyze` · `flutter test`
 - `flutter build windows|web --dart-define=API_URL=https://api.fazendasubmersa.pt/api`
-- Depois de `flutter build web`, SEMPRE: `dart run tool/cache_bust.dart` (põe `?v=` no main.dart.js; o nginx do alojamento guarda o antigo e não se limpa)
+- Depois de `flutter build web`, SEMPRE: `dart run tool/cache_bust.dart` (põe `?v=` no flutter_bootstrap.js, no main.dart.js e no passkeys.js; o nginx do alojamento guarda os .js antigos e não se limpa; só o index.html chega fresco)
 
 API (dentro de `api/`):
 - `php -S localhost:8080 -t public` (ou o `iniciar-api.bat`)
@@ -90,7 +90,7 @@ API (dentro de `api/`):
 - API em `https://api.fazendasubmersa.pt` (pasta `repositories/cubico_backoffice/api/public`); app web em `https://app.fazendasubmersa.pt` (pasta `apps/backoffice-web`).
 - **PHP 8.3 no servidor** (o PC tem 8.4): o `composer.json` tem `config.platform.php = 8.3.0`. Não usar funcionalidades só do 8.4.
 - Sem terminal nem SSH. O "Update from Remote" do Git Version Control está a falhar: as mudanças da API vão pelo **File Manager**. A pasta `vendor` e o `.env` vão à mão.
-- O `.htaccess` da `apps/backoffice-web` (só no servidor, não vem na build) manda `Cache-Control: no-cache` no index, `flutter_bootstrap.js` e `main.dart.js`: o browser vai sempre buscar a versão nova. O nginx do alojamento ignora isto e guarda o `main.dart.js` muito tempo (não se limpa: `ea-nginx` não está na conta); por isso o `tool/cache_bust.dart` muda-lhe o endereço a cada build. Para conferir a web publicada, pedir os ficheiros SEM `?v=` aleatório e com `--compressed`, como um browser.
+- O `.htaccess` da `apps/backoffice-web` (só no servidor, não vem na build) manda `Cache-Control: no-cache` no index, `flutter_bootstrap.js` e `main.dart.js`: o browser vai sempre buscar a versão nova. O nginx do alojamento ignora isto e guarda o `main.dart.js` e o `flutter_bootstrap.js` muito tempo (não se limpa: `ea-nginx` não está na conta); por isso o `tool/cache_bust.dart` muda-lhe o endereço a cada build. Para conferir a web publicada, pedir os ficheiros SEM `?v=` aleatório e com `--compressed`, como um browser.
 - Lembra o Rui de que `app.fazendasubmersa.pt` usa a **base de dados verdadeira** da loja; para testes, usar a API do PC.
 
 ## Decisões a respeitar
