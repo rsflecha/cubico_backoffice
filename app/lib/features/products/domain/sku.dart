@@ -1,9 +1,11 @@
-/// SKU automático — decisão de 2026-11-16. Ninguém escreve SKU à mão:
+/// SKU automático — decisão de 2026-11-16 (variantes por número desde 2026-11-19).
+/// Ninguém escreve SKU à mão:
 ///   categoria "Suportes"                → código SUP (3 letras do nome, sem acentos)
 ///   produto                             → CD3-SUP-01, CD3-SUP-02… (recomeça em cada categoria)
 ///   produto sem categoria               → CD3-GER-01… (GER fica reservado)
-///   variante "Hamilton"                 → CD3-SUP-01-HAMILTON
-///   variante sem nome (produto simples) → CD3-SUP-01
+///   variantes com nome                  → CD3-SUP-01-01, CD3-SUP-01-02… (pela ordem de criação;
+///                                         mudar o nome não muda o número)
+///   variante sem nome (modelo único)    → CD3-SUP-01
 ///
 /// Quem manda é a API (api/src/sku.php): estas funções são as MESMAS regras, para o
 /// modo demo e para a app mostrar o SKU antes de gravar. Se mudares uma, muda a outra.
@@ -11,7 +13,6 @@ library;
 
 const skuPrefix = "CD3";
 const noCategoryCode = "GER";
-const _variantSlugMax = 30;
 
 const _accents = {
   "Á": "A", "À": "A", "Â": "A", "Ã": "A", "Ä": "A",
@@ -59,17 +60,24 @@ String nextProductSku(String? categoryCode, Iterable<String> existingSkus) {
   return "$prefix${(max + 1).toString().padLeft(2, "0")}";
 }
 
-/// "Ação & Côr!" → "ACAO-COR"; um nome vazio dá "" (a variante é o próprio produto).
-String variantSlug(String name) {
-  if (name.trim().isEmpty) return "";
-  String trimDashes(String s) => s.replaceAll(RegExp(r"^-+|-+$"), "");
-  var slug = trimDashes(plainUpper(name).replaceAll(RegExp(r"[^A-Z0-9]+"), "-"));
-  if (slug.length > _variantSlugMax) slug = trimDashes(slug.substring(0, _variantSlugMax));
-  return slug.isEmpty ? "V" : slug;
+/// O SKU de uma variante: o do produto, mais o número (3 → "-03"). Sem número = o do produto.
+String variantSku(String productSku, int? number) =>
+    number == null ? productSku : "$productSku-${number.toString().padLeft(2, "0")}";
+
+/// O número de uma variante, lido do SKU dela ("CD3-NAT-01-03" → 3). null se não tiver.
+int? variantNumber(String productSku, String sku) {
+  final prefix = "$productSku-";
+  if (!sku.startsWith(prefix)) return null;
+  final rest = sku.substring(prefix.length);
+  return RegExp(r"^\d+$").hasMatch(rest) ? int.parse(rest) : null;
 }
 
-/// O SKU de uma variante: o do produto, mais o nome.
-String variantSku(String productSku, String variantName) {
-  final slug = variantSlug(variantName);
-  return slug.isEmpty ? productSku : "$productSku-$slug";
+/// O número da próxima variante com nome: o maior já usado nos [siblingSkus], mais 1.
+int nextVariantNumber(String productSku, Iterable<String> siblingSkus) {
+  var max = 0;
+  for (final sku in siblingSkus) {
+    final n = variantNumber(productSku, sku);
+    if (n != null && n > max) max = n;
+  }
+  return max + 1;
 }

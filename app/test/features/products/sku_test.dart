@@ -43,23 +43,24 @@ void main() {
   });
 
   group("SKU da variante", () {
-    test("o do produto mais o nome", () {
-      expect(variantSku("CD3-FOR-01", "Hamilton"), "CD3-FOR-01-HAMILTON");
-      expect(variantSku("CD3-FOR-01", "Lewis Hamilton"), "CD3-FOR-01-LEWIS-HAMILTON");
-      expect(variantSku("CD3-SEC-02", "Ação & Côr!"), "CD3-SEC-02-ACAO-COR");
+    test("o do produto mais o número, com 2 algarismos", () {
+      expect(variantSku("CD3-NAT-01", 1), "CD3-NAT-01-01");
+      expect(variantSku("CD3-NAT-01", 12), "CD3-NAT-01-12");
+      expect(variantSku("CD3-NAT-01", 100), "CD3-NAT-01-100");
     });
-    test("sem nome: o próprio produto", () {
-      expect(variantSku("CD3-SEC-01", ""), "CD3-SEC-01");
-      expect(variantSku("CD3-SEC-01", "   "), "CD3-SEC-01");
+    test("sem número (modelo único): o próprio produto", () {
+      expect(variantSku("CD3-SEC-01", null), "CD3-SEC-01");
     });
-    test("nome sem letras: V", () {
-      expect(variantSku("CD3-GER-01", "***"), "CD3-GER-01-V");
+    test("lê o número do SKU", () {
+      expect(variantNumber("CD3-NAT-01", "CD3-NAT-01-03"), 3);
+      expect(variantNumber("CD3-NAT-01", "CD3-NAT-01"), isNull);
+      expect(variantNumber("CD3-NAT-01", "CD3-NAT-01-HAMILTON"), isNull);
+      expect(variantNumber("CD3-NAT-01", "CD3-NAT-02-01"), isNull);
     });
-    test("nome comprido: corta aos 30, sem hífen no fim", () {
-      expect(
-        variantSku("CD3-FOR-01", "Uma variante com um nome mesmo muito comprido demais"),
-        "CD3-FOR-01-UMA-VARIANTE-COM-UM-NOME-MESMO",
-      );
+    test("o próximo número: o maior mais 1, sem reaproveitar buracos", () {
+      expect(nextVariantNumber("CD3-NAT-01", []), 1);
+      expect(nextVariantNumber("CD3-NAT-01", ["CD3-NAT-01"]), 1);
+      expect(nextVariantNumber("CD3-NAT-01", ["CD3-NAT-01-01", "CD3-NAT-01-03"]), 4);
     });
   });
 }

@@ -169,7 +169,7 @@ CREATE TABLE variants (
   id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   product_id      INT UNSIGNED NOT NULL,
   name            VARCHAR(80) NOT NULL,         -- Hamilton, Verstappen… (ou o nome do produto, se so houver uma)
-  sku             VARCHAR(50) NOT NULL UNIQUE,  -- automatico: SKU do produto + nome (CD3-FOR-01-HAMILTON)
+  sku             VARCHAR(50) NOT NULL UNIQUE,  -- automatico: SKU do produto + numero (CD3-FOR-01-01)
   sale_price      DECIMAL(10,2) NOT NULL,
   print_time_min  INT UNSIGNED NOT NULL DEFAULT 0,
   plate_count     TINYINT UNSIGNED NOT NULL DEFAULT 1,

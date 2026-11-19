@@ -27,19 +27,28 @@ void main() {
     expect(p.baseSku, "CD3-BRI-03");
   });
 
-  test("variantes: sem nome = o produto; com nome = produto + nome; copiam a primeira", () async {
+  test("variantes: sem nome = o produto; com nome = produto + número; copiam a primeira", () async {
     final p = await products.create(name: "Suporte F1", categoryId: 9, photo: Uint8List(1));
     final first = await variants.create(productId: p.id);
     expect(first.sku, "CD3-FOR-01");
     await variants.update(first.copyWith(salePrice: 15, printTimeMin: 90));
 
     final second = await variants.create(productId: p.id, name: "Verstappen");
-    expect(second.sku, "CD3-FOR-01-VERSTAPPEN");
+    expect(second.sku, "CD3-FOR-01-01");
     expect(second.salePrice, 15);
     expect(second.printTimeMin, 90);
 
+    // a sem nome ganha nome: recebe o número seguinte
     final renamed = await variants.update(first.copyWith(name: "Hamilton", sku: "IGNORADO"));
-    expect(renamed.sku, "CD3-FOR-01-HAMILTON");
+    expect(renamed.sku, "CD3-FOR-01-02");
+
+    // mudar o nome NÃO muda o SKU (a Etsy liga as encomendas por ele)
+    final again = await variants.update(second.copyWith(name: "Max Verstappen"));
+    expect(again.sku, "CD3-FOR-01-01");
+
+    // a seguinte não reaproveita números
+    final third = await variants.create(productId: p.id, name: "Leclerc");
+    expect(third.sku, "CD3-FOR-01-03");
   });
 
   test("nome repetido falha como na API", () async {
@@ -57,7 +66,7 @@ void main() {
     final moved = await products.update(p.copyWith(categoryId: 1));
     expect(moved.baseSku, "CD3-SEC-02"); // a demo já tem CD3-SEC-01
     final list = await variants.fetchByProduct(p.id);
-    expect(list.single.sku, "CD3-SEC-02-HAMILTON");
+    expect(list.single.sku, "CD3-SEC-02-01");
   });
 
   test("o SKU do produto não se muda à mão", () async {

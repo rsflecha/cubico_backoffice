@@ -385,7 +385,18 @@ class CostCardState extends ConsumerState<CostCard> {
   Widget _skuLine() {
     final v = widget.variant!;
     final product = (ref.watch(productsProvider).value ?? []).where((p) => p.id == v.productId).firstOrNull;
-    final next = product == null ? v.sku : variantSku(product.baseSku, _nameController.text);
+    // como na API: mudar o nome não muda o SKU; só ganhar nome (número novo) ou perdê-lo (o do produto)
+    final siblings = (ref.watch(allVariantsProvider).value ?? <Variant>[])
+        .where((s) => s.productId == v.productId)
+        .map((s) => s.sku);
+    final named = _nameController.text.trim().isNotEmpty;
+    final next = product == null
+        ? v.sku
+        : !named
+            ? product.baseSku
+            : v.isUnnamed
+                ? variantSku(product.baseSku, nextVariantNumber(product.baseSku, siblings))
+                : v.sku;
     final changes = next != v.sku;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

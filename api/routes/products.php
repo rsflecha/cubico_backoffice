@@ -187,7 +187,7 @@ $app->put('/api/products/{id}', function (Request $request, Response $response, 
             $pdo->prepare("UPDATE products SET $sets WHERE id = ?")->execute($values);
         }
         if ($categoryChanged) {
-            refreshVariantSkus($id);
+            refreshVariantSkus($id, (string) $found[0]['base_sku']);
         }
         if ($colorIds !== null) {
             saveProductColors($id, $colorIds);
@@ -383,10 +383,11 @@ $app->post('/api/variants', function (Request $request, Response $response) {
         return fail($response, 'Este produto já não existe.', 404);
     }
 
-    $sku = variantSku((string) $baseSku, $name);
-    if (variantSkuTaken($sku)) {
+    if (variantNameTaken($productId, $name)) {
         return fail($response, variantNameTakenMessage($name), 409);
     }
+    // com nome: o próximo número (CD3-NAT-01-03); sem nome: o SKU do produto
+    $sku = variantSku((string) $baseSku, $name === '' ? null : nextVariantNumber($productId, (string) $baseSku));
 
     $first = readVariants($productId)[0] ?? null;
     $pdo = db();
@@ -426,7 +427,7 @@ $app->put('/api/variants/{id}', function (Request $request, Response $response, 
         return fail($response, 'Esta variante já não existe.', 404);
     }
     $body = body($request);
-    // o sku não se escreve: sai do nome
+    // o sku não se escreve: é a API que o dá (o número da variante; o nome não entra)
     $writable = ['name', 'sale_price', 'print_time_min', 'plate_count', 'weight_g',
         'printer_id', 'model_file', 'etsy_listing_id', 'is_active'];
     $columns = array_values(array_filter($writable, fn ($c) => array_key_exists($c, $body)));
@@ -435,14 +436,23 @@ $app->put('/api/variants/{id}', function (Request $request, Response $response, 
     if (array_key_exists('name', $body)) {
         $name = trim((string) $body['name']);
         $values[array_search('name', $columns, true)] = $name;
-        $stmt = db()->prepare('SELECT base_sku FROM products WHERE id = ?');
-        $stmt->execute([$found[0]['product_id']]);
-        $sku = variantSku((string) $stmt->fetchColumn(), $name);
-        if (variantSkuTaken($sku, $id)) {
+        $productId = (int) $found[0]['product_id'];
+        if (variantNameTaken($productId, $name, $id)) {
             return fail($response, variantNameTakenMessage($name), 409);
         }
-        $columns[] = 'sku';
-        $values[] = $sku;
+        $stmt = db()->prepare('SELECT base_sku FROM products WHERE id = ?');
+        $stmt->execute([$productId]);
+        $baseSku = (string) $stmt->fetchColumn();
+        $wasNamed = trim((string) $found[0]['name']) !== '';
+        // mudar o nome NÃO muda o SKU (a Etsy liga as encomendas por ele).
+        // Só muda quando a variante passa a ter nome (ganha número) ou fica sem nome (SKU do produto).
+        if ($name === '' && $wasNamed) {
+            $columns[] = 'sku';
+            $values[] = $baseSku;
+        } elseif ($name !== '' && !$wasNamed) {
+            $columns[] = 'sku';
+            $values[] = variantSku($baseSku, nextVariantNumber($productId, $baseSku));
+        }
     }
 
     // uma transação: ou grava a variante E a receita, ou não grava nada

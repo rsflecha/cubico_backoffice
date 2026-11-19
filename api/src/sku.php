@@ -2,17 +2,17 @@
 declare(strict_types=1);
 
 // ═══════════════ SKU automático ═══════════════
-// Decisão de 2026-11-16 — ninguém escreve SKU à mão:
+// Decisão de 2026-11-16 (variantes por número desde 2026-11-19) — ninguém escreve SKU à mão:
 //   categoria "Suportes"                → código SUP (3 letras do nome, sem acentos)
 //   produto                             → CD3-SUP-01, CD3-SUP-02… (recomeça em cada categoria)
 //   produto sem categoria               → CD3-GER-01…  (GER fica reservado para isto)
-//   variante "Hamilton"                 → CD3-SUP-01-HAMILTON
-//   variante sem nome (produto simples) → CD3-SUP-01
-// As mesmas regras estão na migração 002 (para os produtos que já existiam).
+//   variantes com nome                  → CD3-SUP-01-01, CD3-SUP-01-02… (pela ordem de criação;
+//                                         o número não muda se o nome mudar, e não se reaproveita)
+//   variante sem nome (modelo único)    → CD3-SUP-01
+// A migração 008 renumerou as variantes que já existiam (antes levavam o nome: CD3-SUP-01-HAMILTON).
 
 const SKU_PREFIX = 'CD3';
 const NO_CATEGORY_CODE = 'GER';
-const VARIANT_SLUG_MAX = 30;
 
 /** "Fórmula 1" → "FORMULA 1": maiúsculas e sem acentos. */
 function plainUpper(string $text): string
@@ -80,43 +80,68 @@ function nextProductSku(?int $categoryId): string
     return $prefix . str_pad((string) ($max + 1), 2, '0', STR_PAD_LEFT);
 }
 
-/** "Ação & Côr!" → "ACAO-COR"; um nome vazio dá "" (a variante é o próprio produto). */
-function variantSlug(string $name): string
+/** O SKU de uma variante: o do produto, mais o número (3 → "-03"). Sem número = o do produto. */
+function variantSku(string $productSku, ?int $number): string
 {
-    if (trim($name) === '') {
-        return '';
+    return $number === null ? $productSku : $productSku . '-' . str_pad((string) $number, 2, '0', STR_PAD_LEFT);
+}
+
+/** O número de uma variante, lido do SKU dela ("CD3-NAT-01-03" → 3). null se não tiver. */
+function variantNumber(string $productSku, string $sku): ?int
+{
+    $prefix = "$productSku-";
+    if (!str_starts_with($sku, $prefix)) {
+        return null;
     }
-    $slug = trim((string) preg_replace('/[^A-Z0-9]+/', '-', plainUpper($name)), '-');
-    $slug = trim(substr($slug, 0, VARIANT_SLUG_MAX), '-');
-    return $slug === '' ? 'V' : $slug;
+    $number = substr($sku, strlen($prefix));
+    return ctype_digit($number) ? (int) $number : null;
 }
 
-/** O SKU de uma variante: o do produto, mais o nome. */
-function variantSku(string $productSku, string $variantName): string
+/** O número da próxima variante com nome: o maior já usado no produto, mais 1. */
+function nextVariantNumber(int $productId, string $productSku): int
 {
-    $slug = variantSlug($variantName);
-    return $slug === '' ? $productSku : "$productSku-$slug";
+    $stmt = db()->prepare('SELECT sku FROM variants WHERE product_id = ?');
+    $stmt->execute([$productId]);
+    $max = 0;
+    foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $sku) {
+        $max = max($max, variantNumber($productSku, (string) $sku) ?? 0);
+    }
+    return $max + 1;
 }
 
-/** Já existe outra variante com este SKU? (dois nomes que dão o mesmo, ex.: "Azul" e "azul") */
-function variantSkuTaken(string $sku, ?int $exceptId = null): bool
+/**
+ * Já há outra variante com este nome no produto? (sem contar maiúsculas: "Azul" e "azul").
+ * O nome vazio também conta: só uma variante pode ficar sem nome.
+ */
+function variantNameTaken(int $productId, string $name, ?int $exceptId = null): bool
 {
-    $stmt = db()->prepare('SELECT COUNT(*) FROM variants WHERE sku = ? AND id <> ?');
-    $stmt->execute([$sku, $exceptId ?? 0]);
+    $stmt = db()->prepare('SELECT COUNT(*) FROM variants WHERE product_id = ? AND UPPER(TRIM(name)) = UPPER(?) AND id <> ?');
+    $stmt->execute([$productId, trim($name), $exceptId ?? 0]);
     return (int) $stmt->fetchColumn() > 0;
 }
 
-/** Volta a calcular o SKU de todas as variantes de um produto (depois de o SKU dele mudar). */
-function refreshVariantSkus(int $productId): void
+/** O SKU do produto mudou (mudou de categoria): as variantes trocam o início e ficam com o número. */
+function refreshVariantSkus(int $productId, string $oldProductSku): void
 {
     $stmt = db()->prepare('SELECT base_sku FROM products WHERE id = ?');
     $stmt->execute([$productId]);
     $productSku = (string) $stmt->fetchColumn();
 
-    $variants = db()->prepare('SELECT id, name FROM variants WHERE product_id = ?');
+    $variants = db()->prepare('SELECT id, name, sku FROM variants WHERE product_id = ? ORDER BY id');
     $variants->execute([$productId]);
+    $rows = $variants->fetchAll();
+    $max = 0;
+    foreach ($rows as $v) {
+        $max = max($max, variantNumber($oldProductSku, (string) $v['sku']) ?? 0);
+    }
     $update = db()->prepare('UPDATE variants SET sku = ? WHERE id = ?');
-    foreach ($variants->fetchAll() as $v) {
-        $update->execute([variantSku($productSku, (string) $v['name']), (int) $v['id']]);
+    foreach ($rows as $v) {
+        if (trim((string) $v['name']) === '') {
+            $number = null;
+        } else {
+            // uma com nome e sem número (não devia haver): recebe o próximo
+            $number = variantNumber($oldProductSku, (string) $v['sku']) ?? ++$max;
+        }
+        $update->execute([variantSku($productSku, $number), (int) $v['id']]);
     }
 }

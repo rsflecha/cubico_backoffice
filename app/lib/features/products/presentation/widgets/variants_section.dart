@@ -47,6 +47,7 @@ class VariantsSection extends ConsumerWidget {
       builder: (context) => _VariantNameDialog(
         productSku: product?.baseSku ?? "",
         hasUnnamed: current.any((v) => v.isUnnamed),
+        siblingSkus: current.map((v) => v.sku).toList(),
       ),
     );
     if (name == null || !context.mounted) return; // cancelou
@@ -324,9 +325,10 @@ class VariantsSection extends ConsumerWidget {
 /// A janela "Nova variante": o nome, e o SKU que vai ficar (para ver antes de criar).
 /// É um StatefulWidget que cria e deita fora o seu próprio controller.
 class _VariantNameDialog extends StatefulWidget {
-  const _VariantNameDialog({required this.productSku, required this.hasUnnamed});
+  const _VariantNameDialog({required this.productSku, required this.hasUnnamed, required this.siblingSkus});
 
   final String productSku;
+  final List<String> siblingSkus; // os SKU das variantes que já existem (para o número seguinte)
   final bool hasUnnamed; // já há uma variante sem nome ("Modelo único")
 
   @override
@@ -350,7 +352,11 @@ class _VariantNameDialogState extends State<_VariantNameDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final sku = variantSku(widget.productSku, _name.text);
+    // com nome: o número seguinte (CD3-NAT-01-03); sem nome: o SKU do produto
+    final sku = variantSku(
+      widget.productSku,
+      _name.text.trim().isEmpty ? null : nextVariantNumber(widget.productSku, widget.siblingSkus),
+    );
     final missingName = widget.hasUnnamed && _name.text.trim().isEmpty;
     return AlertDialog(
       title: const Text("Nova variante"),

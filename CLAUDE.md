@@ -97,7 +97,7 @@ API (dentro de `api/`):
 - Cada linha de encomenda guarda a "fotografia" do preço, do custo e da taxa do dia da venda.
 - Envios: Portugal por CTT Correio Registado; estrangeiro (só Etsy) por CTT Correio Azul Internacional. Preços base de 2026, por zona e escalão.
 - Custos fixos mensais (Etsy Plus, Claude Pro…) não entram no lucro das encomendas: o Dashboard tira-os ao lucro do mês.
-- SKU automático: CD3-<código da categoria>-01; variante = produto + nome (CD3-SUP-01-HAMILTON). Variantes são nomes (Hamilton, Verstappen), não filamentos; "Modelo único" = sem nome. Regras iguais em `api/src/sku.php` e `app/…/domain/sku.dart`. Só se apagam se nunca foram vendidas.
+- SKU automático: CD3-<código da categoria>-01; variantes com nome = produto + número pela ordem de criação (CD3-SUP-01-01, -02…; mudar o nome não muda o SKU; números não se reaproveitam; migração 008). Variantes são nomes (Hamilton, Verstappen), não filamentos; "Modelo único" = sem nome. Regras iguais em `api/src/sku.php` e `app/…/domain/sku.dart`. Só se apagam se nunca foram vendidas.
 
 ## Por fazer
 
