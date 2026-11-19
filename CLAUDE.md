@@ -107,7 +107,7 @@ API (dentro de `api/`):
   (sem SKU igual, a encomenda não entra). Depois: associar à mão um artigo desconhecido.
 - Provar com a primeira venda verdadeira que a encomenda paga vai sozinha para "Por imprimir"
   (a base da loja ainda não tem encomendas; está provado só nos testes do PC).
-- Face ID / impressão digital (passkeys, migração 010): feito só para o site (browser). Falta provar num iPhone verdadeiro; a APK e a app de Windows ficam para uma 2.ª fase (outro pacote). Ativar pede a palavra-passe; mudá-la ou repô-la apaga as passkeys.
+- Face ID / impressão digital (passkeys, migração 010): feito só para o site (browser), provado num iPhone verdadeiro a 2026-11-19. A APK e a app de Windows ficam para uma 2.ª fase (outro pacote). Ativar pede a palavra-passe; mudá-la ou repô-la apaga as passkeys.
 - APK com chave própria (hoje vai com a chave de testes do Flutter): só se for para a Play Store.
 - Impressora Bambu Lab A1: só depois da Etsy. O Rui usa a app Bambu Handy, por isso o "Developer Mode" está fora de questão; a opção seria a nuvem da Bambu (não oficial).
 
