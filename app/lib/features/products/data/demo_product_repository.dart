@@ -59,6 +59,7 @@ class DemoProductRepository implements ProductRepository {
     required int categoryId,
     required Uint8List photo,
     List<int> colorIds = const [],
+    int colorsPerPiece = 1,
   }) async {
     await _latency();
     // o SKU, como na API: o próximo número da categoria
@@ -71,6 +72,7 @@ class DemoProductRepository implements ProductRepository {
       categoryId: categoryId,
       photoUrl: _dataUri(photo),
       colorIds: colorIds,
+      colorsPerPiece: colorsPerPiece,
       createdAt: now,
       updatedAt: now,
     );

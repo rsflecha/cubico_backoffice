@@ -30,11 +30,17 @@ class ApiProductRepository implements ProductRepository {
     required int categoryId,
     required Uint8List photo,
     List<int> colorIds = const [],
+    int colorsPerPiece = 1,
   }) =>
       apiCall(() async {
         // duas partes: "product" (o JSON, como texto) e "photo" (o ficheiro)
         final form = FormData.fromMap({
-          "product": jsonEncode({"name": name, "category_id": categoryId, "color_ids": colorIds}), // o SKU é a API que o dá
+          "product": jsonEncode({
+            "name": name,
+            "category_id": categoryId,
+            "color_ids": colorIds,
+            "colors_per_piece": colorsPerPiece,
+          }), // o SKU é a API que o dá
           "photo": _photoPart(photo),
         });
         final response = await _dio.post<Map<String, dynamic>>("/products", data: form);

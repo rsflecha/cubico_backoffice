@@ -104,19 +104,27 @@ $app->post('/api/orders', function (Request $request, Response $response) {
         return fail($response, 'Junta pelo menos um artigo.', 422);
     }
 
-    // a cor escolhida em cada artigo (opcional): tem de ser um filamento que existe
+    // a cor escolhida em cada artigo (opcional): tem de ser um filamento que existe.
+    // Um produto a 2 cores (a árvore de Natal) manda também a segunda, em filament_id_2.
     $colors = [];
+    $colors2 = [];
     $colorStmt = db()->prepare('SELECT id FROM filaments WHERE id = ?');
     foreach (array_values($lines) as $i => $l) {
-        if (!isset($l['filament_id']) || $l['filament_id'] === null || $l['filament_id'] === '') {
-            continue;
+        foreach (['filament_id', 'filament_id_2'] as $key) {
+            if (!isset($l[$key]) || $l[$key] === null || $l[$key] === '') {
+                continue;
+            }
+            $colorStmt->execute([(int) $l[$key]]);
+            $color = $colorStmt->fetch();
+            if (!$color) {
+                return fail($response, 'A cor escolhida já não existe. Escolhe outra.', 422);
+            }
+            if ($key === 'filament_id') {
+                $colors[$i] = $color;
+            } else {
+                $colors2[$i] = $color;
+            }
         }
-        $colorStmt->execute([(int) $l['filament_id']]);
-        $color = $colorStmt->fetch();
-        if (!$color) {
-            return fail($response, 'A cor escolhida já não existe. Escolhe outra.', 422);
-        }
-        $colors[$i] = $color;
     }
 
     $perHour = printerCostPerHour();
@@ -176,6 +184,11 @@ $app->post('/api/orders', function (Request $request, Response $response) {
             $fee = channelLineFee($channel, $qty * $unitPrice, $qty, $i === 0 ? $shippingCharged : 0.0, $i === 0);
             // a cor escolhida conta no custo; o texto "Cor: White" já vem na personalização (a app escreve-o)
             $color = $colors[$i] ?? null;
+            $unitCost = variantUnitCost((int) $l['variant_id'], $perHour, $color ? (int) $color['id'] : null);
+            // 2 cores: o custo fica pela mais cara das duas (do lado seguro)
+            if (isset($colors2[$i])) {
+                $unitCost = max($unitCost, variantUnitCost((int) $l['variant_id'], $perHour, (int) $colors2[$i]['id']));
+            }
             $customization = trim((string) ($l['customization'] ?? ''));
             $insert->execute([
                 $orderId,
@@ -183,7 +196,7 @@ $app->post('/api/orders', function (Request $request, Response $response) {
                 $qty,
                 $unitPrice,
                 $customization === '' ? null : mb_substr($customization, 0, 255), // a coluna é VARCHAR(255)
-                variantUnitCost((int) $l['variant_id'], $perHour, $color ? (int) $color['id'] : null),
+                $unitCost,
                 $fee,
             ]);
         }

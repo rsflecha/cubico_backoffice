@@ -25,6 +25,8 @@ abstract class Product with _$Product {
     // as cores em que se vende (ids dos filamentos): o menu "Cor" da encomenda mostra só estas.
     // Vazio = todas as cores ativas.
     @Default([]) List<int> colorIds,
+    // quantas cores o cliente escolhe por peça: 1, ou 2 (a árvore de Natal: "Cor 1" e "Cor 2")
+    @Default(1) int colorsPerPiece,
   }) = _Product;
 
   factory Product.fromJson(Map<String, dynamic> json) =>

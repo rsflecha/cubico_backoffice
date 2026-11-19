@@ -18,12 +18,13 @@ const PRODUCT_TYPES = [
     'status' => 'string',
     'is_customizable' => 'bool',
     'is_pack' => 'bool',
+    'colors_per_piece' => 'int', // 1 ou 2: quantas cores o cliente escolhe por peça
     'created_at' => 'string',
     'updated_at' => 'string',
 ];
 
 /** As colunas que a app pode escrever. O base_sku não: é a API que o dá (src/sku.php). */
-const PRODUCT_WRITABLE = ['name', 'description', 'category_id', 'status', 'is_customizable', 'is_pack'];
+const PRODUCT_WRITABLE = ['name', 'description', 'category_id', 'status', 'is_customizable', 'is_pack', 'colors_per_piece'];
 
 /** Os produtos (todos, ou só um), cada um com o nome do ficheiro da sua foto em "photo". */
 function readProducts(?int $id = null): array
@@ -91,6 +92,10 @@ function saveProductColors(int $productId, array $colorIds): void
 /** Os valores das colunas que vieram no pedido, prontos para o SQL. */
 function productValues(array $body): array
 {
+    // cores por peça: só 1 ou 2 (outro valor qualquer conta como 1)
+    if (array_key_exists('colors_per_piece', $body)) {
+        $body['colors_per_piece'] = (int) $body['colors_per_piece'] === 2 ? 2 : 1;
+    }
     $columns = array_values(array_filter(PRODUCT_WRITABLE, fn ($c) => array_key_exists($c, $body)));
     $values = array_map(fn ($c) => dbValue($body[$c], PRODUCT_TYPES[$c]), $columns);
     return [$columns, $values];

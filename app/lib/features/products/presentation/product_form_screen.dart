@@ -45,6 +45,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   final _nameController = TextEditingController();
   int? _categoryId;
   Set<int> _colorIds = {}; // as cores disponíveis (ids dos filamentos)
+  int _colorsPerPiece = 1; // 2 = na encomenda escolhem-se "Cor 1" e "Cor 2"
   var _submitted = false;
   var _saving = false;
   var _preparingPhoto = false; // a reduzir a foto escolhida
@@ -94,6 +95,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         _nameController.text = product.name;
         _categoryId = product.categoryId;
         _colorIds = product.colorIds.toSet();
+        _colorsPerPiece = product.colorsPerPiece;
       }
     });
   }
@@ -123,6 +125,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       return _nameController.text.trim().isNotEmpty ||
           _newPhoto != null ||
           _colorIds.isNotEmpty ||
+          _colorsPerPiece != 1 ||
           (card?.isChangedFrom(null) ?? false);
     }
     final selected = _selectedVariant();
@@ -130,6 +133,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         _categoryId != original.categoryId ||
         _newPhoto != null ||
         !_sameColors(original.colorIds) ||
+        _colorsPerPiece != original.colorsPerPiece ||
         (card != null && selected != null && card.isChangedFrom(selected));
   }
 
@@ -207,6 +211,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
           categoryId: _categoryId!,
           photo: photo!, // _missingPhoto já garantiu que existe
           colorIds: colorIds,
+          colorsPerPiece: _colorsPerPiece,
         );
         // a partir daqui o produto EXISTE: se a receita falhar, o "Guardar" seguinte não o duplica
         setState(() {
@@ -219,6 +224,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             name: name,
             categoryId: _categoryId,
             colorIds: colorIds,
+            colorsPerPiece: _colorsPerPiece,
             updatedAt: DateTime.now(),
           ),
         );
@@ -370,6 +376,27 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     );
   }
 
+  /// Quantas cores leva cada peça: 1, ou 2 (o cliente escolhe as duas na encomenda).
+  Widget _colorsPerPieceField() => InputDecorator(
+        decoration: const InputDecoration(
+          labelText: "Cores por peça",
+          filled: false,
+          helperText: "Com 2, a encomenda pede «Cor 1» e «Cor 2». O custo usa a mais cara das duas.",
+          helperMaxLines: 2,
+        ),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: SegmentedButton<int>(
+            segments: const [
+              ButtonSegment(value: 1, label: Text("1")),
+              ButtonSegment(value: 2, label: Text("2")),
+            ],
+            selected: {_colorsPerPiece},
+            onSelectionChanged: (s) => setState(() => _colorsPerPiece = s.first),
+          ),
+        ),
+      );
+
   void _toggleColor(int id, bool on) => setState(() {
         _colorIds = {..._colorIds};
         on ? _colorIds.add(id) : _colorIds.remove(id);
@@ -495,6 +522,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       if (canSeeCosts) ...[
         const SizedBox(height: 16),
         _colorsField(filaments),
+        const SizedBox(height: 16),
+        _colorsPerPieceField(),
         const SizedBox(height: 24),
         if (_submitted && _cardProblem != null) ...[
           Text(_cardProblem!, style: TextStyle(color: Theme.of(context).colorScheme.error)),

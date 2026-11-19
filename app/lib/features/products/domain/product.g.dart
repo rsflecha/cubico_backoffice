@@ -25,6 +25,7 @@ _Product _$ProductFromJson(Map<String, dynamic> json) => _Product(
           ?.map((e) => (e as num).toInt())
           .toList() ??
       const [],
+  colorsPerPiece: (json['colors_per_piece'] as num?)?.toInt() ?? 1,
 );
 
 Map<String, dynamic> _$ProductToJson(_Product instance) => <String, dynamic>{
@@ -40,6 +41,7 @@ Map<String, dynamic> _$ProductToJson(_Product instance) => <String, dynamic>{
   'is_customizable': instance.isCustomizable,
   'is_pack': instance.isPack,
   'color_ids': instance.colorIds,
+  'colors_per_piece': instance.colorsPerPiece,
 };
 
 const _$ProductStatusEnumMap = {

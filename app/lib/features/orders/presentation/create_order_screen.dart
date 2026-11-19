@@ -120,6 +120,10 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   List<int> _colorsOf(Variant variant, List<Product> products) =>
       products.where((p) => p.id == variant.productId).firstOrNull?.colorIds ?? const <int>[];
 
+  /// Este artigo pede 2 cores ("Cor 1" e "Cor 2")? Só os produtos marcados com 2 cores por peça.
+  bool _twoColors(Variant variant, List<Product> products) =>
+      products.where((p) => p.id == variant.productId).firstOrNull?.colorsPerPiece == 2;
+
   /// A variante de um produto "modelo único" (uma só, sem nome), ou null.
   Variant? _singleModel(Product product, List<Variant> variants) {
     final own = variants.where((v) => v.productId == product.id).toList();
@@ -169,7 +173,10 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     final colors = _colorsOf(chosen, products);
     setState(() {
       // uma só cor disponível: já vem escolhida
-      _lines.add(_DraftLine(chosen)..filamentId = colors.length == 1 ? colors.single : null);
+      final single = colors.length == 1 ? colors.single : null;
+      _lines.add(_DraftLine(chosen)
+        ..filamentId = single
+        ..filamentId2 = _twoColors(chosen, products) ? single : null);
       _suggestShipping();
     });
   }
@@ -275,11 +282,29 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     final unitPrice = parseDecimal(line.price.text);
     // a cor escolhida vai à frente da personalização: "Cor: White · CARLA".
     // É este texto que aparece na tarefa de produção.
+    // Com 2 cores: "Cores: Verde + Dourado · FAMÍLIA SILVA".
     final color = filaments.where((f) => f.id == line.filamentId).firstOrNull;
+    final color2 = line.filamentId2 == null
+        ? null
+        : filaments.where((f) => f.id == line.filamentId2).firstOrNull;
     final customization = [
-      if (color != null) "Cor: ${color.colorName}",
+      if (color != null && color2 != null)
+        "Cores: ${color.colorName} + ${color2.colorName}"
+      else if (color != null)
+        "Cor: ${color.colorName}",
       line.customization.text.trim(),
     ].where((part) => part.isNotEmpty).join(" · ");
+    // o custo, aqui como na API: com 2 cores, pela mais cara das duas
+    double costWith(int? colorId) => _calc.variantProductionCost(
+          variant: line.variant,
+          filaments: filaments,
+          components: components,
+          costPerHour: perHour,
+          colorFilamentId: colorId,
+        );
+    final unitCost = color2 == null
+        ? costWith(color?.id)
+        : [costWith(color?.id), costWith(color2.id)].reduce((a, b) => a > b ? a : b);
 
     return OrderLine(
       id: 0,
@@ -288,14 +313,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       unitPrice: unitPrice,
       customization: customization.isEmpty ? null : customization,
       filamentId: color?.id,
+      filamentId2: color2?.id,
       // a fotografia do custo de produção, neste momento (com o preço da cor escolhida)
-      unitCost: _calc.variantProductionCost(
-        variant: line.variant,
-        filaments: filaments,
-        components: components,
-        costPerHour: perHour,
-        colorFilamentId: color?.id,
-      ),
+      unitCost: unitCost,
       // as percentagens do canal sobre esta linha; os portes cobrados e o valor fixo
       // contam uma vez, na primeira linha; a taxa de anúncio conta por unidade
       channelFee: _calc.channelFees(
@@ -325,6 +345,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     final products = ref.read(productsProvider).value ?? <Product>[];
     if (_lines.any((l) => l.filamentId == null && _colorsOf(l.variant, products).isNotEmpty)) {
       return "Escolhe a cor de cada artigo.";
+    }
+    if (_lines.any((l) => l.filamentId2 == null && _twoColors(l.variant, products))) {
+      return "Escolhe as 2 cores de cada artigo.";
     }
     // o colaborador não recebe a tabela dos portes (rates vazia): quem confere o peso é a API
     if (_delivery == DeliveryMethod.carrier &&
@@ -663,8 +686,61 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     final allowed = product?.colorIds ?? const <int>[];
     final required = allowed.isNotEmpty;
     final colors = filaments
-        .where((f) => f.id == line.filamentId || (required ? allowed.contains(f.id) : f.isActive))
+        .where((f) =>
+            f.id == line.filamentId ||
+            f.id == line.filamentId2 ||
+            (required ? allowed.contains(f.id) : f.isActive))
         .toList();
+    // a árvore de Natal: "Cor 1" e "Cor 2"
+    final two = product?.colorsPerPiece == 2;
+    // o menu de uma cor: which 0 = "Cor" (o normal), 1 = "Cor 1", 2 = "Cor 2"
+    // (outra cor muda o custo e vai para a produção)
+    Widget colorMenu(int which) => DropdownButtonFormField<int?>(
+          key: ValueKey("color$which-${line.hashCode}"),
+          initialValue: which == 2 ? line.filamentId2 : line.filamentId,
+          isExpanded: true,
+          decoration: InputDecoration(
+            labelText: which == 0 ? "Cor" : "Cor $which",
+            errorText: _submitted && required && (which == 2 ? line.filamentId2 : line.filamentId) == null
+                ? "Escolhe a cor."
+                : null,
+          ),
+          hint: const Text("Escolher cor"),
+          items: [
+            if (!required && which == 0)
+              DropdownMenuItem<int?>(
+                value: null,
+                child: Text(
+                  recipe == null ? "A da receita" : "A da receita (${recipe.colorName})",
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            for (final f in colors)
+              DropdownMenuItem<int?>(
+                value: f.id,
+                child: Row(
+                  children: [
+                    CircleAvatar(radius: 6, backgroundColor: colorFromHex(f.colorHex)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "${f.colorName} · ${f.material}",
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+          onChanged: (id) => setState(() {
+            if (which == 2) {
+              line.filamentId2 = id;
+            } else {
+              line.filamentId = id;
+            }
+          }),
+        );
+
     final lineQty = parseDecimal(line.quantity.text).round();
     final linePrice = parseDecimal(line.price.text);
 
@@ -754,43 +830,12 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               ),
             const SizedBox(height: 8),
             // a cor: por omissão a da receita; outra cor muda o custo e vai para a produção
-            DropdownButtonFormField<int?>(
-              key: ValueKey("color-${line.hashCode}"),
-              initialValue: line.filamentId,
-              isExpanded: true,
-              decoration: InputDecoration(
-                labelText: "Cor",
-                errorText: _submitted && required && line.filamentId == null ? "Escolhe a cor." : null,
-              ),
-              hint: const Text("Escolher cor"),
-              items: [
-                if (!required)
-                  DropdownMenuItem<int?>(
-                    value: null,
-                    child: Text(
-                      recipe == null ? "A da receita" : "A da receita (${recipe.colorName})",
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                for (final f in colors)
-                  DropdownMenuItem<int?>(
-                    value: f.id,
-                    child: Row(
-                      children: [
-                        CircleAvatar(radius: 6, backgroundColor: colorFromHex(f.colorHex)),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            "${f.colorName} · ${f.material}",
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-              onChanged: (id) => setState(() => line.filamentId = id),
-            ),
+            if (two) ...[
+              colorMenu(1),
+              const SizedBox(height: 8),
+              colorMenu(2),
+            ] else
+              colorMenu(0),
             const SizedBox(height: 8),
           TextField(
             controller: line.customization,
@@ -891,6 +936,7 @@ class _DraftLine {
 
   final Variant variant;
   int? filamentId; // a cor escolhida; null = por escolher (ou a da receita, num produto sem cores)
+  int? filamentId2; // a segunda cor, num produto a 2 cores; null = por escolher
   final TextEditingController quantity;
   final TextEditingController price;
   final TextEditingController customization;
