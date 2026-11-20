@@ -92,6 +92,7 @@ API (dentro de `api/`):
 - **PHP 8.3 no servidor** (o PC tem 8.4): o `composer.json` tem `config.platform.php = 8.3.0`. Não usar funcionalidades só do 8.4.
 - Sem terminal nem SSH. O "Update from Remote" do Git Version Control está a falhar: as mudanças da API vão pelo **File Manager**. A pasta `vendor` e o `.env` vão à mão.
 - O `.htaccess` da `apps/backoffice-web` (só no servidor, não vem na build) manda `Cache-Control: no-cache` no index, `flutter_bootstrap.js` e `main.dart.js`: o browser vai sempre buscar a versão nova. O nginx do alojamento ignora isto e guarda o `main.dart.js` e o `flutter_bootstrap.js` muito tempo (não se limpa: `ea-nginx` não está na conta); por isso o `tool/cache_bust.dart` muda-lhe o endereço a cada build. Para conferir a web publicada, pedir os ficheiros SEM `?v=` aleatório e com `--compressed`, como um browser.
+- Cabeçalhos de segurança (2026-11-20): na API vêm do `public/.htaccess` (o do servidor tem também um bloco do cPanel que não está no Git: juntar, nunca substituir); na web, um bloco "Cubico — segurança" no `.htaccess` da `apps/backoffice-web` (só no servidor). `/api/health/db` pede sessão.
 - Lembra o Rui de que `app.fazendasubmersa.pt` usa a **base de dados verdadeira** da loja; para testes, usar a API do PC.
 
 ## Decisões a respeitar

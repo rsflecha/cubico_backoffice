@@ -1,6 +1,17 @@
 # Tudo o que não for um ficheiro que existe vai para o index.php (o Slim decide).
 RewriteEngine On
 
+# Cabeçalhos de segurança em todas as respostas da API:
+#   nosniff  — o browser não "adivinha" o tipo de um ficheiro (uma foto nunca corre como script);
+#   HSTS     — durante um ano, o browser só fala com a API por https;
+#   DENY     — nenhum site mete a API dentro de uma moldura (iframe).
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Strict-Transport-Security "max-age=31536000"
+    Header always set X-Frame-Options "DENY"
+    Header always unset X-Powered-By
+</IfModule>
+
 # Passar o token (Authorization) ao PHP: alguns servidores deitam-no fora pelo caminho.
 RewriteCond %{HTTP:Authorization} .
 RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

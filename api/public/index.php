@@ -6,6 +6,9 @@ use Slim\Factory\AppFactory;
 
 require __DIR__ . '/../vendor/autoload.php';
 
+// não dizer a quem pergunta que versão do PHP corre aqui (ajudava a escolher o ataque)
+header_remove('X-Powered-By');
+
 // as definições do ficheiro .env (palavra-passe da base de dados, segredo dos tokens…)
 Dotenv::createImmutable(__DIR__ . '/..')->load();
 $debug = ($_ENV['APP_DEBUG'] ?? 'false') === 'true';

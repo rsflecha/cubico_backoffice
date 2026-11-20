@@ -10,7 +10,8 @@ $app->get('/api/health', function (Request $request, Response $response) {
 });
 
 // GET /api/health/db → a API consegue falar com a base de dados?
+// Com sessão: sem ela, qualquer um podia pôr a base a trabalhar à vontade e ver os canais da loja.
 $app->get('/api/health/db', function (Request $request, Response $response) {
     $channels = db()->query('SELECT code, name FROM channels ORDER BY id')->fetchAll();
     return json($response, ['status' => 'ok', 'channels' => $channels]);
-});
+})->add($requireAuth);
