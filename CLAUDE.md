@@ -116,6 +116,7 @@ API (dentro de `api/`):
 
 - v0.3.0 publicada (Windows e Android) a 2026-11-16, ligada à API do servidor.
 - Etsy ligada e sozinha: tarefa agendada do cPanel a cada 15 minutos (`api/bin/etsy-sync.php`).
+- Cópia automática da base todas as noites (`api/bin/db-backup.php`, tarefa agendada do cPanel): `~/backups-db/cubicodesign-auto-AAAAMMDD-HHMM.sql.gz`, guardadas 14 dias; as cópias feitas à mão (outro nome) nunca se apagam. Repor: phpMyAdmin → Importar. Provado no PC: reposta numa base nova, contagem e checksum iguais nas 35 tabelas.
 - Encomenda paga vai sozinha para produção; taxas da Etsy como a Etsy as cobra.
 - Clientes: telemóvel validado e localidade pelo código postal (tabela `postal_codes`, migração 005).
 - Android com permissão de internet; versão web, iPad e iPhone revistos.
