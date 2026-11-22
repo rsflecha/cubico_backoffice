@@ -8,7 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// A versão da app. Muda-a aqui quando publicares uma Release nova.
-const appVersion = "0.3.0";
+const appVersion = "0.3.1";
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});

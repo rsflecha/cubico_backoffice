@@ -75,6 +75,8 @@ class OrderDetailScreen extends ConsumerWidget {
       _shippingCard(context, order),
       const SizedBox(height: 16),
       _paymentCard(context, order),
+      const SizedBox(height: 16),
+      _HistoryCard(orderId: order.id),
     ];
 
     // a linha do topo: canal · referência · data
@@ -139,8 +141,6 @@ class OrderDetailScreen extends ConsumerWidget {
                             subtitle,
                             const SizedBox(height: 16),
                             ...leftCards,
-                            const SizedBox(height: 16),
-                            ...rightCards,
                           ],
                         ),
                       ),
@@ -563,6 +563,58 @@ class OrderDetailScreen extends ConsumerWidget {
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+/// Cartão "Histórico": o que mudou na encomenda, quando e quem (a pessoa, a Etsy, ou a app sozinha).
+class _HistoryCard extends ConsumerWidget {
+  const _HistoryCard({required this.orderId});
+
+  final int orderId;
+
+  /// "22/11/2026 14:05"
+  static String _when(DateTime d) {
+    String two(int n) => n.toString().padLeft(2, "0");
+    return "${two(d.day)}/${two(d.month)}/${d.year} ${two(d.hour)}:${two(d.minute)}";
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final events = ref.watch(orderEventsProvider(orderId));
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Histórico", style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            ...events.when(
+              loading: () => [const LinearProgressIndicator()],
+              error: (_, _) => [const Text("Não foi possível carregar o histórico.")],
+              data: (list) => list.isEmpty
+                  ? [const Text("Ainda sem registos.")]
+                  : [
+                      for (final e in list)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(e.description),
+                              Text(
+                                "${_when(e.createdAt)} · ${e.who}",
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+            ),
+          ],
         ),
       ),
     );

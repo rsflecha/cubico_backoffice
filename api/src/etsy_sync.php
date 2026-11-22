@@ -48,15 +48,27 @@ function etsyChannel(): array
     return $channel;
 }
 
-/** A variante de um artigo: pelo SKU; sem SKU, pela listagem (só se essa listagem tiver uma variante). */
+/**
+ * A variante de um artigo, por esta ordem:
+ *   1. pelo SKU (o SKU da Etsy igual ao de uma variante);
+ *   2. associada à mão no "Conferir os SKU" (tabela etsy_links, pelo produto do anúncio);
+ *   3. sem SKU, pela listagem (só se essa listagem tiver uma variante).
+ */
 function etsyFindVariant(array $t): ?int
 {
     $sku = trim((string) ($t['sku'] ?? ''));
     if ($sku !== '') {
-        $stmt = db()->prepare('SELECT id FROM variants WHERE UPPER(sku) = UPPER(?)');
-        $stmt->execute([$sku]);
-        $id = $stmt->fetchColumn();
-        return $id === false ? null : (int) $id;
+        $bySku = etsyVariantBySku($sku);
+        if ($bySku !== null) {
+            return $bySku;
+        }
+    }
+    $linked = etsyLinkedVariant($t['product_id'] ?? null);
+    if ($linked !== null) {
+        return $linked;
+    }
+    if ($sku !== '') {
+        return null; // um SKU que não existe na app não cai para a listagem
     }
     if (!empty($t['listing_id'])) {
         $stmt = db()->prepare('SELECT id FROM variants WHERE etsy_listing_id = ?');
@@ -65,6 +77,28 @@ function etsyFindVariant(array $t): ?int
         return count($ids) === 1 ? (int) $ids[0] : null;
     }
     return null;
+}
+
+/** A variante com este SKU (sem diferença entre maiúsculas e minúsculas), ou null. */
+function etsyVariantBySku(string $sku): ?int
+{
+    $stmt = db()->prepare('SELECT id FROM variants WHERE UPPER(sku) = UPPER(?)');
+    $stmt->execute([$sku]);
+    $id = $stmt->fetchColumn();
+    return $id === false ? null : (int) $id;
+}
+
+/** A variante associada à mão a este produto de um anúncio da Etsy, ou null. */
+function etsyLinkedVariant(mixed $etsyProductId): ?int
+{
+    $id = trim((string) ($etsyProductId ?? ''));
+    if ($id === '') {
+        return null;
+    }
+    $stmt = db()->prepare('SELECT variant_id FROM etsy_links WHERE etsy_product_id = ?');
+    $stmt->execute([$id]);
+    $variantId = $stmt->fetchColumn();
+    return $variantId === false ? null : (int) $variantId;
 }
 
 /** Um artigo digital (download)? Esses não entram na app: não se imprimem nem se enviam. */

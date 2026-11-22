@@ -289,6 +289,8 @@ as String,
 /// @nodoc
 mixin _$EtsyProductCheck {
 
+ String? get productId;// o produto do anúncio na Etsy: é por ele que se associa à mão
+ bool get linked;// liga porque foi associado à mão (e não pelo SKU)
  String? get sku; String get variation;// "Piloto: Hamilton"
  int get pack;// pack de quantidade: cada venda são N peças (a API reconhece "Quantidade: 10")
  String get status;// ok, unknown_sku, no_sku
@@ -305,16 +307,16 @@ $EtsyProductCheckCopyWith<EtsyProductCheck> get copyWith => _$EtsyProductCheckCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is EtsyProductCheck&&(identical(other.sku, sku) || other.sku == sku)&&(identical(other.variation, variation) || other.variation == variation)&&(identical(other.pack, pack) || other.pack == pack)&&(identical(other.status, status) || other.status == status)&&(identical(other.variant, variant) || other.variant == variant));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is EtsyProductCheck&&(identical(other.productId, productId) || other.productId == productId)&&(identical(other.linked, linked) || other.linked == linked)&&(identical(other.sku, sku) || other.sku == sku)&&(identical(other.variation, variation) || other.variation == variation)&&(identical(other.pack, pack) || other.pack == pack)&&(identical(other.status, status) || other.status == status)&&(identical(other.variant, variant) || other.variant == variant));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,sku,variation,pack,status,variant);
+int get hashCode => Object.hash(runtimeType,productId,linked,sku,variation,pack,status,variant);
 
 @override
 String toString() {
-  return 'EtsyProductCheck(sku: $sku, variation: $variation, pack: $pack, status: $status, variant: $variant)';
+  return 'EtsyProductCheck(productId: $productId, linked: $linked, sku: $sku, variation: $variation, pack: $pack, status: $status, variant: $variant)';
 }
 
 
@@ -325,7 +327,7 @@ abstract mixin class $EtsyProductCheckCopyWith<$Res>  {
   factory $EtsyProductCheckCopyWith(EtsyProductCheck value, $Res Function(EtsyProductCheck) _then) = _$EtsyProductCheckCopyWithImpl;
 @useResult
 $Res call({
- String? sku, String variation, int pack, String status, EtsyVariantRef? variant
+ String? productId, bool linked, String? sku, String variation, int pack, String status, EtsyVariantRef? variant
 });
 
 
@@ -342,9 +344,11 @@ class _$EtsyProductCheckCopyWithImpl<$Res>
 
 /// Create a copy of EtsyProductCheck
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? sku = freezed,Object? variation = null,Object? pack = null,Object? status = null,Object? variant = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? productId = freezed,Object? linked = null,Object? sku = freezed,Object? variation = null,Object? pack = null,Object? status = null,Object? variant = freezed,}) {
   return _then(_self.copyWith(
-sku: freezed == sku ? _self.sku : sku // ignore: cast_nullable_to_non_nullable
+productId: freezed == productId ? _self.productId : productId // ignore: cast_nullable_to_non_nullable
+as String?,linked: null == linked ? _self.linked : linked // ignore: cast_nullable_to_non_nullable
+as bool,sku: freezed == sku ? _self.sku : sku // ignore: cast_nullable_to_non_nullable
 as String?,variation: null == variation ? _self.variation : variation // ignore: cast_nullable_to_non_nullable
 as String,pack: null == pack ? _self.pack : pack // ignore: cast_nullable_to_non_nullable
 as int,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
@@ -446,10 +450,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? sku,  String variation,  int pack,  String status,  EtsyVariantRef? variant)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? productId,  bool linked,  String? sku,  String variation,  int pack,  String status,  EtsyVariantRef? variant)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _EtsyProductCheck() when $default != null:
-return $default(_that.sku,_that.variation,_that.pack,_that.status,_that.variant);case _:
+return $default(_that.productId,_that.linked,_that.sku,_that.variation,_that.pack,_that.status,_that.variant);case _:
   return orElse();
 
 }
@@ -467,10 +471,10 @@ return $default(_that.sku,_that.variation,_that.pack,_that.status,_that.variant)
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? sku,  String variation,  int pack,  String status,  EtsyVariantRef? variant)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? productId,  bool linked,  String? sku,  String variation,  int pack,  String status,  EtsyVariantRef? variant)  $default,) {final _that = this;
 switch (_that) {
 case _EtsyProductCheck():
-return $default(_that.sku,_that.variation,_that.pack,_that.status,_that.variant);case _:
+return $default(_that.productId,_that.linked,_that.sku,_that.variation,_that.pack,_that.status,_that.variant);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -487,10 +491,10 @@ return $default(_that.sku,_that.variation,_that.pack,_that.status,_that.variant)
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? sku,  String variation,  int pack,  String status,  EtsyVariantRef? variant)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? productId,  bool linked,  String? sku,  String variation,  int pack,  String status,  EtsyVariantRef? variant)?  $default,) {final _that = this;
 switch (_that) {
 case _EtsyProductCheck() when $default != null:
-return $default(_that.sku,_that.variation,_that.pack,_that.status,_that.variant);case _:
+return $default(_that.productId,_that.linked,_that.sku,_that.variation,_that.pack,_that.status,_that.variant);case _:
   return null;
 
 }
@@ -502,9 +506,13 @@ return $default(_that.sku,_that.variation,_that.pack,_that.status,_that.variant)
 @JsonSerializable()
 
 class _EtsyProductCheck extends EtsyProductCheck {
-  const _EtsyProductCheck({this.sku, this.variation = "", this.pack = 1, required this.status, this.variant}): super._();
+  const _EtsyProductCheck({this.productId, this.linked = false, this.sku, this.variation = "", this.pack = 1, required this.status, this.variant}): super._();
   factory _EtsyProductCheck.fromJson(Map<String, dynamic> json) => _$EtsyProductCheckFromJson(json);
 
+@override final  String? productId;
+// o produto do anúncio na Etsy: é por ele que se associa à mão
+@override@JsonKey() final  bool linked;
+// liga porque foi associado à mão (e não pelo SKU)
 @override final  String? sku;
 @override@JsonKey() final  String variation;
 // "Piloto: Hamilton"
@@ -527,16 +535,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EtsyProductCheck&&(identical(other.sku, sku) || other.sku == sku)&&(identical(other.variation, variation) || other.variation == variation)&&(identical(other.pack, pack) || other.pack == pack)&&(identical(other.status, status) || other.status == status)&&(identical(other.variant, variant) || other.variant == variant));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EtsyProductCheck&&(identical(other.productId, productId) || other.productId == productId)&&(identical(other.linked, linked) || other.linked == linked)&&(identical(other.sku, sku) || other.sku == sku)&&(identical(other.variation, variation) || other.variation == variation)&&(identical(other.pack, pack) || other.pack == pack)&&(identical(other.status, status) || other.status == status)&&(identical(other.variant, variant) || other.variant == variant));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,sku,variation,pack,status,variant);
+int get hashCode => Object.hash(runtimeType,productId,linked,sku,variation,pack,status,variant);
 
 @override
 String toString() {
-  return 'EtsyProductCheck(sku: $sku, variation: $variation, pack: $pack, status: $status, variant: $variant)';
+  return 'EtsyProductCheck(productId: $productId, linked: $linked, sku: $sku, variation: $variation, pack: $pack, status: $status, variant: $variant)';
 }
 
 
@@ -547,7 +555,7 @@ abstract mixin class _$EtsyProductCheckCopyWith<$Res> implements $EtsyProductChe
   factory _$EtsyProductCheckCopyWith(_EtsyProductCheck value, $Res Function(_EtsyProductCheck) _then) = __$EtsyProductCheckCopyWithImpl;
 @override @useResult
 $Res call({
- String? sku, String variation, int pack, String status, EtsyVariantRef? variant
+ String? productId, bool linked, String? sku, String variation, int pack, String status, EtsyVariantRef? variant
 });
 
 
@@ -564,9 +572,11 @@ class __$EtsyProductCheckCopyWithImpl<$Res>
 
 /// Create a copy of EtsyProductCheck
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? sku = freezed,Object? variation = null,Object? pack = null,Object? status = null,Object? variant = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? productId = freezed,Object? linked = null,Object? sku = freezed,Object? variation = null,Object? pack = null,Object? status = null,Object? variant = freezed,}) {
   return _then(_EtsyProductCheck(
-sku: freezed == sku ? _self.sku : sku // ignore: cast_nullable_to_non_nullable
+productId: freezed == productId ? _self.productId : productId // ignore: cast_nullable_to_non_nullable
+as String?,linked: null == linked ? _self.linked : linked // ignore: cast_nullable_to_non_nullable
+as bool,sku: freezed == sku ? _self.sku : sku // ignore: cast_nullable_to_non_nullable
 as String?,variation: null == variation ? _self.variation : variation // ignore: cast_nullable_to_non_nullable
 as String,pack: null == pack ? _self.pack : pack // ignore: cast_nullable_to_non_nullable
 as int,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
@@ -874,7 +884,8 @@ mixin _$EtsyListingsCheck {
 
  DateTime get checkedAt; int get ok; int get problems;/// Anúncios digitais (downloads) que não se conferem: não entram na app.
  int get digitalSkipped; List<EtsyListingCheck> get listings;/// Variantes da app que nenhum anúncio usa (não é erro: podem não estar à venda na Etsy).
- List<EtsyVariantRef> get unlistedVariants;
+ List<EtsyVariantRef> get unlistedVariants;/// Todas as variantes ativas da app, para escolher uma ao associar à mão.
+ List<EtsyVariantRef> get variants;
 /// Create a copy of EtsyListingsCheck
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -887,16 +898,16 @@ $EtsyListingsCheckCopyWith<EtsyListingsCheck> get copyWith => _$EtsyListingsChec
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is EtsyListingsCheck&&(identical(other.checkedAt, checkedAt) || other.checkedAt == checkedAt)&&(identical(other.ok, ok) || other.ok == ok)&&(identical(other.problems, problems) || other.problems == problems)&&(identical(other.digitalSkipped, digitalSkipped) || other.digitalSkipped == digitalSkipped)&&const DeepCollectionEquality().equals(other.listings, listings)&&const DeepCollectionEquality().equals(other.unlistedVariants, unlistedVariants));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is EtsyListingsCheck&&(identical(other.checkedAt, checkedAt) || other.checkedAt == checkedAt)&&(identical(other.ok, ok) || other.ok == ok)&&(identical(other.problems, problems) || other.problems == problems)&&(identical(other.digitalSkipped, digitalSkipped) || other.digitalSkipped == digitalSkipped)&&const DeepCollectionEquality().equals(other.listings, listings)&&const DeepCollectionEquality().equals(other.unlistedVariants, unlistedVariants)&&const DeepCollectionEquality().equals(other.variants, variants));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,checkedAt,ok,problems,digitalSkipped,const DeepCollectionEquality().hash(listings),const DeepCollectionEquality().hash(unlistedVariants));
+int get hashCode => Object.hash(runtimeType,checkedAt,ok,problems,digitalSkipped,const DeepCollectionEquality().hash(listings),const DeepCollectionEquality().hash(unlistedVariants),const DeepCollectionEquality().hash(variants));
 
 @override
 String toString() {
-  return 'EtsyListingsCheck(checkedAt: $checkedAt, ok: $ok, problems: $problems, digitalSkipped: $digitalSkipped, listings: $listings, unlistedVariants: $unlistedVariants)';
+  return 'EtsyListingsCheck(checkedAt: $checkedAt, ok: $ok, problems: $problems, digitalSkipped: $digitalSkipped, listings: $listings, unlistedVariants: $unlistedVariants, variants: $variants)';
 }
 
 
@@ -907,7 +918,7 @@ abstract mixin class $EtsyListingsCheckCopyWith<$Res>  {
   factory $EtsyListingsCheckCopyWith(EtsyListingsCheck value, $Res Function(EtsyListingsCheck) _then) = _$EtsyListingsCheckCopyWithImpl;
 @useResult
 $Res call({
- DateTime checkedAt, int ok, int problems, int digitalSkipped, List<EtsyListingCheck> listings, List<EtsyVariantRef> unlistedVariants
+ DateTime checkedAt, int ok, int problems, int digitalSkipped, List<EtsyListingCheck> listings, List<EtsyVariantRef> unlistedVariants, List<EtsyVariantRef> variants
 });
 
 
@@ -924,7 +935,7 @@ class _$EtsyListingsCheckCopyWithImpl<$Res>
 
 /// Create a copy of EtsyListingsCheck
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? checkedAt = null,Object? ok = null,Object? problems = null,Object? digitalSkipped = null,Object? listings = null,Object? unlistedVariants = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? checkedAt = null,Object? ok = null,Object? problems = null,Object? digitalSkipped = null,Object? listings = null,Object? unlistedVariants = null,Object? variants = null,}) {
   return _then(_self.copyWith(
 checkedAt: null == checkedAt ? _self.checkedAt : checkedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,ok: null == ok ? _self.ok : ok // ignore: cast_nullable_to_non_nullable
@@ -932,6 +943,7 @@ as int,problems: null == problems ? _self.problems : problems // ignore: cast_nu
 as int,digitalSkipped: null == digitalSkipped ? _self.digitalSkipped : digitalSkipped // ignore: cast_nullable_to_non_nullable
 as int,listings: null == listings ? _self.listings : listings // ignore: cast_nullable_to_non_nullable
 as List<EtsyListingCheck>,unlistedVariants: null == unlistedVariants ? _self.unlistedVariants : unlistedVariants // ignore: cast_nullable_to_non_nullable
+as List<EtsyVariantRef>,variants: null == variants ? _self.variants : variants // ignore: cast_nullable_to_non_nullable
 as List<EtsyVariantRef>,
   ));
 }
@@ -1017,10 +1029,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( DateTime checkedAt,  int ok,  int problems,  int digitalSkipped,  List<EtsyListingCheck> listings,  List<EtsyVariantRef> unlistedVariants)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( DateTime checkedAt,  int ok,  int problems,  int digitalSkipped,  List<EtsyListingCheck> listings,  List<EtsyVariantRef> unlistedVariants,  List<EtsyVariantRef> variants)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _EtsyListingsCheck() when $default != null:
-return $default(_that.checkedAt,_that.ok,_that.problems,_that.digitalSkipped,_that.listings,_that.unlistedVariants);case _:
+return $default(_that.checkedAt,_that.ok,_that.problems,_that.digitalSkipped,_that.listings,_that.unlistedVariants,_that.variants);case _:
   return orElse();
 
 }
@@ -1038,10 +1050,10 @@ return $default(_that.checkedAt,_that.ok,_that.problems,_that.digitalSkipped,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( DateTime checkedAt,  int ok,  int problems,  int digitalSkipped,  List<EtsyListingCheck> listings,  List<EtsyVariantRef> unlistedVariants)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( DateTime checkedAt,  int ok,  int problems,  int digitalSkipped,  List<EtsyListingCheck> listings,  List<EtsyVariantRef> unlistedVariants,  List<EtsyVariantRef> variants)  $default,) {final _that = this;
 switch (_that) {
 case _EtsyListingsCheck():
-return $default(_that.checkedAt,_that.ok,_that.problems,_that.digitalSkipped,_that.listings,_that.unlistedVariants);case _:
+return $default(_that.checkedAt,_that.ok,_that.problems,_that.digitalSkipped,_that.listings,_that.unlistedVariants,_that.variants);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1058,10 +1070,10 @@ return $default(_that.checkedAt,_that.ok,_that.problems,_that.digitalSkipped,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( DateTime checkedAt,  int ok,  int problems,  int digitalSkipped,  List<EtsyListingCheck> listings,  List<EtsyVariantRef> unlistedVariants)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( DateTime checkedAt,  int ok,  int problems,  int digitalSkipped,  List<EtsyListingCheck> listings,  List<EtsyVariantRef> unlistedVariants,  List<EtsyVariantRef> variants)?  $default,) {final _that = this;
 switch (_that) {
 case _EtsyListingsCheck() when $default != null:
-return $default(_that.checkedAt,_that.ok,_that.problems,_that.digitalSkipped,_that.listings,_that.unlistedVariants);case _:
+return $default(_that.checkedAt,_that.ok,_that.problems,_that.digitalSkipped,_that.listings,_that.unlistedVariants,_that.variants);case _:
   return null;
 
 }
@@ -1073,7 +1085,7 @@ return $default(_that.checkedAt,_that.ok,_that.problems,_that.digitalSkipped,_th
 @JsonSerializable()
 
 class _EtsyListingsCheck extends EtsyListingsCheck {
-  const _EtsyListingsCheck({required this.checkedAt, this.ok = 0, this.problems = 0, this.digitalSkipped = 0, final  List<EtsyListingCheck> listings = const [], final  List<EtsyVariantRef> unlistedVariants = const []}): _listings = listings,_unlistedVariants = unlistedVariants,super._();
+  const _EtsyListingsCheck({required this.checkedAt, this.ok = 0, this.problems = 0, this.digitalSkipped = 0, final  List<EtsyListingCheck> listings = const [], final  List<EtsyVariantRef> unlistedVariants = const [], final  List<EtsyVariantRef> variants = const []}): _listings = listings,_unlistedVariants = unlistedVariants,_variants = variants,super._();
   factory _EtsyListingsCheck.fromJson(Map<String, dynamic> json) => _$EtsyListingsCheckFromJson(json);
 
 @override final  DateTime checkedAt;
@@ -1097,6 +1109,15 @@ class _EtsyListingsCheck extends EtsyListingsCheck {
   return EqualUnmodifiableListView(_unlistedVariants);
 }
 
+/// Todas as variantes ativas da app, para escolher uma ao associar à mão.
+ final  List<EtsyVariantRef> _variants;
+/// Todas as variantes ativas da app, para escolher uma ao associar à mão.
+@override@JsonKey() List<EtsyVariantRef> get variants {
+  if (_variants is EqualUnmodifiableListView) return _variants;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_variants);
+}
+
 
 /// Create a copy of EtsyListingsCheck
 /// with the given fields replaced by the non-null parameter values.
@@ -1111,16 +1132,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EtsyListingsCheck&&(identical(other.checkedAt, checkedAt) || other.checkedAt == checkedAt)&&(identical(other.ok, ok) || other.ok == ok)&&(identical(other.problems, problems) || other.problems == problems)&&(identical(other.digitalSkipped, digitalSkipped) || other.digitalSkipped == digitalSkipped)&&const DeepCollectionEquality().equals(other._listings, _listings)&&const DeepCollectionEquality().equals(other._unlistedVariants, _unlistedVariants));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EtsyListingsCheck&&(identical(other.checkedAt, checkedAt) || other.checkedAt == checkedAt)&&(identical(other.ok, ok) || other.ok == ok)&&(identical(other.problems, problems) || other.problems == problems)&&(identical(other.digitalSkipped, digitalSkipped) || other.digitalSkipped == digitalSkipped)&&const DeepCollectionEquality().equals(other._listings, _listings)&&const DeepCollectionEquality().equals(other._unlistedVariants, _unlistedVariants)&&const DeepCollectionEquality().equals(other._variants, _variants));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,checkedAt,ok,problems,digitalSkipped,const DeepCollectionEquality().hash(_listings),const DeepCollectionEquality().hash(_unlistedVariants));
+int get hashCode => Object.hash(runtimeType,checkedAt,ok,problems,digitalSkipped,const DeepCollectionEquality().hash(_listings),const DeepCollectionEquality().hash(_unlistedVariants),const DeepCollectionEquality().hash(_variants));
 
 @override
 String toString() {
-  return 'EtsyListingsCheck(checkedAt: $checkedAt, ok: $ok, problems: $problems, digitalSkipped: $digitalSkipped, listings: $listings, unlistedVariants: $unlistedVariants)';
+  return 'EtsyListingsCheck(checkedAt: $checkedAt, ok: $ok, problems: $problems, digitalSkipped: $digitalSkipped, listings: $listings, unlistedVariants: $unlistedVariants, variants: $variants)';
 }
 
 
@@ -1131,7 +1152,7 @@ abstract mixin class _$EtsyListingsCheckCopyWith<$Res> implements $EtsyListingsC
   factory _$EtsyListingsCheckCopyWith(_EtsyListingsCheck value, $Res Function(_EtsyListingsCheck) _then) = __$EtsyListingsCheckCopyWithImpl;
 @override @useResult
 $Res call({
- DateTime checkedAt, int ok, int problems, int digitalSkipped, List<EtsyListingCheck> listings, List<EtsyVariantRef> unlistedVariants
+ DateTime checkedAt, int ok, int problems, int digitalSkipped, List<EtsyListingCheck> listings, List<EtsyVariantRef> unlistedVariants, List<EtsyVariantRef> variants
 });
 
 
@@ -1148,7 +1169,7 @@ class __$EtsyListingsCheckCopyWithImpl<$Res>
 
 /// Create a copy of EtsyListingsCheck
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? checkedAt = null,Object? ok = null,Object? problems = null,Object? digitalSkipped = null,Object? listings = null,Object? unlistedVariants = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? checkedAt = null,Object? ok = null,Object? problems = null,Object? digitalSkipped = null,Object? listings = null,Object? unlistedVariants = null,Object? variants = null,}) {
   return _then(_EtsyListingsCheck(
 checkedAt: null == checkedAt ? _self.checkedAt : checkedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,ok: null == ok ? _self.ok : ok // ignore: cast_nullable_to_non_nullable
@@ -1156,6 +1177,7 @@ as int,problems: null == problems ? _self.problems : problems // ignore: cast_nu
 as int,digitalSkipped: null == digitalSkipped ? _self.digitalSkipped : digitalSkipped // ignore: cast_nullable_to_non_nullable
 as int,listings: null == listings ? _self._listings : listings // ignore: cast_nullable_to_non_nullable
 as List<EtsyListingCheck>,unlistedVariants: null == unlistedVariants ? _self._unlistedVariants : unlistedVariants // ignore: cast_nullable_to_non_nullable
+as List<EtsyVariantRef>,variants: null == variants ? _self._variants : variants // ignore: cast_nullable_to_non_nullable
 as List<EtsyVariantRef>,
   ));
 }

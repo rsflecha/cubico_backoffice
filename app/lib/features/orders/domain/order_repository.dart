@@ -1,4 +1,5 @@
 import 'package:cubico_backoffice/features/orders/domain/order.dart';
+import 'package:cubico_backoffice/features/orders/domain/order_event.dart';
 
 abstract interface class OrderRepository {
   Future<List<Order>> fetchAll();
@@ -9,4 +10,7 @@ abstract interface class OrderRepository {
   /// Cria uma encomenda a partir de um rascunho. O id, o número
   /// e os ids das linhas são dados por quem grava (como faria a base de dados).
   Future<Order> create(Order draft);
+
+  /// O histórico de uma encomenda, do mais recente para o mais antigo.
+  Future<List<OrderEvent>> fetchEvents(int orderId);
 }

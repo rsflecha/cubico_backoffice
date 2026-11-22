@@ -105,10 +105,9 @@ API (dentro de `api/`):
 
 ## Por fazer
 
-- Etsy: conferir os SKU dos anúncios ativos contra as variantes da app, antes de haver vendas
-  (sem SKU igual, a encomenda não entra). Depois: associar à mão um artigo desconhecido.
+- Etsy: pôr na Etsy os SKU que faltam, ou associar à mão no "Conferir os SKU" (ver o resultado de 2026-11-22 abaixo).
 - Provar com a primeira venda verdadeira que a encomenda paga vai sozinha para "Por imprimir"
-  (a base da loja ainda não tem encomendas; está provado só nos testes do PC).
+  (a base da loja só tem vendas em mão; está provado só nos testes do PC).
 - Face ID / impressão digital (passkeys, migração 010): feito só para o site (browser), provado num iPhone verdadeiro a 2026-11-19. A APK fica para uma 2.ª fase (outro pacote); a app de Windows não precisa (decisão do Rui). Ativar pede a palavra-passe; mudá-la ou repô-la apaga as passkeys.
 - APK com chave própria (hoje vai com a chave de testes do Flutter): só se for para a Play Store.
 - Impressora Bambu Lab A1: só depois da Etsy. O Rui usa a app Bambu Handy, por isso o "Developer Mode" está fora de questão; a opção seria a nuvem da Bambu (não oficial).
@@ -116,6 +115,7 @@ API (dentro de `api/`):
 ## Feito (2026-11)
 
 - v0.3.0 publicada (Windows e Android) a 2026-11-16, ligada à API do servidor.
+- v0.3.1 a 2026-11-22: associar à mão um artigo da Etsy a uma variante (migração 012, `etsy_links`; a sincronização procura SKU → associação → anúncio) e cartão Histórico no detalhe da encomenda (`order_events`, `GET /api/orders/{id}/events`). Conferir os SKU pela linha de comandos: `api/bin/etsy-listings-check.php` (sai com 1 se houver artigos por ligar).
 - Etsy ligada e sozinha: tarefa agendada do cPanel a cada 15 minutos (`api/bin/etsy-sync.php`).
 - Cópia automática da base todas as noites (`api/bin/db-backup.php`, tarefa agendada do cPanel): `~/backups-db/cubicodesign-auto-AAAAMMDD-HHMM.sql.gz`, guardadas 14 dias; as cópias feitas à mão (outro nome) nunca se apagam. Repor: phpMyAdmin → Importar. Provado no PC: reposta numa base nova, contagem e checksum iguais nas 35 tabelas.
 - Encomenda paga vai sozinha para produção; taxas da Etsy como a Etsy as cobra.

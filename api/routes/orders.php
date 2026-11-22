@@ -8,6 +8,58 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 // Todos com sessão veem, criam (manuais) e mudam o estado.
 // O colaborador recebe-as SEM os custos (custo de produção, taxas, portes pagos).
 
+/** Os nomes que aparecem no histórico (os mesmos do ecrã). */
+const ORDER_STATUS_LABELS = [
+    'pending' => 'Pendente', 'in_production' => 'Em produção', 'ready' => 'Pronta',
+    'shipped' => 'Enviada', 'delivered' => 'Entregue', 'cancelled' => 'Cancelada',
+];
+const PAYMENT_STATUS_LABELS = ['unpaid' => 'Por pagar', 'paid' => 'Pago', 'refunded' => 'Reembolsado'];
+
+/**
+ * O que mudou numa encomenda, em frases curtas para o histórico.
+ * Compara a encomenda antes e depois de gravar (só os campos que a pessoa pode mudar).
+ * @return array<int, array{0: string, 1: ?string}>  [descrição, estado novo (se mudou)]
+ */
+function orderChanges(array $before, array $after): array
+{
+    $changes = [];
+    if ($before['status'] !== $after['status']) {
+        $changes[] = ['Estado: ' . (ORDER_STATUS_LABELS[$before['status']] ?? $before['status'])
+            . ' → ' . (ORDER_STATUS_LABELS[$after['status']] ?? $after['status']), $after['status']];
+    }
+    if ($before['payment_status'] !== $after['payment_status']) {
+        $changes[] = ['Pagamento: ' . (PAYMENT_STATUS_LABELS[$before['payment_status']] ?? $before['payment_status'])
+            . ' → ' . (PAYMENT_STATUS_LABELS[$after['payment_status']] ?? $after['payment_status']), null];
+    }
+    $texts = [
+        'payment_method' => 'Método de pagamento',
+        'carrier_name' => 'Transportadora',
+        'tracking_code' => 'Código de seguimento',
+        'ship_by_date' => 'Enviar até',
+    ];
+    foreach ($texts as $field => $label) {
+        if (($before[$field] ?? null) !== ($after[$field] ?? null)) {
+            $changes[] = [$label . ': ' . (($after[$field] ?? null) ?? '(apagado)'), null];
+        }
+    }
+    if (($before['notes'] ?? null) !== ($after['notes'] ?? null)) {
+        $changes[] = ['Notas alteradas', null];
+    }
+    // a coluna é VARCHAR(150)
+    return array_map(fn ($c) => [mb_substr($c[0], 0, 150), $c[1]], $changes);
+}
+
+/** Grava as mudanças no histórico, com quem as fez. */
+function recordOrderChanges(int $orderId, array $changes, int $userId): void
+{
+    $insert = db()->prepare(
+        "INSERT INTO order_events (order_id, description, new_status, source, user_id) VALUES (?, ?, ?, 'user', ?)"
+    );
+    foreach ($changes as [$description, $newStatus]) {
+        $insert->execute([$orderId, $description, $newStatus, $userId]);
+    }
+}
+
 const ORDER_TYPES = [
     'id' => 'int',
     'order_number' => 'int',
@@ -172,6 +224,7 @@ $app->post('/api/orders', function (Request $request, Response $response) {
             $request->getAttribute('userId'),
         ]);
         $orderId = (int) db()->lastInsertId();
+        recordOrderChanges($orderId, [['Encomenda criada', 'pending']], (int) $request->getAttribute('userId'));
 
         // as linhas, com as "fotografias" do custo e da taxa, calculadas aqui
         $insert = db()->prepare(
@@ -214,12 +267,27 @@ $app->post('/api/orders', function (Request $request, Response $response) {
     return json($response, readOrders($request->getAttribute('role') === 'admin', $orderId)[0], 201);
 })->add($requireAuth);
 
+// GET /api/orders/{id}/events → o histórico de uma encomenda, do mais recente para o mais antigo
+// (todos com sessão: o histórico não tem custos)
+$app->get('/api/orders/{id:[0-9]+}/events', function (Request $request, Response $response, array $args) {
+    $stmt = db()->prepare(
+        'SELECT e.id, e.description, e.new_status, e.source, e.created_at, u.name AS user_name
+           FROM order_events e LEFT JOIN users u ON u.id = e.user_id
+          WHERE e.order_id = ? ORDER BY e.created_at DESC, e.id DESC'
+    );
+    $stmt->execute([(int) $args['id']]);
+    $types = ['id' => 'int', 'description' => 'string', 'new_status' => 'string', 'source' => 'string',
+              'created_at' => 'string', 'user_name' => 'string'];
+    return json($response, array_map(fn ($r) => typed($r, $types), $stmt->fetchAll()));
+})->add($requireAuth);
+
 // PUT /api/orders/{id} → mudar o estado, o pagamento, o envio e as notas
 // (as linhas e as contas de uma encomenda feita não mudam)
 $app->put('/api/orders/{id}', function (Request $request, Response $response, array $args) {
     $id = (int) $args['id'];
     $isAdmin = $request->getAttribute('role') === 'admin';
-    if (readOrders(true, $id) === []) {
+    $before = readOrders(true, $id)[0] ?? null;
+    if ($before === null) {
         return fail($response, 'Esta encomenda já não existe.', 404);
     }
     $body = body($request);
@@ -251,7 +319,16 @@ $app->put('/api/orders/{id}', function (Request $request, Response $response, ar
     }
     if ($sets !== []) {
         $values[] = $id;
-        db()->prepare('UPDATE orders SET ' . implode(', ', $sets) . ' WHERE id = ?')->execute($values);
+        db()->beginTransaction();
+        try {
+            db()->prepare('UPDATE orders SET ' . implode(', ', $sets) . ' WHERE id = ?')->execute($values);
+            // o histórico: o que mudou, e quem mudou
+            recordOrderChanges($id, orderChanges($before, readOrders(true, $id)[0]), (int) $request->getAttribute('userId'));
+            db()->commit();
+        } catch (Throwable $e) {
+            db()->rollBack();
+            throw $e;
+        }
     }
     // ficou paga e ainda está pendente? vai para "Por imprimir", tarefas e estado juntos
     db()->beginTransaction();

@@ -13,6 +13,12 @@ import 'package:material_ui/material_ui.dart';
 
 /// Uma Etsy de faz-de-conta: devolve o que o teste mandar.
 class _FakeEtsy implements EtsyRepository {
+  @override
+  Future<void> link({required String productId, required String listingId, required int variantId}) async {}
+
+  @override
+  Future<void> unlink(String productId) async {}
+
   _FakeEtsy(this.info, this.result);
   EtsySyncInfo info;
   final Object result; // EtsySyncRun, ou uma exceção para lançar

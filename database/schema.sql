@@ -430,3 +430,14 @@ CREATE TABLE etsy_oauth_states (                     -- pedidos de ligação a m
   created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- associar à mão um produto de um anúncio da Etsy a uma variante (migração 012)
+CREATE TABLE etsy_links (
+  etsy_product_id VARCHAR(20) CHARACTER SET ascii NOT NULL PRIMARY KEY,
+  listing_id      VARCHAR(20) CHARACTER SET ascii NOT NULL,
+  variant_id      INT UNSIGNED NOT NULL,
+  user_id         INT UNSIGNED,
+  created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (variant_id) REFERENCES variants(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id)    REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

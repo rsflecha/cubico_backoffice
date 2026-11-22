@@ -24,6 +24,8 @@ Map<String, dynamic> _$EtsyVariantRefToJson(_EtsyVariantRef instance) =>
 
 _EtsyProductCheck _$EtsyProductCheckFromJson(Map<String, dynamic> json) =>
     _EtsyProductCheck(
+      productId: json['product_id'] as String?,
+      linked: json['linked'] as bool? ?? false,
       sku: json['sku'] as String?,
       variation: json['variation'] as String? ?? "",
       pack: (json['pack'] as num?)?.toInt() ?? 1,
@@ -35,6 +37,8 @@ _EtsyProductCheck _$EtsyProductCheckFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$EtsyProductCheckToJson(_EtsyProductCheck instance) =>
     <String, dynamic>{
+      'product_id': instance.productId,
+      'linked': instance.linked,
       'sku': instance.sku,
       'variation': instance.variation,
       'pack': instance.pack,
@@ -78,6 +82,11 @@ _EtsyListingsCheck _$EtsyListingsCheckFromJson(Map<String, dynamic> json) =>
               ?.map((e) => EtsyVariantRef.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      variants:
+          (json['variants'] as List<dynamic>?)
+              ?.map((e) => EtsyVariantRef.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$EtsyListingsCheckToJson(_EtsyListingsCheck instance) =>
@@ -90,4 +99,5 @@ Map<String, dynamic> _$EtsyListingsCheckToJson(_EtsyListingsCheck instance) =>
       'unlisted_variants': instance.unlistedVariants
           .map((e) => e.toJson())
           .toList(),
+      'variants': instance.variants.map((e) => e.toJson()).toList(),
     };

@@ -1,3 +1,6 @@
 # Pastas de trabalho do Archify (diagramas a meio e recibos das verificações).
 # O diagrama final fica em docs/arquitetura/.
 .archify/
+
+# ficheiros das releases (vão para a GitHub Release, não para o Git)
+dist/

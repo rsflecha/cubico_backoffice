@@ -1,4 +1,5 @@
 import 'package:cubico_backoffice/features/orders/domain/order.dart';
+import 'package:cubico_backoffice/features/orders/domain/order_event.dart';
 import 'package:cubico_backoffice/features/orders/domain/order_repository.dart';
 
 class DemoOrderRepository implements OrderRepository {
@@ -231,5 +232,14 @@ class DemoOrderRepository implements OrderRepository {
     if (index == -1) throw StateError("Encomenda ${order.id} não existe.");
     _items[index] = order;
     return order;
+  }
+
+  /// No modo demo não se guarda histórico: mostra só quando foi criada.
+  @override
+  Future<List<OrderEvent>> fetchEvents(int orderId) async {
+    await _latency();
+    final order = _items.where((o) => o.id == orderId).firstOrNull;
+    if (order == null) return const [];
+    return [OrderEvent(id: 1, description: "Encomenda criada", source: "system", createdAt: order.createdAt)];
   }
 }

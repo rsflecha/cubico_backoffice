@@ -53,4 +53,15 @@ class ApiEtsyRepository implements EtsyRepository {
         );
         return EtsyListingsCheck.fromJson(response.data!);
       });
+
+  @override
+  Future<void> link({required String productId, required String listingId, required int variantId}) =>
+      apiCall(() async {
+        await _dio.put<void>("/etsy/links/$productId", data: {"listing_id": listingId, "variant_id": variantId});
+      });
+
+  @override
+  Future<void> unlink(String productId) => apiCall(() async {
+        await _dio.delete<void>("/etsy/links/$productId");
+      });
 }

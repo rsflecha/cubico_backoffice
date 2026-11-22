@@ -27,4 +27,12 @@ class DemoEtsyRepository implements EtsyRepository {
   @override
   Future<EtsyListingsCheck> checkListings() async =>
       throw const ApiException("No modo demo não há ligação à Etsy. Entra com a tua conta.");
+
+  @override
+  Future<void> link({required String productId, required String listingId, required int variantId}) async =>
+      throw const ApiException("No modo demo não há ligação à Etsy. Entra com a tua conta.");
+
+  @override
+  Future<void> unlink(String productId) async =>
+      throw const ApiException("No modo demo não há ligação à Etsy. Entra com a tua conta.");
 }

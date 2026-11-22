@@ -22,6 +22,8 @@ abstract class EtsyProductCheck with _$EtsyProductCheck {
   const EtsyProductCheck._(); // para poder ter getters
 
   const factory EtsyProductCheck({
+    String? productId, // o produto do anúncio na Etsy: é por ele que se associa à mão
+    @Default(false) bool linked, // liga porque foi associado à mão (e não pelo SKU)
     String? sku,
     @Default("") String variation, // "Piloto: Hamilton"
     @Default(1) int pack, // pack de quantidade: cada venda são N peças (a API reconhece "Quantidade: 10")
@@ -77,6 +79,9 @@ abstract class EtsyListingsCheck with _$EtsyListingsCheck {
 
     /// Variantes da app que nenhum anúncio usa (não é erro: podem não estar à venda na Etsy).
     @Default([]) List<EtsyVariantRef> unlistedVariants,
+
+    /// Todas as variantes ativas da app, para escolher uma ao associar à mão.
+    @Default([]) List<EtsyVariantRef> variants,
   }) = _EtsyListingsCheck;
 
   factory EtsyListingsCheck.fromJson(Map<String, dynamic> json) => _$EtsyListingsCheckFromJson(json);

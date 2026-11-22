@@ -119,14 +119,21 @@ function etsyListingsCheck(): array
                 continue;
             }
             $sku = trim((string) ($p['sku'] ?? ''));
+            $productId = trim((string) ($p['product_id'] ?? ''));
             // exatamente o que a sincronização faz com um artigo vendido
-            $variantId = etsyFindVariant(['sku' => $sku, 'listing_id' => $l['listing_id'] ?? null]);
+            $variantId = etsyFindVariant(['sku' => $sku, 'listing_id' => $l['listing_id'] ?? null, 'product_id' => $productId]);
+            // associado à mão: o SKU não serviu e quem liga é a tabela etsy_links
+            $linked = $variantId !== null
+                && ($sku === '' || etsyVariantBySku($sku) === null)
+                && etsyLinkedVariant($productId) === $variantId;
             $status = $variantId !== null ? 'ok' : ($sku === '' ? 'no_sku' : 'unknown_sku');
             $status === 'ok' ? $ok++ : $problems++;
             if ($variantId !== null) {
                 $used[$variantId] = true;
             }
             $products[] = [
+                'product_id' => $productId === '' ? null : $productId,
+                'linked' => $linked,
                 'sku' => $sku === '' ? null : $sku,
                 'variation' => etsyProductVariation($p),
                 'pack' => etsyProductPack($p), // 10 = cada venda deste produto são 10 peças
@@ -149,5 +156,6 @@ function etsyListingsCheck(): array
         'digital_skipped' => $digital,
         'listings' => $listings,
         'unlisted_variants' => array_values(array_filter($variants, fn ($v) => !isset($used[$v['variant_id']]))),
+        'variants' => array_values($variants), // para escolher uma ao associar à mão
     ];
 }

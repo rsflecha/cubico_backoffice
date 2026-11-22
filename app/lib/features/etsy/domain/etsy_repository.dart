@@ -21,4 +21,11 @@ abstract interface class EtsyRepository {
 
   /// "Conferir os SKU": os anúncios ativos da Etsy contra as variantes da app (só lê).
   Future<EtsyListingsCheck> checkListings();
+
+  /// Associa à mão um produto de um anúncio a uma variante (quando o SKU não serve).
+  /// As vendas que ficaram por associar entram na próxima sincronização.
+  Future<void> link({required String productId, required String listingId, required int variantId});
+
+  /// Desfaz a associação feita à mão.
+  Future<void> unlink(String productId);
 }

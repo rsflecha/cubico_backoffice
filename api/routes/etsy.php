@@ -42,6 +42,34 @@ $app->get('/api/etsy/listings-check', function (Request $request, Response $resp
     }
 })->add($requireAdmin)->add($requireAuth);
 
+// PUT /api/etsy/links/{productId} → associar à mão um produto de um anúncio a uma variante (só o administrador).
+// A próxima sincronização importa sozinha as encomendas que ficaram por associar por causa dele.
+$app->put('/api/etsy/links/{productId:[0-9]{1,20}}', function (Request $request, Response $response, array $args) {
+    $body = body($request);
+    $listingId = (string) ($body['listing_id'] ?? '');
+    if (preg_match('/^[0-9]{1,20}$/', $listingId) !== 1) {
+        return fail($response, 'Falta o número do anúncio.', 422);
+    }
+    $stmt = db()->prepare('SELECT id FROM variants WHERE id = ? AND is_active = 1');
+    $stmt->execute([(int) ($body['variant_id'] ?? 0)]);
+    $variantId = $stmt->fetchColumn();
+    if ($variantId === false) {
+        return fail($response, 'Essa variante já não existe. Escolhe outra.', 422);
+    }
+    db()->prepare(
+        'INSERT INTO etsy_links (etsy_product_id, listing_id, variant_id, user_id) VALUES (?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE listing_id = VALUES(listing_id), variant_id = VALUES(variant_id),
+                                 user_id = VALUES(user_id), created_at = NOW()'
+    )->execute([$args['productId'], $listingId, (int) $variantId, $request->getAttribute('userId')]);
+    return $response->withStatus(204);
+})->add($requireAdmin)->add($requireAuth);
+
+// DELETE /api/etsy/links/{productId} → desfazer a associação (só o administrador)
+$app->delete('/api/etsy/links/{productId:[0-9]{1,20}}', function (Request $request, Response $response, array $args) {
+    db()->prepare('DELETE FROM etsy_links WHERE etsy_product_id = ?')->execute([$args['productId']]);
+    return $response->withStatus(204);
+})->add($requireAdmin)->add($requireAuth);
+
 // DELETE /api/etsy/connection → desligar a loja (só o administrador)
 $app->delete('/api/etsy/connection', function (Request $request, Response $response) {
     db()->exec('DELETE FROM etsy_connection WHERE id = 1');

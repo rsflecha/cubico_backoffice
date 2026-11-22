@@ -3,6 +3,7 @@ import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart
 import 'package:cubico_backoffice/features/orders/data/api_order_repository.dart';
 import 'package:cubico_backoffice/features/orders/data/demo_order_repository.dart';
 import 'package:cubico_backoffice/features/orders/domain/order.dart';
+import 'package:cubico_backoffice/features/orders/domain/order_event.dart';
 import 'package:cubico_backoffice/features/orders/domain/order_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,6 +14,13 @@ final orderRepositoryProvider = Provider<OrderRepository>((ref) {
 });
 
 /// A lista de encomendas.
+/// O histórico de uma encomenda. Vê as encomendas: quando a lista muda (mudar o estado,
+/// marcar como paga…), o histórico volta a ser pedido sozinho.
+final orderEventsProvider = FutureProvider.autoDispose.family<List<OrderEvent>, int>((ref, orderId) async {
+  await ref.watch(ordersProvider.future);
+  return ref.watch(orderRepositoryProvider).fetchEvents(orderId);
+});
+
 final ordersProvider = FutureProvider<List<Order>>((ref) {
   final repository = ref.watch(orderRepositoryProvider);
   return repository.fetchAll();
