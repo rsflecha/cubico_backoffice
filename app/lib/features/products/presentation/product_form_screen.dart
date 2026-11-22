@@ -46,7 +46,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   final _nameController = TextEditingController();
   int? _categoryId;
   Set<int> _colorIds = {}; // as cores disponíveis (ids dos filamentos)
-  int _colorsPerPiece = 1; // 2 = na encomenda escolhem-se "Cor 1" e "Cor 2"
+  // quantas cores se escolhem na encomenda: 1, 2 ("Cor 1" e "Cor 2"),
+  // ou 0 = fixas em cada variante (a receita de cada uma diz as cores e as gramas)
+  int _colorsPerPiece = 1;
   // à venda, a preparar, ou já não se vende. Um produto novo nasce à venda.
   ProductStatus _status = ProductStatus.active;
   var _submitted = false;
@@ -108,7 +110,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   bool get _missingPhoto => _original == null && _newPhoto == null;
 
   /// Sem cores, a encomenda não tinha cor para escolher e o custo não tinha preço por kg.
-  bool get _missingColors => _colorIds.isEmpty;
+  /// (Com as cores fixas na variante, não há cores para escolher: não se pedem.)
+  bool get _missingColors => _colorsPerPiece != 0 && _colorIds.isEmpty;
 
   void _showMessage(String text) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
@@ -258,7 +261,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         // as outras variantes: o custo passa a usar a cor mais cara das cores novas
         // (as gramas ficam as mesmas)
         final priciest = _calc.priciestFilament(ref.read(filamentsProvider).value ?? <Filament>[], colorIds);
-        if (priciest != null) {
+        // (com as cores fixas, cada variante tem a sua receita: não se mexe nas outras)
+        if (priciest != null && _colorsPerPiece != 0) {
           for (final other in list.where((v) => v.id != target!.id)) {
             final grams = other.filaments.fold<int>(0, (sum, f) => sum + f.grams);
             if (grams <= 0) continue; // sem receita: fica para quando a abrires
@@ -384,20 +388,27 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     );
   }
 
-  /// Quantas cores leva cada peça: 1, ou 2 (o cliente escolhe as duas na encomenda).
+  /// As cores na encomenda: o cliente escolhe 1, escolhe 2, ou vêm fixas em cada variante.
   Widget _colorsPerPieceField() => InputDecorator(
-        decoration: const InputDecoration(
-          labelText: "Cores por peça",
+        decoration: InputDecoration(
+          labelText: "Cores na encomenda",
           filled: false,
-          helperText: "Com 2, a encomenda pede «Cor 1» e «Cor 2». No custo, à direita, escreve as gramas de cada cor.",
-          helperMaxLines: 2,
+          helperText: switch (_colorsPerPiece) {
+            2 => "A encomenda pede «Cor 1» e «Cor 2». No custo, escreve as gramas de cada cor.",
+            0 => "Cada variante tem as suas cores (ex.: branco, preto, vermelho e amarelo). "
+                "No custo de cada variante, junta as cores e as gramas de cada uma.",
+            _ => "A encomenda pede uma cor, das disponíveis.",
+          },
+          helperMaxLines: 3,
         ),
         child: Align(
           alignment: Alignment.centerLeft,
           child: SegmentedButton<int>(
+            showSelectedIcon: false,
             segments: const [
-              ButtonSegment(value: 1, label: Text("1")),
-              ButtonSegment(value: 2, label: Text("2")),
+              ButtonSegment(value: 1, label: Text("Escolhe 1")),
+              ButtonSegment(value: 2, label: Text("Escolhe 2")),
+              ButtonSegment(value: 0, label: Text("Fixas")),
             ],
             selected: {_colorsPerPiece},
             onSelectionChanged: (s) => setState(() => _colorsPerPiece = s.first),
@@ -507,6 +518,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             showName: variants.length > 1 || (selectedVariant?.name.isNotEmpty ?? false),
             colorIds: _colorIds.toList(),
             twoColors: _colorsPerPiece == 2,
+            fixedColors: _colorsPerPiece == 0,
           )
         : null;
 
@@ -559,9 +571,12 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         const SizedBox(height: 16),
         _statusField(),
         const SizedBox(height: 16),
-        _colorsField(filaments),
-        const SizedBox(height: 16),
         _colorsPerPieceField(),
+        // com as cores fixas, as cores estão na receita de cada variante
+        if (_colorsPerPiece != 0) ...[
+          const SizedBox(height: 16),
+          _colorsField(filaments),
+        ],
         const SizedBox(height: 24),
         if (_submitted && _cardProblem != null) ...[
           Text(_cardProblem!, style: TextStyle(color: Theme.of(context).colorScheme.error)),

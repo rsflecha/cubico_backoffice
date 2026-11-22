@@ -18,7 +18,7 @@ const PRODUCT_TYPES = [
     'status' => 'string',
     'is_customizable' => 'bool',
     'is_pack' => 'bool',
-    'colors_per_piece' => 'int', // 1 ou 2: quantas cores o cliente escolhe por peça
+    'colors_per_piece' => 'int', // 1 ou 2: quantas cores o cliente escolhe; 0 = fixas em cada variante
     'created_at' => 'string',
     'updated_at' => 'string',
 ];
@@ -92,9 +92,11 @@ function saveProductColors(int $productId, array $colorIds): void
 /** Os valores das colunas que vieram no pedido, prontos para o SQL. */
 function productValues(array $body): array
 {
-    // cores por peça: só 1 ou 2 (outro valor qualquer conta como 1)
+    // cores na encomenda: 1 ou 2 (o cliente escolhe), ou 0 = fixas em cada variante
+    // (o suporte F1: a receita de cada variante tem as cores e as gramas). Outro valor conta como 1.
     if (array_key_exists('colors_per_piece', $body)) {
-        $body['colors_per_piece'] = (int) $body['colors_per_piece'] === 2 ? 2 : 1;
+        $n = is_numeric($body['colors_per_piece']) ? (int) $body['colors_per_piece'] : 1;
+        $body['colors_per_piece'] = in_array($n, [0, 1, 2], true) ? $n : 1;
     }
     $columns = array_values(array_filter(PRODUCT_WRITABLE, fn ($c) => array_key_exists($c, $body)));
     $values = array_map(fn ($c) => dbValue($body[$c], PRODUCT_TYPES[$c]), $columns);

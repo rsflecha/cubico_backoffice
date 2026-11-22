@@ -119,8 +119,12 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   }
 
   /// As cores disponíveis do produto desta variante (vazio = produto sem cores marcadas).
-  List<int> _colorsOf(Variant variant, List<Product> products) =>
-      products.where((p) => p.id == variant.productId).firstOrNull?.colorIds ?? const <int>[];
+  /// Com as cores fixas na variante não há nada a escolher: vazio também.
+  List<int> _colorsOf(Variant variant, List<Product> products) {
+    final product = products.where((p) => p.id == variant.productId).firstOrNull;
+    if (product == null || product.hasFixedColors) return const <int>[];
+    return product.colorIds;
+  }
 
   /// Este artigo pede 2 cores ("Cor 1" e "Cor 2")? Só os produtos marcados com 2 cores por peça.
   bool _twoColors(Variant variant, List<Product> products) =>
@@ -657,6 +661,12 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         .toList();
     // a árvore de Natal: "Cor 1" e "Cor 2"
     final two = product?.colorsPerPiece == 2;
+    // o suporte F1: as cores vêm na variante; não se escolhe, mostram-se
+    final fixed = product?.hasFixedColors ?? false;
+    final recipeColors = ([...line.variant.filaments]..sort((a, b) => b.grams.compareTo(a.grams)))
+        .map((l) => filaments.where((f) => f.id == l.filamentId).firstOrNull?.colorName)
+        .whereType<String>()
+        .join(" · ");
     // o menu de uma cor: which 0 = "Cor" (o normal), 1 = "Cor 1", 2 = "Cor 2"
     // (outra cor muda o custo e vai para a produção)
     Widget colorMenu(int which) => DropdownButtonFormField<int?>(
@@ -794,7 +804,12 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               ),
             const SizedBox(height: 8),
             // a cor: por omissão a da receita; outra cor muda o custo e vai para a produção
-            if (two) ...[
+            if (fixed)
+              Text(
+                recipeColors.isEmpty ? "Cores: as da variante" : "Cores: $recipeColors",
+                style: Theme.of(context).textTheme.bodySmall,
+              )
+            else if (two) ...[
               colorMenu(1),
               const SizedBox(height: 8),
               colorMenu(2),

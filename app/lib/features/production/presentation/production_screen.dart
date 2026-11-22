@@ -1,5 +1,8 @@
 import 'dart:async';
 import 'package:cubico_backoffice/app/theme.dart';
+import 'package:cubico_backoffice/features/costs/domain/filament.dart';
+import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
+import 'package:cubico_backoffice/features/products/domain/product.dart';
 import 'package:cubico_backoffice/features/orders/presentation/orders_providers.dart';
 import 'package:cubico_backoffice/features/production/domain/print_job.dart';
 import 'package:cubico_backoffice/features/production/presentation/production_providers.dart';
@@ -236,6 +239,18 @@ class ProductionScreen extends ConsumerWidget {
     final minutes = job.estimatedMin % 60;
     final time = minutes == 0 ? "$hours h" : "$hours h $minutes";
     final isPrinting = job.status == PrintJobStatus.printing;
+    // cores fixas na variante (o suporte F1): as bobines a pôr na impressora, e as gramas de cada
+    final product = products.where((p) => p.id == variant?.productId).firstOrNull;
+    final filaments = ref.watch(filamentsProvider).value ?? <Filament>[];
+    final spools = variant == null || !(product?.hasFixedColors ?? false)
+        ? ""
+        : ([...variant.filaments]..sort((a, b) => b.grams.compareTo(a.grams)))
+            .map((l) {
+              final f = filaments.where((f) => f.id == l.filamentId).firstOrNull;
+              return f == null ? null : "${f.colorName} ${l.grams * job.quantity} g";
+            })
+            .whereType<String>()
+            .join(" · ");
 
     final card = Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -260,6 +275,8 @@ class ProductionScreen extends ConsumerWidget {
               "${job.quantity} un. · $time",
               style: Theme.of(context).textTheme.bodySmall,
             ),
+            if (spools.isNotEmpty)
+              Text("Cores: $spools", style: Theme.of(context).textTheme.bodySmall),
             if (job.notes != null)
               Text(job.notes!, style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 6),

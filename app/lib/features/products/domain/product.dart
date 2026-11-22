@@ -44,3 +44,11 @@ enum ProductStatus {
   @JsonValue("archived")
   archived,
 }
+
+/// As cores de um produto, na encomenda.
+extension ProductColors on Product {
+  /// As cores vêm fixas em cada variante (o suporte F1: a Red Bull leva sempre branco, preto,
+  /// vermelho e amarelo). Na encomenda não se escolhe cor; o custo é a receita, cor a cor.
+  /// Guarda-se como "0 cores a escolher" (colors_per_piece = 0): não precisa de coluna nova.
+  bool get hasFixedColors => colorsPerPiece == 0;
+}
