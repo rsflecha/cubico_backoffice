@@ -16,6 +16,9 @@ Uma versão pequena, preparada antes da primeira venda na Etsy.
 - Novo cartão **Histórico** no detalhe da encomenda: o que mudou (estado, pagamento, método de
   pagamento, transportadora, código de seguimento, data de envio, notas), quando e quem
   — a pessoa, a Etsy, ou a app sozinha.
+- Nova janela **Escolher produto**: produtos por categoria (com botões para filtrar), foto em
+  miniatura, variantes à vista pela ordem em que foram criadas, e procura opcional (nome,
+  variante ou SKU, sem ligar a acentos). No telemóvel ocupa o ecrã todo.
 - Corrigido: no ecrã largo, os cartões da direita apareciam duas vezes.
 
 ## Descarregar

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:cubico_backoffice/features/orders/presentation/widgets/product_picker_dialog.dart';
 import 'package:cubico_backoffice/features/auth/domain/app_user.dart';
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
 import 'package:cubico_backoffice/features/orders/presentation/create_order_screen.dart';
@@ -120,7 +121,7 @@ void main() {
     await tester.tap(find.text("Adicionar produto do catálogo"));
     await settle(tester);
     // modelo único: uma linha "Bola teste … 12,50 €", sem "Modelo único"
-    final dialog = find.byType(SimpleDialog);
+    final dialog = find.byType(ProductPickerDialog);
     expect(find.descendant(of: dialog, matching: find.text("Bola teste")), findsOneWidget);
     expect(find.descendant(of: dialog, matching: find.text("Modelo único")), findsNothing);
     await tester.tap(find.descendant(of: dialog, matching: find.text("12,50 €")));

@@ -64,7 +64,7 @@ void main() {
     for (var i = 0; i < 2; i++) {
       await tester.tap(find.text("Adicionar produto do catálogo"));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(SimpleDialogOption).first);
+      await tester.tap(find.text("Preto mate")); // a 1.ª variante do Suporte de auscultadores (demo)
       await tester.pumpAndSettle();
     }
 
@@ -119,7 +119,7 @@ void main() {
     await tester.enterText(find.widgetWithText(TextField, "Nome ou referência"), "Família Silva");
     await tester.tap(find.text("Adicionar produto do catálogo"));
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(SimpleDialogOption).first);
+    await tester.tap(find.text("Preto mate")); // a 1.ª variante do Suporte de auscultadores (demo)
     await tester.pumpAndSettle();
 
     expect(find.text("Cor 1"), findsOneWidget);

@@ -10,7 +10,9 @@ import 'package:cubico_backoffice/features/customers/presentation/customers_prov
 import 'package:cubico_backoffice/features/orders/domain/order.dart';
 import 'package:cubico_backoffice/features/orders/presentation/order_labels.dart';
 import 'package:cubico_backoffice/features/orders/presentation/orders_providers.dart';
+import 'package:cubico_backoffice/features/orders/presentation/widgets/product_picker_dialog.dart';
 import 'package:cubico_backoffice/features/products/domain/product.dart';
+import 'package:cubico_backoffice/features/products/domain/product_category.dart';
 import 'package:cubico_backoffice/features/products/domain/variant.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
 import 'package:cubico_backoffice/features/production/presentation/production_providers.dart';
@@ -124,50 +126,14 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   bool _twoColors(Variant variant, List<Product> products) =>
       products.where((p) => p.id == variant.productId).firstOrNull?.colorsPerPiece == 2;
 
-  /// A variante de um produto "modelo único" (uma só, sem nome), ou null.
-  Variant? _singleModel(Product product, List<Variant> variants) {
-    final own = variants.where((v) => v.productId == product.id).toList();
-    return own.length == 1 && own.single.isUnnamed ? own.single : null;
-  }
-
-  /// Abre a lista do catálogo e junta a variante escolhida às linhas.
+  /// Abre a janela de escolher produto (por categoria, com foto) e junta a variante escolhida às linhas.
   Future<void> _addProduct(List<Product> products, List<Variant> variants) async {
+    // as categorias podem ainda não ter chegado: esperar por elas (sem elas vai tudo para "Sem categoria")
+    final categories = await ref.read(productCategoriesProvider.future).catchError((_) => <ProductCategory>[]);
+    if (!mounted) return;
     final chosen = await showDialog<Variant>(
       context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text("Escolher produto"),
-        children: [
-          for (final product in products)
-            // modelo único (uma variante sem nome): uma linha só, "Produto … preço"
-            if (_singleModel(product, variants) case final v?)
-              SimpleDialogOption(
-                onPressed: () => Navigator.pop(context, v),
-                child: Row(
-                  children: [
-                    Expanded(child: Text(product.name, style: const TextStyle(fontWeight: FontWeight.w700))),
-                    Text(euro(v.salePrice), style: AppTextStyles.mono),
-                  ],
-                ),
-              )
-            // com variantes: o nome do produto por cima, e uma linha por variante
-            else if (variants.any((v) => v.productId == product.id)) ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 12, 24, 4),
-                child: Text(product.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-              ),
-              for (final v in variants.where((v) => v.productId == product.id))
-                SimpleDialogOption(
-                  onPressed: () => Navigator.pop(context, v),
-                  child: Row(
-                    children: [
-                      Expanded(child: Text(v.label)),
-                      Text(euro(v.salePrice), style: AppTextStyles.mono),
-                    ],
-                  ),
-                ),
-            ],
-        ],
-      ),
+      builder: (_) => ProductPickerDialog(products: products, variants: variants, categories: categories),
     );
     if (chosen == null) return;
     final colors = _colorsOf(chosen, products);
