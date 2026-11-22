@@ -8,6 +8,7 @@ import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart
 import 'package:cubico_backoffice/features/costs/domain/cost_calculator.dart';
 import 'package:cubico_backoffice/features/costs/domain/filament.dart';
 import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
+import 'package:cubico_backoffice/features/products/presentation/product_labels.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
 import 'package:cubico_backoffice/features/products/presentation/widgets/cost_card.dart';
 import 'package:cubico_backoffice/features/products/presentation/widgets/product_photo.dart';
@@ -46,6 +47,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   int? _categoryId;
   Set<int> _colorIds = {}; // as cores disponíveis (ids dos filamentos)
   int _colorsPerPiece = 1; // 2 = na encomenda escolhem-se "Cor 1" e "Cor 2"
+  // à venda, a preparar, ou já não se vende. Um produto novo nasce à venda.
+  ProductStatus _status = ProductStatus.active;
   var _submitted = false;
   var _saving = false;
   var _preparingPhoto = false; // a reduzir a foto escolhida
@@ -96,6 +99,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         _categoryId = product.categoryId;
         _colorIds = product.colorIds.toSet();
         _colorsPerPiece = product.colorsPerPiece;
+        _status = product.status;
       }
     });
   }
@@ -126,6 +130,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
           _newPhoto != null ||
           _colorIds.isNotEmpty ||
           _colorsPerPiece != 1 ||
+          _status != ProductStatus.active ||
           (card?.isChangedFrom(null) ?? false);
     }
     final selected = _selectedVariant();
@@ -134,6 +139,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         _newPhoto != null ||
         !_sameColors(original.colorIds) ||
         _colorsPerPiece != original.colorsPerPiece ||
+        _status != original.status ||
         (card != null && selected != null && card.isChangedFrom(selected));
   }
 
@@ -212,6 +218,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
           photo: photo!, // _missingPhoto já garantiu que existe
           colorIds: colorIds,
           colorsPerPiece: _colorsPerPiece,
+          status: _status,
         );
         // a partir daqui o produto EXISTE: se a receita falhar, o "Guardar" seguinte não o duplica
         setState(() {
@@ -225,6 +232,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             categoryId: _categoryId,
             colorIds: colorIds,
             colorsPerPiece: _colorsPerPiece,
+            status: _status,
             updatedAt: DateTime.now(),
           ),
         );
@@ -397,6 +405,33 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         ),
       );
 
+  /// Ativo (à venda), Rascunho (a preparar) ou Arquivado (já não se vende).
+  /// Só os ativos contam como certos no "Conferir os SKU" da Etsy.
+  Widget _statusField() => InputDecorator(
+        decoration: InputDecoration(
+          labelText: "Estado",
+          filled: false,
+          helperText: switch (_status) {
+            ProductStatus.active => "À venda.",
+            ProductStatus.draft => "Ainda a preparar: na Etsy, não conta como ligado.",
+            ProductStatus.archived => "Já não se vende. As encomendas antigas ficam como estão.",
+          },
+          helperMaxLines: 2,
+        ),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: SegmentedButton<ProductStatus>(
+            showSelectedIcon: false, // no telemóvel, os três cabem sem o visto
+            segments: [
+              for (final s in [ProductStatus.active, ProductStatus.draft, ProductStatus.archived])
+                ButtonSegment(value: s, label: Text(productStatusLabel(s))),
+            ],
+            selected: {_status},
+            onSelectionChanged: (s) => setState(() => _status = s.first),
+          ),
+        ),
+      );
+
   void _toggleColor(int id, bool on) => setState(() {
         _colorIds = {..._colorIds};
         on ? _colorIds.add(id) : _colorIds.remove(id);
@@ -521,6 +556,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         ),
       ),
       if (canSeeCosts) ...[
+        const SizedBox(height: 16),
+        _statusField(),
         const SizedBox(height: 16),
         _colorsField(filaments),
         const SizedBox(height: 16),

@@ -31,6 +31,7 @@ class ApiProductRepository implements ProductRepository {
     required Uint8List photo,
     List<int> colorIds = const [],
     int colorsPerPiece = 1,
+    ProductStatus status = ProductStatus.active,
   }) =>
       apiCall(() async {
         // duas partes: "product" (o JSON, como texto) e "photo" (o ficheiro)
@@ -40,6 +41,7 @@ class ApiProductRepository implements ProductRepository {
             "category_id": categoryId,
             "color_ids": colorIds,
             "colors_per_piece": colorsPerPiece,
+            "status": status.name, // active, draft ou archived (os valores da base)
           }), // o SKU é a API que o dá
           "photo": _photoPart(photo),
         });

@@ -1,5 +1,7 @@
 import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/core/api/api_exception.dart';
+import 'package:cubico_backoffice/features/products/domain/product.dart';
+import 'package:cubico_backoffice/features/products/presentation/product_labels.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_providers.dart';
 import 'package:cubico_backoffice/features/products/presentation/widgets/category_dialog.dart';
 import 'package:cubico_backoffice/features/products/presentation/widgets/product_photo.dart';
@@ -289,6 +291,13 @@ class ProductsScreen extends ConsumerWidget {
                         product.baseSku,
                         style: AppTextStyles.mono,
                       ),
+                      // fora de venda, diz-se logo na lista
+                      trailing: product.status == ProductStatus.active
+                          ? null
+                          : Chip(
+                              label: Text(productStatusLabel(product.status)),
+                              visualDensity: VisualDensity.compact,
+                            ),
                       onTap: () => context.push("/products/${product.id}"),
                     );
                   },

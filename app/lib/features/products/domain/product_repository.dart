@@ -13,6 +13,8 @@ abstract interface class ProductRepository {
     required Uint8List photo,
     List<int> colorIds = const [],
     int colorsPerPiece = 1,
+    // um produto novo nasce à venda; "Rascunho" escolhe-se na ficha
+    ProductStatus status = ProductStatus.active,
   });
 
   Future<Product> update(Product product);
