@@ -237,7 +237,8 @@ function etsyCustomer(array $r): array
  * Importa (ou atualiza) um recibo. Devolve 'created', 'updated', 'unchanged',
  * ou ['skipped', motivo] se ficar por associar.
  */
-function etsyImportReceipt(array $r, array $channel, float $perHour): string|array
+// $createdIds: junta-se aqui o id de cada encomenda criada (para os avisos, src/push.php)
+function etsyImportReceipt(array $r, array $channel, float $perHour, array &$createdIds = []): string|array
 {
     $ref = (string) $r['receipt_id'];
     [$status, $payment] = etsyStatuses($r);
@@ -405,6 +406,7 @@ function etsyImportReceipt(array $r, array $channel, float $perHour): string|arr
         }
         throw $e;
     }
+    $createdIds[] = $orderId;
     return 'created';
 }
 
@@ -470,6 +472,7 @@ function etsySync(): array
 
     $count = ['created' => 0, 'updated' => 0, 'unchanged' => 0];
     $skipped = [];
+    $createdIds = []; // as encomendas novas, para o aviso no telemóvel
     try {
         $shopId = (int) (etsyConnection()['shop_id'] ?? 0);
         if ($shopId === 0) {
@@ -487,7 +490,7 @@ function etsySync(): array
             ]);
             $results = (array) ($data['results'] ?? []);
             foreach ($results as $receipt) {
-                $result = etsyImportReceipt($receipt, $channel, $perHour);
+                $result = etsyImportReceipt($receipt, $channel, $perHour, $createdIds);
                 if (is_array($result)) {
                     $skipped[] = $result[1];
                 } else {
@@ -510,6 +513,11 @@ function etsySync(): array
         throw $e instanceof EtsyException ? $e : new EtsyException($message);
     } finally {
         db()->query("SELECT RELEASE_LOCK('cubico_etsy_sync')");
+        // o aviso das encomendas que entraram (mesmo que a sincronização tenha falhado a meio).
+        // Nunca lança exceção (src/push.php); o function_exists é para quem não carregou o push.php.
+        if ($createdIds !== [] && function_exists('notifyNewOrders')) {
+            notifyNewOrders($createdIds);
+        }
     }
     return ['created' => $count['created'], 'updated' => $count['updated'], 'skipped' => $skipped];
 }

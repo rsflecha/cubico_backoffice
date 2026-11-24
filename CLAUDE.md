@@ -52,7 +52,7 @@ App (dentro de `app/`):
 - `dart run build_runner build` — depois de mudar modelos Freezed
 - `flutter analyze` · `flutter test`
 - `flutter build windows|web --dart-define=API_URL=https://api.fazendasubmersa.pt/api`
-- Depois de `flutter build web`, SEMPRE: `dart run tool/cache_bust.dart` (põe `?v=` no flutter_bootstrap.js, no main.dart.js e no passkeys.js; o nginx do alojamento guarda os .js antigos e não se limpa; só o index.html chega fresco)
+- Depois de `flutter build web`, SEMPRE: `dart run tool/cache_bust.dart` (põe `?v=` no flutter_bootstrap.js, no main.dart.js, no passkeys.js e no push.js; o nginx do alojamento guarda os .js antigos e não se limpa; só o index.html chega fresco)
 
 API (dentro de `api/`):
 - `php -S localhost:8080 -t public` (ou o `iniciar-api.bat`)
@@ -122,3 +122,4 @@ API (dentro de `api/`):
 - Encomenda paga vai sozinha para produção; taxas da Etsy como a Etsy as cobra.
 - Clientes: telemóvel validado e localidade pelo código postal (tabela `postal_codes`, migração 005).
 - Android com permissão de internet; versão web, iPad e iPhone revistos.
+- Avisos de encomendas novas (Web Push, migração 013, 2026-11-24): só administradores, só na web; no iPhone/iPad só com o site no ecrã principal. Chaves VAPID no `.env`, criadas uma vez pelo `api/bin/vapid-setup.php` (nunca as mostra). A web tem um `web/flutter_bootstrap.js` próprio, sem o service worker do Flutter (apagava o `push_sw.js`). No PC, a API arranca com `OPENSSL_CONF=C:\php\extras\ssl\openssl.cnf` (chaves EC) e `php -d curl.cainfo="C:\Program Files\Git\mingw64\etc\ssl\certs\ca-bundle.crt"` (senão o envio dá cURL error 60). Provado no Chrome do PC a 2026-11-24.

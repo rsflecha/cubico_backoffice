@@ -264,6 +264,8 @@ $app->post('/api/orders', function (Request $request, Response $response) {
         }
         throw $e;
     }
+    // o aviso no telemóvel dos administradores (menos quem a criou). Nunca lança exceção.
+    notifyNewOrders([$orderId], (int) $request->getAttribute('userId'));
     return json($response, readOrders($request->getAttribute('role') === 'admin', $orderId)[0], 201);
 })->add($requireAuth);
 

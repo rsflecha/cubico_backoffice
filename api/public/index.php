@@ -26,6 +26,7 @@ require __DIR__ . '/../src/etsy_sync.php'; // a importação das encomendas da E
 require __DIR__ . '/../src/etsy_listings.php'; // conferir os SKU dos anúncios
 require __DIR__ . '/../src/passkeys.php'; // entrar com Face ID / impressão digital
 require __DIR__ . '/../src/login_limit.php'; // limite de tentativas de login (contra robôs)
+require __DIR__ . '/../src/push.php';   // avisos de encomendas novas no telemóvel
 require __DIR__ . '/../src/cors.php';   // quem pode usar a API a partir de um browser
 
 $app = AppFactory::create();
@@ -49,5 +50,6 @@ require __DIR__ . '/../routes/orders.php';
 require __DIR__ . '/../routes/production.php';
 require __DIR__ . '/../routes/users.php';
 require __DIR__ . '/../routes/etsy.php';
+require __DIR__ . '/../routes/push.php';
 
 $app->run();

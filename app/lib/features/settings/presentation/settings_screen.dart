@@ -2,7 +2,9 @@ import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart
 import 'package:cubico_backoffice/features/auth/presentation/passkey_widgets.dart';
 import 'package:cubico_backoffice/features/auth/presentation/change_password_dialog.dart';
 import 'package:cubico_backoffice/features/etsy/presentation/etsy_section.dart';
+import 'package:cubico_backoffice/features/settings/presentation/widgets/push_tile.dart';
 import 'package:cubico_backoffice/features/settings/presentation/widgets/users_section.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -51,6 +53,9 @@ class SettingsScreen extends ConsumerWidget {
                     onTap: () => ref.read(sessionProvider.notifier).signOut(),
                   ),
                 ]),
+                // os avisos no telemóvel: só no site, só o administrador, e não no modo demo
+                if (kIsWeb && user?.isAdmin == true && !ref.watch(demoModeProvider))
+                  _section(context, "Avisos", const [PushTile()]),
                 _section(context, "Utilizadores", const [UsersSection()]),
                 // a ligação à Etsy é coisa do administrador (a API também o exige)
                 if (user?.isAdmin == true) _section(context, "Lojas ligadas", const [EtsySection()]),

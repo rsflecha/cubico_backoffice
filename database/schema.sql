@@ -441,3 +441,17 @@ CREATE TABLE etsy_links (
   FOREIGN KEY (variant_id) REFERENCES variants(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id)    REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- avisos de encomendas novas: os aparelhos que os ligaram (migracao 013)
+CREATE TABLE push_subscriptions (
+  id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id       INT UNSIGNED NOT NULL,
+  endpoint      TEXT NOT NULL,
+  endpoint_hash CHAR(64) CHARACTER SET ascii NOT NULL UNIQUE,
+  p256dh        VARCHAR(255) CHARACTER SET ascii NOT NULL,
+  auth          VARCHAR(64) CHARACTER SET ascii NOT NULL,
+  user_agent    VARCHAR(255),
+  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_used_at  DATETIME,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

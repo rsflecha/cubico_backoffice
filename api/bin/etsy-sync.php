@@ -37,6 +37,7 @@ require __DIR__ . '/../src/sku.php';
 require __DIR__ . '/../src/production.php';
 require __DIR__ . '/../src/etsy.php';
 require __DIR__ . '/../src/etsy_sync.php';
+require __DIR__ . '/../src/push.php'; // o aviso das encomendas novas no telemóvel
 
 /** Quantos dias de registos das sincronizações se guardam (a cada 15 min são 96 por dia). */
 const SYNC_RUNS_KEEP_DAYS = 30;

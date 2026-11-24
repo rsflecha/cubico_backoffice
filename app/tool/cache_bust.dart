@@ -8,7 +8,7 @@
 // Um endereço novo nunca está na cache. Só o index.html não fica preso no nginx,
 // por isso é por ele que a versão nova entra:
 //   index.html → flutter_bootstrap.js?v=… → main.dart.js?v=…
-//   index.html → passkeys.js?v=…
+//   index.html → passkeys.js?v=… e push.js?v=…
 // Pode correr-se mais de uma vez: troca a versão que lá estiver.
 import 'dart:io';
 
@@ -25,8 +25,9 @@ void main() {
   final index = File("${web.path}/index.html");
   _version(index, 'src="flutter_bootstrap.js', '"', version);
   _version(index, 'src="passkeys.js', '"', version);
+  _version(index, 'src="push.js', '"', version);
 
-  stdout.writeln("Versão $version: index.html → flutter_bootstrap.js → main.dart.js, e passkeys.js.");
+  stdout.writeln("Versão $version: index.html → flutter_bootstrap.js → main.dart.js, passkeys.js e push.js.");
 }
 
 /// Põe "?v=[version]" a seguir a [prefix] (antes de [end]), trocando um "?v=" que já lá esteja.
