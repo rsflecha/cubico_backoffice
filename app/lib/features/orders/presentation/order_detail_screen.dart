@@ -1,9 +1,11 @@
+import 'package:cubico_backoffice/core/api/api_exception.dart';
 import 'package:cubico_backoffice/core/formatting.dart';
 import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
 import 'package:cubico_backoffice/features/orders/domain/order.dart';
 import 'package:cubico_backoffice/features/orders/presentation/order_labels.dart';
 import 'package:cubico_backoffice/features/orders/presentation/orders_providers.dart';
+import 'package:cubico_backoffice/features/orders/presentation/widgets/mark_paid_dialog.dart';
 import 'package:cubico_backoffice/features/orders/presentation/widgets/status_badge.dart';
 import 'package:cubico_backoffice/features/production/presentation/production_providers.dart';
 import 'package:cubico_backoffice/features/products/domain/product.dart';
@@ -43,9 +45,51 @@ class OrderDetailScreen extends ConsumerWidget {
     final isPhone = width < 600;
     final gap = isPhone ? 16.0 : 24.0;
 
+    /// Grava a encomenda com o pagamento (e talvez o estado) novos. Se falhar, diz porquê.
+    /// Paga e ainda pendente: vai sozinha para "Por imprimir" (com a API, é a API que o faz;
+    /// no modo demo, é o startIfPaid).
+    Future<void> savePayment(Order changed) async {
+      try {
+        final saved = await ref.read(orderRepositoryProvider).update(changed.copyWith(updatedAt: DateTime.now()));
+        final variants = await ref.read(allVariantsProvider.future);
+        if (await ref.read(productionServiceProvider).startIfPaid(saved, variants)) {
+          ref.invalidate(printJobsProvider);
+        }
+      } catch (error) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text("Não foi possível gravar o pagamento. ${error is ApiException ? error.message : "Tenta outra vez."}"),
+          ));
+        }
+      }
+      ref.invalidate(ordersProvider); // a lista, o detalhe e o histórico vão buscar outra vez
+    }
+
+    /// O botão "Marcar como pago" do cartão Pagamento: escolhe o método e grava.
+    Future<void> markPaid() async {
+      final method = await showDialog<String>(
+        context: context,
+        builder: (_) => MarkPaidDialog(initialMethod: order.paymentMethod),
+      );
+      if (method == null || method.isEmpty) return;
+      await savePayment(order.copyWith(paymentStatus: PaymentStatus.paid, paymentMethod: method));
+    }
+
     /// Passa a encomenda para o estado seguinte.
     Future<void> advance() async {
       final next = order.nextStatus!;
+      // entregar uma encomenda por pagar: pergunta primeiro se já pagou (senão ficava esquecida)
+      if (next == OrderStatus.delivered && order.paymentStatus == PaymentStatus.unpaid) {
+        final method = await showDialog<String>(
+          context: context,
+          builder: (_) => MarkPaidDialog(initialMethod: order.paymentMethod, deliver: true),
+        );
+        if (method == null) return; // cancelou: fica como estava
+        await savePayment(method.isEmpty
+            ? order.copyWith(status: next) // entregue, mas continua por pagar
+            : order.copyWith(status: next, paymentStatus: PaymentStatus.paid, paymentMethod: method));
+        return;
+      }
       if (next == OrderStatus.inProduction) {
         // enviar para produção: cria as tarefas no quadro
         final variants = ref.read(allVariantsProvider).value ?? <Variant>[];
@@ -74,7 +118,7 @@ class OrderDetailScreen extends ConsumerWidget {
       const SizedBox(height: 16),
       _shippingCard(context, order),
       const SizedBox(height: 16),
-      _paymentCard(context, order),
+      _paymentCard(context, order, onMarkPaid: markPaid),
       const SizedBox(height: 16),
       _HistoryCard(orderId: order.id),
     ];
@@ -452,7 +496,8 @@ class OrderDetailScreen extends ConsumerWidget {
   }
 
   /// Cartão "Pagamento": método e estado.
-  Widget _paymentCard(BuildContext context, Order order) {
+  /// Enquanto está por pagar (e não foi cancelada), tem o botão "Marcar como pago".
+  Widget _paymentCard(BuildContext context, Order order, {required VoidCallback onMarkPaid}) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -472,6 +517,14 @@ class OrderDetailScreen extends ConsumerWidget {
                 ),
               ),
             ),
+            if (order.paymentStatus == PaymentStatus.unpaid && order.status != OrderStatus.cancelled) ...[
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: onMarkPaid,
+                icon: const Icon(Icons.check),
+                label: const Text("Marcar como pago"),
+              ),
+            ],
           ],
         ),
       ),

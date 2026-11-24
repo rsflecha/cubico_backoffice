@@ -24,7 +24,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
 
 /// Os métodos de pagamento (do seed.sql). Mais tarde vêm das definições.
-const _paymentMethods = ["MB WAY", "Transferência", "Dinheiro"];
 
 /// Criar uma encomenda à mão: vendas pessoalmente, pelo Instagram ou pelo Facebook.
 class CreateOrderScreen extends ConsumerStatefulWidget {
@@ -41,7 +40,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   final _shippingCharged = TextEditingController(text: "0,00"); // o que o cliente paga de portes
   var _delivery = DeliveryMethod.hand;
   DateTime? _shipByDate;
-  var _paymentMethod = _paymentMethods.first;
+  var _paymentMethod = paymentMethods.first;
   var _paymentStatus = PaymentStatus.paid;
   final _notes = TextEditingController();
   final List<_DraftLine> _lines = [];
@@ -546,7 +545,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                     initialValue: _paymentMethod,
                     decoration: const InputDecoration(labelText: "Método"),
                     items: [
-                      for (final m in _paymentMethods)
+                      for (final m in paymentMethods)
                         DropdownMenuItem(value: m, child: Text(m)),
                     ],
                     onChanged: (v) => setState(() => _paymentMethod = v ?? _paymentMethod),

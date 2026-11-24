@@ -92,3 +92,6 @@ Color profitColor(Order o) {
   if (o.status == OrderStatus.cancelled) return const Color(0xFF71717A);
   return o.profit >= 0 ? const Color(0xFF15803D) : const Color(0xFFB91C1C);
 }
+
+/// Os métodos de pagamento das vendas feitas à mão (a criação e o "Marcar como pago").
+const paymentMethods = ["MB WAY", "Transferência", "Dinheiro"];
