@@ -543,6 +543,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     initialValue: _paymentMethod,
+                    // isExpanded: o texto escolhido ajusta-se à largura (com "…") em vez de transbordar
+                    isExpanded: true,
                     decoration: const InputDecoration(labelText: "Método"),
                     items: [
                       for (final m in paymentMethods)
@@ -555,6 +557,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                 Expanded(
                   child: DropdownButtonFormField<PaymentStatus>(
                     initialValue: _paymentStatus,
+                    isExpanded: true,
                     decoration: const InputDecoration(labelText: "Estado"),
                     items: [
                       for (final s in [PaymentStatus.paid, PaymentStatus.unpaid])
