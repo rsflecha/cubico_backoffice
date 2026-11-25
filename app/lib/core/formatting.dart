@@ -25,10 +25,27 @@ double parseDecimal(String text) {
 /// Compara dois nomes para pôr uma lista por ordem alfabética, à portuguesa:
 /// sem ligar a maiúsculas nem a acentos ("Árvore" vem antes de "Base", e não depois
 /// de "Zebra", que é o que acontecia comparando o texto tal e qual).
+/// Os números contam pelo valor: "Rena 135mm" < "Rena 245mm" e "Caixa 9" < "Caixa 10"
+/// (letra a letra, "10" vinha antes de "9").
 int compareNames(String a, String b) {
-  final byName = _sortKey(a).compareTo(_sortKey(b));
+  final byName = _compareNatural(_sortKey(a), _sortKey(b));
   // empate (ex.: "Ação" e "acao"): desempata pelo texto original, para a ordem ser sempre a mesma
   return byName != 0 ? byName : a.compareTo(b);
+}
+
+/// Parte o texto em pedaços de algarismos e de não-algarismos e compara-os um a um:
+/// dois pedaços de algarismos comparam-se como números, os outros como texto.
+int _compareNatural(String a, String b) {
+  final chunk = RegExp(r"\d+|\D+");
+  final pa = chunk.allMatches(a).map((m) => m.group(0)!).toList();
+  final pb = chunk.allMatches(b).map((m) => m.group(0)!).toList();
+  for (var i = 0; i < pa.length && i < pb.length; i++) {
+    final na = int.tryParse(pa[i]);
+    final nb = int.tryParse(pb[i]);
+    final c = na != null && nb != null ? na.compareTo(nb) : pa[i].compareTo(pb[i]);
+    if (c != 0) return c;
+  }
+  return pa.length.compareTo(pb.length);
 }
 
 /// O nome em minúsculas e sem acentos: "Árvore de Natal" → "arvore de natal".

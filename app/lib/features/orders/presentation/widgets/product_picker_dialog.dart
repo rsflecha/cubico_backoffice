@@ -60,9 +60,11 @@ class _ProductPickerDialogState extends State<ProductPickerDialog> {
     for (final v in widget.variants) {
       byProduct.putIfAbsent(v.productId, () => []).add(v);
     }
-    // variantes pela ordem em que foram criadas (-01, -02…), não pelo alfabeto
+    // variantes pelo nome, com os números pelo valor: tamanhos do menor para o maior
+    // (135, 175, 245 mm) e equipas por ordem alfabética. Pela ordem de criação (o id)
+    // ficavam baralhadas, porque na loja não bate com os tamanhos nem com o SKU.
     for (final list in byProduct.values) {
-      list.sort((a, b) => a.id.compareTo(b.id));
+      list.sort((a, b) => compareNames(a.label, b.label));
     }
 
     final categories = [...widget.categories]

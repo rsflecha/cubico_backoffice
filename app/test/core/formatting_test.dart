@@ -18,5 +18,15 @@ void main() {
       expect(compareNames("Acao", "Ação"), isNot(0));
       expect(compareNames("Base", "Base"), 0);
     });
+
+    test("os números contam pelo valor (tamanhos do menor para o maior)", () {
+      // as Renas da loja: pela criação vinham 135, 175, 245 com o SKU -02, -01, -03
+      final renas = ["Rena de Natal - 245mm", "Rena de Natal - 1000mm", "Rena de Natal - 135mm", "Rena de Natal - 175mm"]
+        ..sort(compareNames);
+      expect(renas, ["Rena de Natal - 135mm", "Rena de Natal - 175mm", "Rena de Natal - 245mm", "Rena de Natal - 1000mm"]);
+      final f1 = ["Red Bull", "Alpine", "APX", "Aston Martin"]..sort(compareNames);
+      expect(f1, ["Alpine", "APX", "Aston Martin", "Red Bull"]);
+      expect(compareNames("Caixa 9", "Caixa 10"), lessThan(0));
+    });
   });
 }

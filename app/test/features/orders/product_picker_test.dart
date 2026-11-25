@@ -27,7 +27,7 @@ final _products = [
 final _variants = [
   // criadas por esta ordem: 240 mm primeiro; pelo alfabeto ficava ao contrário
   _v(1, 10, "Rena 240mm", "CD3-DE2-03-01"),
-  _v(2, 10, "Rena 170mm", "CD3-DE2-03-02"),
+  _v(2, 10, "Rena 95mm", "CD3-DE2-03-02"),
   _v(3, 11, "180mm", "CD3-DE2-02-01"),
   _v(4, 12, "Verstappen", "CD3-SUP-01-01"),
   _v(5, 12, "Hamilton", "CD3-SUP-01-02"),
@@ -82,7 +82,7 @@ void main() {
       ],
     );
     // com várias variantes, ainda não estão à vista: só quantas são
-    for (final v in ["Rena 240mm", "Rena 170mm", "Verstappen", "Hamilton"]) {
+    for (final v in ["Rena 240mm", "Rena 95mm", "Verstappen", "Hamilton"]) {
       expect(find.text(v), findsNothing, reason: v);
     }
     // com uma só variante com nome, mostra-se logo na linha (escolhe-se com um toque)
@@ -165,15 +165,16 @@ void main() {
     expect(picked.map((v) => v?.id), [5, 6, 3, null]);
   });
 
-  testWidgets("2.º passo: as variantes do produto pela ordem de criação; voltar mantém a categoria",
+  testWidgets("2.º passo: as variantes do produto pelo nome, números pelo valor; voltar mantém a categoria",
       (tester) async {
     await _open(tester);
     await tester.tap(find.widgetWithText(ChoiceChip, "Natal"));
     await tester.pump();
     await tester.tap(find.text("Rena de Natal"));
     await tester.pumpAndSettle();
-    // só as da Rena, e pela ordem em que foram criadas (pelo alfabeto ficava ao contrário)
-    expect(_order(tester, ["Rena 240mm", "Rena 170mm"]), ["Rena 240mm", "Rena 170mm"]);
+    // só as da Rena: 95 antes de 240 (pela criação vinha 240 primeiro; letra a letra também,
+    // porque "2" < "9")
+    expect(_order(tester, ["Rena 240mm", "Rena 95mm"]), ["Rena 95mm", "Rena 240mm"]);
     expect(find.text("Hamilton"), findsNothing);
     expect(find.text("CD3-DE2-03-01"), findsOneWidget);
     expect(find.text("Suporte F1"), findsNothing);
