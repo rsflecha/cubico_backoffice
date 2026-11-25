@@ -1,3 +1,4 @@
+import 'package:cubico_backoffice/features/orders/presentation/widgets/product_picker_dialog.dart';
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
 import 'package:cubico_backoffice/features/orders/data/demo_order_repository.dart';
 import 'package:cubico_backoffice/features/orders/domain/order.dart';
@@ -64,6 +65,9 @@ void main() {
     for (var i = 0; i < 2; i++) {
       await tester.tap(find.text("Adicionar produto do catálogo"));
       await tester.pumpAndSettle();
+      // 1.º passo: o produto; 2.º: a variante
+      await tester.tap(find.descendant(of: find.byType(ProductPickerDialog), matching: find.text("Suporte de auscultadores")));
+      await tester.pumpAndSettle();
       await tester.tap(find.text("Preto mate")); // a 1.ª variante do Suporte de auscultadores (demo)
       await tester.pumpAndSettle();
     }
@@ -118,6 +122,9 @@ void main() {
 
     await tester.enterText(find.widgetWithText(TextField, "Nome ou referência"), "Família Silva");
     await tester.tap(find.text("Adicionar produto do catálogo"));
+    await tester.pumpAndSettle();
+    // 1.º passo: o produto; 2.º: a variante
+    await tester.tap(find.descendant(of: find.byType(ProductPickerDialog), matching: find.text("Suporte de auscultadores")));
     await tester.pumpAndSettle();
     await tester.tap(find.text("Preto mate")); // a 1.ª variante do Suporte de auscultadores (demo)
     await tester.pumpAndSettle();

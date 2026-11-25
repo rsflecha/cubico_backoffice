@@ -75,6 +75,45 @@ class OrderDetailScreen extends ConsumerWidget {
       await savePayment(order.copyWith(paymentStatus: PaymentStatus.paid, paymentMethod: method));
     }
 
+    /// "Cancelar encomenda" (menu ⋮ da barra de cima): pergunta primeiro e grava o estado.
+    /// A API guarda no Histórico quem cancelou; as tarefas por imprimir saem do quadro
+    /// (o printJobsProvider esconde-as), mas não se apagam.
+    Future<void> cancelOrder() async {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text("Cancelar a encomenda #${order.orderNumber}?"),
+          content: const Text(
+            "Fica cancelada: conta 0 € recebidos, 0 € de custo e 0 € de lucro, "
+            "e os artigos que ainda não foram impressos saem da Produção.\n\n"
+            "Não há forma de a voltar a pôr ativa.",
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text("Não")),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Theme.of(dialogContext).colorScheme.error),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text("Cancelar encomenda"),
+            ),
+          ],
+        ),
+      );
+      if (ok != true) return;
+      try {
+        await ref
+            .read(orderRepositoryProvider)
+            .update(order.copyWith(status: OrderStatus.cancelled, updatedAt: DateTime.now()));
+      } catch (error) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text("Não foi possível cancelar. ${error is ApiException ? error.message : "Tenta outra vez."}"),
+          ));
+        }
+      }
+      ref.invalidate(ordersProvider);
+      ref.invalidate(printJobsProvider);
+    }
+
     /// Passa a encomenda para o estado seguinte.
     Future<void> advance() async {
       final next = order.nextStatus!;
@@ -152,6 +191,15 @@ class OrderDetailScreen extends ConsumerWidget {
                 onPressed: advance,
                 child: Text(order.nextStatus!.actionLabel),
               ),
+            ),
+          // cancelar: só enquanto não saiu (pendente, em produção ou pronta)
+          if (canCancelOrder(order))
+            PopupMenuButton<String>(
+              tooltip: "Mais opções",
+              onSelected: (_) => cancelOrder(),
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: "cancel", child: Text("Cancelar encomenda")),
+              ],
             ),
         ],
       ),

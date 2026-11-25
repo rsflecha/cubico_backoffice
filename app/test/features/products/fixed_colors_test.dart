@@ -1,3 +1,4 @@
+import 'package:cubico_backoffice/features/orders/presentation/widgets/product_picker_dialog.dart';
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
 import 'package:cubico_backoffice/features/costs/domain/cost_calculator.dart';
 import 'package:cubico_backoffice/features/costs/domain/filament.dart';
@@ -135,6 +136,9 @@ void main() {
 
     await tester.enterText(find.widgetWithText(TextField, "Nome ou referência"), "Ana");
     await tester.tap(find.text("Adicionar produto do catálogo"));
+    await tester.pumpAndSettle();
+    // 1.º passo: o produto; 2.º: a variante
+    await tester.tap(find.descendant(of: find.byType(ProductPickerDialog), matching: find.text("Suporte de auscultadores")));
     await tester.pumpAndSettle();
     await tester.tap(find.text("Preto mate"));
     await tester.pumpAndSettle();

@@ -95,3 +95,11 @@ Color profitColor(Order o) {
 
 /// Os métodos de pagamento das vendas feitas à mão (a criação e o "Marcar como pago").
 const paymentMethods = ["MB WAY", "Transferência", "Dinheiro"];
+
+/// Pode-se cancelar? Só enquanto a encomenda não saiu: pendente, em produção ou pronta.
+/// (Enviada ou entregue já não; cancelada já está.)
+bool canCancelOrder(Order order) => const [
+      OrderStatus.pending,
+      OrderStatus.inProduction,
+      OrderStatus.ready,
+    ].contains(order.status);

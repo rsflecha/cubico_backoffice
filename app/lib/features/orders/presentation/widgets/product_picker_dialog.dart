@@ -6,11 +6,13 @@ import 'package:cubico_backoffice/features/products/domain/variant.dart';
 import 'package:cubico_backoffice/features/products/presentation/widgets/product_photo.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// "Escolher produto" na nova encomenda: por categoria, com a foto, e as variantes já à vista.
+/// "Escolher produto" na nova encomenda, em dois passos: primeiro só os produtos (por categoria,
+/// com a foto); tocar num produto mostra as variantes dele. Um modelo único escolhe-se logo.
 ///
-/// Quem não sabe o nome vai pela categoria e pela foto; quem sabe escreve na procura.
+/// Quem não sabe o nome vai pela categoria e pela foto; quem sabe escreve na procura
+/// (também encontra pelo nome da variante ou pelo SKU).
 /// Devolve a variante escolhida (com `Navigator.pop`), ou null se fechar.
-/// É um StatefulWidget: guarda a procura e a categoria escolhida, e deita fora o controller.
+/// É um StatefulWidget: guarda a procura, a categoria e o produto aberto, e deita fora o controller.
 class ProductPickerDialog extends StatefulWidget {
   const ProductPickerDialog({
     super.key,
@@ -30,6 +32,7 @@ class ProductPickerDialog extends StatefulWidget {
 class _ProductPickerDialogState extends State<ProductPickerDialog> {
   final _search = TextEditingController();
   int? _categoryId; // null = todas
+  _Item? _open; // o produto cujas variantes estão à vista (null = a lista de produtos)
 
   @override
   void dispose() {
@@ -100,6 +103,68 @@ class _ProductPickerDialogState extends State<ProductPickerDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final open = _open;
+    final content = open == null ? _productList(context) : _variantList(context, open);
+
+    // no telemóvel ocupa o ecrã todo; no ecrã largo é uma janela
+    final narrow = MediaQuery.sizeOf(context).width < 600;
+    if (narrow) return Dialog.fullscreen(child: SafeArea(child: content));
+    return Dialog(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560, maxHeight: 720),
+        child: content,
+      ),
+    );
+  }
+
+  /// O 2.º passo: as variantes do produto escolhido, com a seta para voltar aos produtos.
+  /// A procura e a categoria ficam como estavam.
+  Widget _variantList(BuildContext context, _Item item) {
+    final p = item.product;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 16, 8, 8),
+          child: Row(
+            children: [
+              IconButton(
+                tooltip: "Voltar aos produtos",
+                onPressed: () => setState(() => _open = null),
+                icon: const Icon(Icons.arrow_back),
+              ),
+              ProductPhoto(url: p.photoUrl),
+              const SizedBox(width: 12),
+              Expanded(child: Text(p.name, style: Theme.of(context).textTheme.titleLarge)),
+              IconButton(
+                tooltip: "Fechar",
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.only(bottom: 16),
+            children: [
+              for (final v in item.variants)
+                ListTile(
+                  title: Text(v.label),
+                  subtitle: Text(v.sku, style: AppTextStyles.mono),
+                  trailing: Text(euro(v.salePrice), style: AppTextStyles.mono),
+                  onTap: () => Navigator.pop(context, v),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// O 1.º passo: a procura, as categorias e os produtos (sem as variantes).
+  Widget _productList(BuildContext context) {
     final groups = _groups();
     // as categorias que têm produtos à venda (para os botões de cima)
     final withProducts = {
@@ -191,31 +256,25 @@ class _ProductPickerDialogState extends State<ProductPickerDialog> {
                               ),
                         ),
                       ),
-                      for (final item in g.items) _ProductEntry(item: item),
+                      for (final item in g.items)
+                        _ProductEntry(item: item, onOpen: () => setState(() => _open = item)),
                     ],
                   ],
                 ),
         ),
       ],
     );
-
-    // no telemóvel ocupa o ecrã todo; no ecrã largo é uma janela
-    final narrow = MediaQuery.sizeOf(context).width < 600;
-    if (narrow) return Dialog.fullscreen(child: SafeArea(child: content));
-    return Dialog(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560, maxHeight: 720),
-        child: content,
-      ),
-    );
+    return content;
   }
 }
 
-/// Um produto: a foto e o nome; por baixo, as variantes (ou o preço, se for modelo único).
+/// Um produto: a foto e o nome. Modelo único: com o preço, e tocar escolhe-o logo.
+/// Com variantes: diz quantas, e tocar abre-as ([onOpen]).
 class _ProductEntry extends StatelessWidget {
-  const _ProductEntry({required this.item});
+  const _ProductEntry({required this.item, required this.onOpen});
 
   final _Item item;
+  final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -229,24 +288,13 @@ class _ProductEntry extends StatelessWidget {
         onTap: () => Navigator.pop(context, v),
       );
     }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ListTile(
-          leading: ProductPhoto(url: p.photoUrl),
-          title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-        ),
-        for (final v in item.variants)
-          ListTile(
-            dense: true,
-            // alinhado com o nome do produto (a foto tem 48 + 16 de espaço)
-            contentPadding: const EdgeInsets.only(left: 80, right: 16),
-            title: Text(v.label),
-            subtitle: Text(v.sku, style: AppTextStyles.mono),
-            trailing: Text(euro(v.salePrice), style: AppTextStyles.mono),
-            onTap: () => Navigator.pop(context, v),
-          ),
-      ],
+    final n = item.variants.length;
+    return ListTile(
+      leading: ProductPhoto(url: p.photoUrl),
+      title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text(n == 1 ? "1 variante" : "$n variantes"),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: onOpen,
     );
   }
 }

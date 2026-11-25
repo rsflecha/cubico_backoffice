@@ -67,20 +67,25 @@ List<String> _order(WidgetTester tester, List<String> wanted) {
 }
 
 void main() {
-  testWidgets("por categoria (pela ordem da categoria), produtos pelo nome, variantes pela ordem de criação",
+  testWidgets("1.º passo: só os produtos, por categoria (pela ordem da categoria) e pelo nome",
       (tester) async {
     // alto o bastante para a lista caber toda (a ListView só constrói o que está à vista)
     await _open(tester, size: const Size(500, 2400));
     expect(
       _order(tester, [
-        "NATAL", "Árvore de Família", "180mm", "Bola de Natal", "Rena de Natal", "Rena 240mm", "Rena 170mm",
-        "SUPORTES", "Suporte F1", "Verstappen", "Hamilton", "SEM CATEGORIA", "Porta-chaves", "Azul",
+        "NATAL", "Árvore de Família", "Bola de Natal", "Rena de Natal",
+        "SUPORTES", "Suporte F1", "SEM CATEGORIA", "Porta-chaves",
       ]),
       [
-        "NATAL", "Árvore de Família", "180mm", "Bola de Natal", "Rena de Natal", "Rena 240mm", "Rena 170mm",
-        "SUPORTES", "Suporte F1", "Verstappen", "Hamilton", "SEM CATEGORIA", "Porta-chaves", "Azul",
+        "NATAL", "Árvore de Família", "Bola de Natal", "Rena de Natal",
+        "SUPORTES", "Suporte F1", "SEM CATEGORIA", "Porta-chaves",
       ],
     );
+    // as variantes ainda não estão à vista: só quantas são
+    for (final v in ["180mm", "Rena 240mm", "Rena 170mm", "Verstappen", "Hamilton", "Azul"]) {
+      expect(find.text(v), findsNothing, reason: v);
+    }
+    expect(find.text("2 variantes"), findsNWidgets(2)); // Rena e Suporte F1
     expect(find.text("Sem variantes"), findsNothing);
     expect(find.text("Modelo único"), findsNothing, reason: "o modelo único é uma linha só, com o preço");
     expect(find.widgetWithText(ChoiceChip, "Vazia"), findsNothing);
@@ -104,15 +109,23 @@ void main() {
     expect(find.text("Árvore de Família"), findsOneWidget);
     expect(find.text("Rena de Natal"), findsNothing);
 
+    // pelo nome da variante: aparece o produto, e ao abri-lo só as variantes que batem certo
     await tester.enterText(find.byType(TextField), "hamil");
     await tester.pump();
+    expect(find.text("Suporte F1"), findsOneWidget);
+    expect(find.text("Rena de Natal"), findsNothing);
+    await tester.tap(find.text("Suporte F1"));
+    await tester.pumpAndSettle();
     expect(find.text("Hamilton"), findsOneWidget);
     expect(find.text("Verstappen"), findsNothing, reason: "só as variantes que batem certo");
+    await tester.tap(find.byTooltip("Voltar aos produtos"));
+    await tester.pumpAndSettle();
 
+    // pelo SKU
     await tester.enterText(find.byType(TextField), "de2-03");
     await tester.pump();
-    expect(find.text("Rena 240mm"), findsOneWidget);
-    expect(find.text("Rena 170mm"), findsOneWidget);
+    expect(find.text("Rena de Natal"), findsOneWidget);
+    expect(find.text("Suporte F1"), findsNothing);
 
     await tester.enterText(find.byType(TextField), "xyz");
     await tester.pump();
@@ -122,7 +135,7 @@ void main() {
   testWidgets("escolher uma variante, ou um modelo único, devolve-a; fechar devolve nada", (tester) async {
     final picked = <Variant?>[];
     await _open(tester, picked: picked);
-    await tester.ensureVisible(find.text("Hamilton"));
+    await tester.tap(find.text("Suporte F1"));
     await tester.pumpAndSettle();
     await tester.tap(find.text("Hamilton"));
     await tester.pumpAndSettle();
@@ -139,6 +152,26 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(picked.map((v) => v?.id), [5, 6, null]);
+  });
+
+  testWidgets("2.º passo: as variantes do produto pela ordem de criação; voltar mantém a categoria",
+      (tester) async {
+    await _open(tester);
+    await tester.tap(find.widgetWithText(ChoiceChip, "Natal"));
+    await tester.pump();
+    await tester.tap(find.text("Rena de Natal"));
+    await tester.pumpAndSettle();
+    // só as da Rena, e pela ordem em que foram criadas (pelo alfabeto ficava ao contrário)
+    expect(_order(tester, ["Rena 240mm", "Rena 170mm"]), ["Rena 240mm", "Rena 170mm"]);
+    expect(find.text("Hamilton"), findsNothing);
+    expect(find.text("CD3-DE2-03-01"), findsOneWidget);
+    expect(find.text("Suporte F1"), findsNothing);
+
+    await tester.tap(find.byTooltip("Voltar aos produtos"));
+    await tester.pumpAndSettle();
+    expect(find.text("Rena de Natal"), findsOneWidget);
+    expect(find.text("Suporte F1"), findsNothing, reason: "a categoria Natal continua escolhida");
+    expect(tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, "Natal")).selected, isTrue);
   });
 
   testWidgets("no telemóvel ocupa o ecrã todo", (tester) async {
