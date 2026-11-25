@@ -116,7 +116,7 @@ function pushNotify(string $title, string $body, string $url, ?int $exceptUserId
 }
 
 /**
- * O aviso das encomendas novas. Até 3: um aviso por encomenda ("Encomenda nova #1043",
+ * O aviso das encomendas novas. Até 3: um aviso por encomenda ("Nova encomenda #1043",
  * "Etsy · Ana Silva · 2 artigos"); mais do que 3 de uma vez: um aviso só, com o total.
  * $exceptUserId: quem a criou à mão não precisa de ser avisado.
  * $maxSingle: a partir de quantas se junta tudo num aviso só.
@@ -141,7 +141,7 @@ function notifyNewOrders(array $orderIds, ?int $exceptUserId = null, int $maxSin
         if (count($orders) > $maxSingle) {
             $channels = array_unique(array_column($orders, 'channel'));
             $from = count($channels) === 1 && $channels[0] ? ' da ' . $channels[0] : '';
-            pushNotify(count($orders) . " encomendas novas$from", 'Toca para ver as encomendas.', '/#/orders', $exceptUserId);
+            pushNotify(count($orders) . " novas encomendas$from", 'Toca para ver as encomendas.', '/#/orders', $exceptUserId);
             return;
         }
         foreach ($orders as $o) {
@@ -151,7 +151,7 @@ function notifyNewOrders(array $orderIds, ?int $exceptUserId = null, int $maxSin
                 $o['customer_name'],
                 $items . ($items === 1 ? ' artigo' : ' artigos'),
             ]));
-            pushNotify('Encomenda nova #' . $o['order_number'], $body, '/#/orders/' . (int) $o['id'], $exceptUserId);
+            pushNotify('Nova encomenda #' . $o['order_number'], $body, '/#/orders/' . (int) $o['id'], $exceptUserId);
         }
     } catch (Throwable $e) {
         error_log('Avisos push: ' . $e->getMessage());
