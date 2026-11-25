@@ -587,10 +587,13 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       _create(fresh, _problem(fresh, channel, components, rates));
     }
 
-    final summary = _summaryCard(channel, draft, problem, canSeeCosts, create);
+    // no telemóvel o botão "Criar" fica fixo em baixo (barra com o total); o resumo
+    // continua no fim da página, mas sem os botões, para não haver dois "Criar"
+    final summary = _summaryCard(channel, draft, problem, canSeeCosts, create, withButtons: !isPhone);
 
     return Scaffold(
       appBar: AppBar(title: const Text("Criar encomenda")),
+      bottomNavigationBar: isPhone ? _phoneBar(draft, problem, create) : null,
       body: ListView(
         padding: EdgeInsets.all(isPhone ? 12 : 24),
         children: [
@@ -828,9 +831,62 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     );
   }
 
+  /// A barra fixa do telemóvel: o total e o botão "Criar encomenda", sempre à vista.
+  /// O que falta preencher aparece aqui por cima (o resumo fica lá em baixo, fora da vista).
+  Widget _phoneBar(Order draft, String? problem, VoidCallback onCreate) {
+    return Material(
+      elevation: 8,
+      color: Theme.of(context).colorScheme.surface,
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_submitted && problem != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(problem, style: const TextStyle(color: Color(0xFFB91C1C))),
+                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text("Total", style: Theme.of(context).textTheme.bodySmall),
+                        Text(
+                          euro(draft.total),
+                          style: AppTextStyles.mono.copyWith(fontWeight: FontWeight.w700, fontSize: 18),
+                        ),
+                      ],
+                    ),
+                  ),
+                  FilledButton(
+                    onPressed: _saving ? null : onCreate,
+                    child: _saving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text("Criar encomenda"),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   /// O resumo à direita: as contas vêm do próprio rascunho da encomenda.
-  Widget _summaryCard(
-      SalesChannel? channel, Order draft, String? problem, bool canSeeCosts, VoidCallback onCreate) {
+  /// [withButtons]: false no telemóvel, onde os botões estão na barra fixa de baixo.
+  Widget _summaryCard(SalesChannel? channel, Order draft, String? problem, bool canSeeCosts,
+      VoidCallback onCreate, {bool withButtons = true}) {
     final margin = draft.total > 0 ? draft.profit / draft.total * 100 : 0;
 
     Widget line(String label, String value, {bool bold = false, Color? color}) => Padding(
@@ -878,6 +934,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
             ],
+            if (withButtons) ...[
             const SizedBox(height: 16),
             if (_submitted && problem != null) ...[
               Text(problem, style: const TextStyle(color: Color(0xFFB91C1C))),
@@ -898,6 +955,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
               onPressed: () => Navigator.of(context).pop(),
               child: const Text("Cancelar"),
             ),
+            ],
           ],
         ),
       ),

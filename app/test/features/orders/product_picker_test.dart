@@ -81,10 +81,14 @@ void main() {
         "SUPORTES", "Suporte F1", "SEM CATEGORIA", "Porta-chaves",
       ],
     );
-    // as variantes ainda não estão à vista: só quantas são
-    for (final v in ["180mm", "Rena 240mm", "Rena 170mm", "Verstappen", "Hamilton", "Azul"]) {
+    // com várias variantes, ainda não estão à vista: só quantas são
+    for (final v in ["Rena 240mm", "Rena 170mm", "Verstappen", "Hamilton"]) {
       expect(find.text(v), findsNothing, reason: v);
     }
+    // com uma só variante com nome, mostra-se logo na linha (escolhe-se com um toque)
+    expect(find.text("180mm"), findsOneWidget);
+    expect(find.text("Azul"), findsOneWidget);
+    expect(find.textContaining("1 variante"), findsNothing);
     expect(find.text("2 variantes"), findsNWidgets(2)); // Rena e Suporte F1
     expect(find.text("Sem variantes"), findsNothing);
     expect(find.text("Modelo único"), findsNothing, reason: "o modelo único é uma linha só, com o preço");
@@ -146,12 +150,19 @@ void main() {
     await tester.tap(find.text("Bola de Natal"));
     await tester.pumpAndSettle();
 
+    // uma só variante com nome: um toque e está escolhida
+    await tester.tap(find.text("abrir"));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("Árvore de Família"));
+    await tester.pumpAndSettle();
+    expect(find.text("Escolher produto"), findsNothing);
+
     await tester.tap(find.text("abrir"));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip("Fechar"));
     await tester.pumpAndSettle();
 
-    expect(picked.map((v) => v?.id), [5, 6, null]);
+    expect(picked.map((v) => v?.id), [5, 6, 3, null]);
   });
 
   testWidgets("2.º passo: as variantes do produto pela ordem de criação; voltar mantém a categoria",

@@ -70,6 +70,9 @@ class AppShell extends ConsumerWidget {
     // se a secção aberta não está no menu de baixo (ex.: Clientes), acende o "Mais"
     final barIndex = inBar.indexWhere((s) => s.branch == current);
 
+    // nos telemóveis muito estreitos (320 px) cada botão tem ~64 px: nem a 11 px cabia
+    final labelSize = MediaQuery.sizeOf(context).width < 360 ? 10.0 : 11.0;
+
     return Scaffold(
       body: navigationShell,
       // com 5 botões num ecrã de 375 px, cada um tem ~75 px: com as letras de origem,
@@ -78,7 +81,7 @@ class AppShell extends ConsumerWidget {
         data: NavigationBarTheme.of(context).copyWith(
           labelTextStyle: WidgetStateProperty.resolveWith(
             (states) => TextStyle(
-              fontSize: 11,
+              fontSize: labelSize,
               fontWeight: states.contains(WidgetState.selected)
                   ? FontWeight.w600
                   : FontWeight.w400,
@@ -259,9 +262,12 @@ class AppShell extends ConsumerWidget {
     return Scaffold(
       body: Row(
         children: [
-          Container(
-            width: 240,
+          // Material e não Container: o realce do rato e do toque (o "ink") desenha-se no
+          // Material mais próximo; com um Container de cor por cima ficava escondido
+          Material(
             color: AppColors.black,
+            child: SizedBox(
+            width: 240,
             child: ListTileTheme(
               data: ListTileThemeData(
                 textColor: Color(0xFFA1A1AA),
@@ -405,6 +411,7 @@ class AppShell extends ConsumerWidget {
                   ],
                 ),
               ),
+            ),
             ),
           ),
           Expanded(child: navigationShell),

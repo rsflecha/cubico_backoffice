@@ -93,7 +93,8 @@ class _ProductPickerDialogState extends State<ProductPickerDialog> {
         }
       }
       if (shown.isEmpty) continue;
-      group.items.add(_Item(p, shown, single: own.length == 1 && own.single.isUnnamed));
+      // uma só variante (modelo único ou com nome): escolhe-se logo, sem o 2.º passo
+      group.items.add(_Item(p, shown, single: own.length == 1));
     }
     for (final g in groups) {
       g.items.sort((a, b) => _plain(a.product.name).compareTo(_plain(b.product.name)));
@@ -268,7 +269,7 @@ class _ProductPickerDialogState extends State<ProductPickerDialog> {
   }
 }
 
-/// Um produto: a foto e o nome. Modelo único: com o preço, e tocar escolhe-o logo.
+/// Um produto: a foto e o nome. Uma só variante: com o preço, e tocar escolhe-a logo.
 /// Com variantes: diz quantas, e tocar abre-as ([onOpen]).
 class _ProductEntry extends StatelessWidget {
   const _ProductEntry({required this.item, required this.onOpen});
@@ -284,6 +285,8 @@ class _ProductEntry extends StatelessWidget {
       return ListTile(
         leading: ProductPhoto(url: p.photoUrl),
         title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+        // com nome ("Verde"), diz qual é; o "Modelo único" não diz nada
+        subtitle: v.isUnnamed ? null : Text(v.label),
         trailing: Text(euro(v.salePrice), style: AppTextStyles.mono),
         onTap: () => Navigator.pop(context, v),
       );
@@ -312,5 +315,5 @@ class _Item {
 
   final Product product;
   final List<Variant> variants;
-  final bool single; // modelo único: uma linha só, com o preço
+  final bool single; // uma só variante: uma linha só, com o preço
 }

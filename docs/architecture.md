@@ -85,9 +85,11 @@ features/
     └── presentation/  orders_screen        lista com separadores, pesquisa e filtro por canal
 │                      order_detail_screen  detalhe com artigos, contas, cliente, envio e estados;
 │                                           menu ⋮ "Cancelar encomenda" (pendente, em produção ou pronta)
-│                      create_order_screen  criar encomenda manual, com resumo e lucro estimado
+│                      create_order_screen  criar encomenda manual, com resumo e lucro estimado;
+│                                           no telemóvel, barra fixa em baixo com o total e "Criar"
 │                      widgets/product_picker_dialog  escolher produto em 2 passos: produtos
-│                                           (categoria, foto, procura) → variantes do produto tocado
+│                                           (categoria, foto, procura) → variantes do produto tocado;
+│                                           produto com uma só variante escolhe-se logo
 │                      order_labels         textos e cores dos estados
 │                      orders_providers
 │                      widgets/  status_badge

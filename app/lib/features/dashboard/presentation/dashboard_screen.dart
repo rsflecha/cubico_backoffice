@@ -280,10 +280,14 @@ class DashboardScreen extends ConsumerWidget {
     LineChartBarData line(List<FlSpot> spots, Color color) => LineChartBarData(
       spots: spots,
       color: color,
-      barWidth: 3,
-      isCurved: true,
-      preventCurveOverShooting: true,
-      dotData: const FlDotData(show: false),
+      barWidth: 2.5,
+      // retas de dia a dia, com um ponto em cada dia: a curva "suavizada" desenhava
+      // subidas e descidas entre os dias que não aconteceram
+      isCurved: false,
+      dotData: FlDotData(
+        getDotPainter: (spot, percent, bar, index) =>
+            FlDotCirclePainter(radius: 3, color: color, strokeWidth: 0),
+      ),
     );
 
     return LineChart(
@@ -328,13 +332,19 @@ class DashboardScreen extends ConsumerWidget {
               // um dia sim, um dia não, para os textos não se atropelarem;
               // no telemóvel, de 4 em 4 dias (7 datas não cabiam em ~300 px)
               interval: compact ? 4 : 2,
-              getTitlesWidget: (value, meta) => Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Text(
-                  shortDate(start.add(Duration(days: value.toInt()))),
-                  style: const TextStyle(fontSize: 11),
-                ),
-              ),
+              // o fl_chart desenha sempre também a última data (dia 13), fora do intervalo:
+              // ficava colada à anterior ("24 nov26 nov"). Só se escrevem as do intervalo.
+              getTitlesWidget: (value, meta) {
+                final step = compact ? 4 : 2;
+                if (value.toInt() % step != 0) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    shortDate(start.add(Duration(days: value.toInt()))),
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                );
+              },
             ),
           ),
         ),
