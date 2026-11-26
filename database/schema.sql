@@ -207,7 +207,7 @@ CREATE TABLE variants (
   print_time_min  INT UNSIGNED NOT NULL DEFAULT 0,
   plate_count     TINYINT UNSIGNED NOT NULL DEFAULT 1,
   weight_g        SMALLINT UNSIGNED NOT NULL DEFAULT 0, -- peso da peca, para os portes
-  grams_color_2   SMALLINT UNSIGNED NOT NULL DEFAULT 0, -- produtos a 2 cores: gramas da Cor 2 (a Cor 1 e o resto)
+  grams_color_2   DECIMAL(8,2) NOT NULL DEFAULT 0,      -- produtos a 2 cores: gramas da Cor 2 (a Cor 1 e o resto)
   printer_id      TINYINT UNSIGNED,                     -- NULL = impressora principal
   model_file      VARCHAR(255),                         -- caminho do .3mf
   etsy_listing_id VARCHAR(30),                          -- liga a encomenda Etsy a esta variante
@@ -219,7 +219,7 @@ CREATE TABLE variants (
 CREATE TABLE variant_filaments (
   variant_id  INT UNSIGNED NOT NULL,
   filament_id SMALLINT UNSIGNED NOT NULL,
-  grams       INT UNSIGNED NOT NULL,
+  grams       DECIMAL(8,2) NOT NULL, -- com 2 casas (migração 014)
   PRIMARY KEY (variant_id, filament_id),
   FOREIGN KEY (variant_id)  REFERENCES variants(id) ON DELETE CASCADE,
   FOREIGN KEY (filament_id) REFERENCES filaments(id)
@@ -375,7 +375,7 @@ CREATE TABLE print_failures (
   id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   print_job_id  INT UNSIGNED NOT NULL,
   filament_id   SMALLINT UNSIGNED NOT NULL,
-  wasted_grams  INT UNSIGNED NOT NULL,
+  wasted_grams  DECIMAL(8,2) NOT NULL,
   wasted_min    INT UNSIGNED NOT NULL,
   reason        VARCHAR(150),
   created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

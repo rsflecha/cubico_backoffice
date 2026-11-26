@@ -284,7 +284,7 @@ const VARIANT_TYPES = [
     'print_time_min' => 'int',
     'plate_count' => 'int',
     'weight_g' => 'int',
-    'grams_color_2' => 'int',
+    'grams_color_2' => 'float', // com 2 casas (migração 014)
     'printer_id' => 'int',
     'model_file' => 'string',
     'etsy_listing_id' => 'string',
@@ -322,7 +322,7 @@ function readVariants(?int $productId = null, ?int $variantId = null): array
 
     $recipe = [];
     foreach ($filaments->fetchAll() as $f) {
-        $recipe[(int) $f['variant_id']]['filaments'][] = ['filament_id' => (int) $f['filament_id'], 'grams' => (int) $f['grams']];
+        $recipe[(int) $f['variant_id']]['filaments'][] = ['filament_id' => (int) $f['filament_id'], 'grams' => (float) $f['grams']];
     }
     foreach ($components->fetchAll() as $c) {
         $recipe[(int) $c['variant_id']]['components'][] = ['component_id' => (int) $c['component_id'], 'quantity' => (int) $c['quantity']];
@@ -341,8 +341,10 @@ function saveRecipe(int $variantId, array $body): void
         db()->prepare('DELETE FROM variant_filaments WHERE variant_id = ?')->execute([$variantId]);
         $insert = db()->prepare('INSERT INTO variant_filaments (variant_id, filament_id, grams) VALUES (?, ?, ?)');
         foreach ((array) $body['filaments'] as $f) {
-            if ((int) ($f['grams'] ?? 0) > 0) {
-                $insert->execute([$variantId, (int) $f['filament_id'], (int) $f['grams']]);
+            // gramas com 2 casas: 86,456 → 86,46 (arredonda; antes o (int) cortava para 86)
+            $grams = round((float) ($f['grams'] ?? 0), 2);
+            if ($grams > 0) {
+                $insert->execute([$variantId, (int) $f['filament_id'], $grams]);
             }
         }
     }
@@ -436,6 +438,11 @@ $app->put('/api/variants/{id}', function (Request $request, Response $response, 
         'printer_id', 'model_file', 'etsy_listing_id', 'is_active'];
     $columns = array_values(array_filter($writable, fn ($c) => array_key_exists($c, $body)));
     $values = array_map(fn ($c) => dbValue($body[$c], VARIANT_TYPES[$c]), $columns);
+    // as gramas da Cor 2 com 2 casas: 12,345 → 12,35
+    if (in_array('grams_color_2', $columns, true)) {
+        $i = array_search('grams_color_2', $columns, true);
+        $values[$i] = round((float) $values[$i], 2);
+    }
 
     if (array_key_exists('name', $body)) {
         $name = trim((string) $body['name']);

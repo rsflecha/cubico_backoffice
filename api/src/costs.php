@@ -42,7 +42,7 @@ function variantUnitCost(int $variantId, float $costPerHour, ?int $colorFilament
     $stmt = db()->prepare('SELECT print_time_min, grams_color_2 FROM variants WHERE id = ?');
     $stmt->execute([$variantId]);
     $variant = $stmt->fetch() ?: ['print_time_min' => 0, 'grams_color_2' => 0];
-    $grams2 = (int) $variant['grams_color_2'];
+    $grams2 = (float) $variant['grams_color_2']; // com 2 casas (migração 014)
     if ($color2FilamentId !== null && $grams2 <= 0) {
         return max(
             variantUnitCost($variantId, $costPerHour, $colorFilamentId),
@@ -71,13 +71,13 @@ function variantUnitCost(int $variantId, float $costPerHour, ?int $colorFilament
         $chosen = db()->prepare('SELECT * FROM filaments WHERE id = ?');
         $chosen->execute([$color2FilamentId]);
         if ($row = $chosen->fetch()) {
-            $moved = min($grams2, (int) $recipe[0]['grams']);
-            $recipe[0]['grams'] = (int) $recipe[0]['grams'] - $moved;
+            $moved = min($grams2, (float) $recipe[0]['grams']);
+            $recipe[0]['grams'] = (float) $recipe[0]['grams'] - $moved;
             $recipe[] = ['grams' => $moved] + $row;
         }
     }
     foreach ($recipe as $f) {
-        $total += (int) $f['grams'] * filamentPricePerKg($f) / 1000;
+        $total += (float) $f['grams'] * filamentPricePerKg($f) / 1000;
     }
 
     $components = db()->prepare(
