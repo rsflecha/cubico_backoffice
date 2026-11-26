@@ -23,7 +23,8 @@ abstract class Variant with _$Variant {
     @Default(1) int plateCount, // se nao vier, assume este valor
     @Default(0) int weightG, // se nao vier, assume este valor
     // produtos a 2 cores: quantas das gramas são da Cor 2 (a Cor 1 é o resto); 0 = 1 cor
-    @JsonKey(name: "grams_color_2") @Default(0) int gramsColor2,
+    // (com 2 casas decimais, como na base: migração 014)
+    @JsonKey(name: "grams_color_2") @Default(0) double gramsColor2,
     @Default(true) bool isActive,
     @Default([])
     List<VariantFilament> filaments, // que filamentos e quantas gramas
@@ -46,10 +47,10 @@ abstract class Variant with _$Variant {
   }
 }
 
-/// Uma linha da receita: um filamento e quantas gramas leva.
+/// Uma linha da receita: um filamento e quantas gramas leva (com 2 casas: 86,4 g).
 @freezed
 abstract class VariantFilament with _$VariantFilament {
-  const factory VariantFilament({required int filamentId, required int grams}) =
+  const factory VariantFilament({required int filamentId, required double grams}) =
       _VariantFilament;
 
   factory VariantFilament.fromJson(Map<String, dynamic> json) =>

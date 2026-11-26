@@ -22,6 +22,17 @@ double parseDecimal(String text) {
   return double.tryParse(text.trim().replaceAll(",", ".")) ?? 0;
 }
 
+/// Gramas para um campo de texto: no máximo 2 casas e sem zeros a mais.
+/// 120.0 → "120", 86.4 → "86,4", 86.456 → "86,46".
+String gramsField(double grams) {
+  var text = grams.toStringAsFixed(2); // "86.40" (e arruma o lixo do double: 259.20000000000002)
+  text = text.replaceFirst(RegExp(r"\.?0+$"), ""); // "86.4", "120"
+  return text.replaceAll(".", ",");
+}
+
+/// Gramas para o ecrã: 86.4 → "86,4 g", 120.0 → "120 g".
+String gramsText(double grams) => "${gramsField(grams)} g";
+
 /// Compara dois nomes para pôr uma lista por ordem alfabética, à portuguesa:
 /// sem ligar a maiúsculas nem a acentos ("Árvore" vem antes de "Base", e não depois
 /// de "Zebra", que é o que acontecia comparando o texto tal e qual).

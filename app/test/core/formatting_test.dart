@@ -29,4 +29,26 @@ void main() {
       expect(compareNames("Caixa 9", "Caixa 10"), lessThan(0));
     });
   });
+
+  group("gramsText", () {
+    test("inteiras sem casas, décimas com vírgula", () {
+      expect(gramsText(120), "120 g");
+      expect(gramsText(86.4), "86,4 g");
+      expect(gramsText(86.45), "86,45 g");
+      expect(gramsText(1500), "1500 g");
+    });
+
+    test("somas de decimais não mostram o lixo do double", () {
+      expect(86.4 * 3, isNot(259.2)); // 259.20000000000002
+      expect(gramsText(86.4 * 3), "259,2 g");
+    });
+  });
+
+  group("gramsField", () {
+    test("para os campos: sem zeros a mais, no máximo 2 casas", () {
+      expect(gramsField(120), "120");
+      expect(gramsField(86.4), "86,4");
+      expect(gramsField(86.456), "86,46");
+    });
+  });
 }

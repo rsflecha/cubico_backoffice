@@ -264,7 +264,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         // (com as cores fixas, cada variante tem a sua receita: não se mexe nas outras)
         if (priciest != null && _colorsPerPiece != 0) {
           for (final other in list.where((v) => v.id != target!.id)) {
-            final grams = other.filaments.fold<int>(0, (sum, f) => sum + f.grams);
+            final grams = other.filaments.fold<double>(0, (sum, f) => sum + f.grams);
             if (grams <= 0) continue; // sem receita: fica para quando a abrires
             final same = other.filaments.length == 1 && other.filaments.single.filamentId == priciest.id;
             if (same) continue;

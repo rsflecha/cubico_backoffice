@@ -161,11 +161,11 @@ class CostCalculator {
         final moved = variant.gramsColor2 < grams ? variant.gramsColor2 : grams;
         grams -= moved;
         final second = find(color2FilamentId);
-        if (second != null) total += filamentCost(grams: moved.toDouble(), filament: second);
+        if (second != null) total += filamentCost(grams: moved, filament: second);
       }
       final filament = find(id);
       if (filament != null) {
-        total += filamentCost(grams: grams.toDouble(), filament: filament);
+        total += filamentCost(grams: grams, filament: filament);
       }
     }
 

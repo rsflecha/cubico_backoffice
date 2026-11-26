@@ -20,7 +20,8 @@ mixin _$Variant {
  int get plateCount;// se nao vier, assume este valor
  int get weightG;// se nao vier, assume este valor
 // produtos a 2 cores: quantas das gramas são da Cor 2 (a Cor 1 é o resto); 0 = 1 cor
-@JsonKey(name: "grams_color_2") int get gramsColor2; bool get isActive; List<VariantFilament> get filaments;// que filamentos e quantas gramas
+// (com 2 casas decimais, como na base: migração 014)
+@JsonKey(name: "grams_color_2") double get gramsColor2; bool get isActive; List<VariantFilament> get filaments;// que filamentos e quantas gramas
  List<VariantComponent> get components;
 /// Create a copy of Variant
 /// with the given fields replaced by the non-null parameter values.
@@ -54,7 +55,7 @@ abstract mixin class $VariantCopyWith<$Res>  {
   factory $VariantCopyWith(Variant value, $Res Function(Variant) _then) = _$VariantCopyWithImpl;
 @useResult
 $Res call({
- int id, int productId, String name, String sku, double salePrice, int? printerId, String? modelFile, String? etsyListingId, int printTimeMin, int plateCount, int weightG,@JsonKey(name: "grams_color_2") int gramsColor2, bool isActive, List<VariantFilament> filaments, List<VariantComponent> components
+ int id, int productId, String name, String sku, double salePrice, int? printerId, String? modelFile, String? etsyListingId, int printTimeMin, int plateCount, int weightG,@JsonKey(name: "grams_color_2") double gramsColor2, bool isActive, List<VariantFilament> filaments, List<VariantComponent> components
 });
 
 
@@ -85,7 +86,7 @@ as String?,printTimeMin: null == printTimeMin ? _self.printTimeMin : printTimeMi
 as int,plateCount: null == plateCount ? _self.plateCount : plateCount // ignore: cast_nullable_to_non_nullable
 as int,weightG: null == weightG ? _self.weightG : weightG // ignore: cast_nullable_to_non_nullable
 as int,gramsColor2: null == gramsColor2 ? _self.gramsColor2 : gramsColor2 // ignore: cast_nullable_to_non_nullable
-as int,isActive: null == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
+as double,isActive: null == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
 as bool,filaments: null == filaments ? _self.filaments : filaments // ignore: cast_nullable_to_non_nullable
 as List<VariantFilament>,components: null == components ? _self.components : components // ignore: cast_nullable_to_non_nullable
 as List<VariantComponent>,
@@ -173,7 +174,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int productId,  String name,  String sku,  double salePrice,  int? printerId,  String? modelFile,  String? etsyListingId,  int printTimeMin,  int plateCount,  int weightG, @JsonKey(name: "grams_color_2")  int gramsColor2,  bool isActive,  List<VariantFilament> filaments,  List<VariantComponent> components)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int productId,  String name,  String sku,  double salePrice,  int? printerId,  String? modelFile,  String? etsyListingId,  int printTimeMin,  int plateCount,  int weightG, @JsonKey(name: "grams_color_2")  double gramsColor2,  bool isActive,  List<VariantFilament> filaments,  List<VariantComponent> components)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Variant() when $default != null:
 return $default(_that.id,_that.productId,_that.name,_that.sku,_that.salePrice,_that.printerId,_that.modelFile,_that.etsyListingId,_that.printTimeMin,_that.plateCount,_that.weightG,_that.gramsColor2,_that.isActive,_that.filaments,_that.components);case _:
@@ -194,7 +195,7 @@ return $default(_that.id,_that.productId,_that.name,_that.sku,_that.salePrice,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int productId,  String name,  String sku,  double salePrice,  int? printerId,  String? modelFile,  String? etsyListingId,  int printTimeMin,  int plateCount,  int weightG, @JsonKey(name: "grams_color_2")  int gramsColor2,  bool isActive,  List<VariantFilament> filaments,  List<VariantComponent> components)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int productId,  String name,  String sku,  double salePrice,  int? printerId,  String? modelFile,  String? etsyListingId,  int printTimeMin,  int plateCount,  int weightG, @JsonKey(name: "grams_color_2")  double gramsColor2,  bool isActive,  List<VariantFilament> filaments,  List<VariantComponent> components)  $default,) {final _that = this;
 switch (_that) {
 case _Variant():
 return $default(_that.id,_that.productId,_that.name,_that.sku,_that.salePrice,_that.printerId,_that.modelFile,_that.etsyListingId,_that.printTimeMin,_that.plateCount,_that.weightG,_that.gramsColor2,_that.isActive,_that.filaments,_that.components);case _:
@@ -214,7 +215,7 @@ return $default(_that.id,_that.productId,_that.name,_that.sku,_that.salePrice,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int productId,  String name,  String sku,  double salePrice,  int? printerId,  String? modelFile,  String? etsyListingId,  int printTimeMin,  int plateCount,  int weightG, @JsonKey(name: "grams_color_2")  int gramsColor2,  bool isActive,  List<VariantFilament> filaments,  List<VariantComponent> components)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int productId,  String name,  String sku,  double salePrice,  int? printerId,  String? modelFile,  String? etsyListingId,  int printTimeMin,  int plateCount,  int weightG, @JsonKey(name: "grams_color_2")  double gramsColor2,  bool isActive,  List<VariantFilament> filaments,  List<VariantComponent> components)?  $default,) {final _that = this;
 switch (_that) {
 case _Variant() when $default != null:
 return $default(_that.id,_that.productId,_that.name,_that.sku,_that.salePrice,_that.printerId,_that.modelFile,_that.etsyListingId,_that.printTimeMin,_that.plateCount,_that.weightG,_that.gramsColor2,_that.isActive,_that.filaments,_that.components);case _:
@@ -248,7 +249,8 @@ class _Variant extends Variant {
 @override@JsonKey() final  int weightG;
 // se nao vier, assume este valor
 // produtos a 2 cores: quantas das gramas são da Cor 2 (a Cor 1 é o resto); 0 = 1 cor
-@override@JsonKey(name: "grams_color_2") final  int gramsColor2;
+// (com 2 casas decimais, como na base: migração 014)
+@override@JsonKey(name: "grams_color_2") final  double gramsColor2;
 @override@JsonKey() final  bool isActive;
  final  List<VariantFilament> _filaments;
 @override@JsonKey() List<VariantFilament> get filaments {
@@ -300,7 +302,7 @@ abstract mixin class _$VariantCopyWith<$Res> implements $VariantCopyWith<$Res> {
   factory _$VariantCopyWith(_Variant value, $Res Function(_Variant) _then) = __$VariantCopyWithImpl;
 @override @useResult
 $Res call({
- int id, int productId, String name, String sku, double salePrice, int? printerId, String? modelFile, String? etsyListingId, int printTimeMin, int plateCount, int weightG,@JsonKey(name: "grams_color_2") int gramsColor2, bool isActive, List<VariantFilament> filaments, List<VariantComponent> components
+ int id, int productId, String name, String sku, double salePrice, int? printerId, String? modelFile, String? etsyListingId, int printTimeMin, int plateCount, int weightG,@JsonKey(name: "grams_color_2") double gramsColor2, bool isActive, List<VariantFilament> filaments, List<VariantComponent> components
 });
 
 
@@ -331,7 +333,7 @@ as String?,printTimeMin: null == printTimeMin ? _self.printTimeMin : printTimeMi
 as int,plateCount: null == plateCount ? _self.plateCount : plateCount // ignore: cast_nullable_to_non_nullable
 as int,weightG: null == weightG ? _self.weightG : weightG // ignore: cast_nullable_to_non_nullable
 as int,gramsColor2: null == gramsColor2 ? _self.gramsColor2 : gramsColor2 // ignore: cast_nullable_to_non_nullable
-as int,isActive: null == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
+as double,isActive: null == isActive ? _self.isActive : isActive // ignore: cast_nullable_to_non_nullable
 as bool,filaments: null == filaments ? _self._filaments : filaments // ignore: cast_nullable_to_non_nullable
 as List<VariantFilament>,components: null == components ? _self._components : components // ignore: cast_nullable_to_non_nullable
 as List<VariantComponent>,
@@ -345,7 +347,7 @@ as List<VariantComponent>,
 /// @nodoc
 mixin _$VariantFilament {
 
- int get filamentId; int get grams;
+ int get filamentId; double get grams;
 /// Create a copy of VariantFilament
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -378,7 +380,7 @@ abstract mixin class $VariantFilamentCopyWith<$Res>  {
   factory $VariantFilamentCopyWith(VariantFilament value, $Res Function(VariantFilament) _then) = _$VariantFilamentCopyWithImpl;
 @useResult
 $Res call({
- int filamentId, int grams
+ int filamentId, double grams
 });
 
 
@@ -399,7 +401,7 @@ class _$VariantFilamentCopyWithImpl<$Res>
   return _then(_self.copyWith(
 filamentId: null == filamentId ? _self.filamentId : filamentId // ignore: cast_nullable_to_non_nullable
 as int,grams: null == grams ? _self.grams : grams // ignore: cast_nullable_to_non_nullable
-as int,
+as double,
   ));
 }
 
@@ -484,7 +486,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int filamentId,  int grams)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int filamentId,  double grams)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _VariantFilament() when $default != null:
 return $default(_that.filamentId,_that.grams);case _:
@@ -505,7 +507,7 @@ return $default(_that.filamentId,_that.grams);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int filamentId,  int grams)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int filamentId,  double grams)  $default,) {final _that = this;
 switch (_that) {
 case _VariantFilament():
 return $default(_that.filamentId,_that.grams);case _:
@@ -525,7 +527,7 @@ return $default(_that.filamentId,_that.grams);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int filamentId,  int grams)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int filamentId,  double grams)?  $default,) {final _that = this;
 switch (_that) {
 case _VariantFilament() when $default != null:
 return $default(_that.filamentId,_that.grams);case _:
@@ -544,7 +546,7 @@ class _VariantFilament implements VariantFilament {
   factory _VariantFilament.fromJson(Map<String, dynamic> json) => _$VariantFilamentFromJson(json);
 
 @override final  int filamentId;
-@override final  int grams;
+@override final  double grams;
 
 /// Create a copy of VariantFilament
 /// with the given fields replaced by the non-null parameter values.
@@ -579,7 +581,7 @@ abstract mixin class _$VariantFilamentCopyWith<$Res> implements $VariantFilament
   factory _$VariantFilamentCopyWith(_VariantFilament value, $Res Function(_VariantFilament) _then) = __$VariantFilamentCopyWithImpl;
 @override @useResult
 $Res call({
- int filamentId, int grams
+ int filamentId, double grams
 });
 
 
@@ -600,7 +602,7 @@ class __$VariantFilamentCopyWithImpl<$Res>
   return _then(_VariantFilament(
 filamentId: null == filamentId ? _self.filamentId : filamentId // ignore: cast_nullable_to_non_nullable
 as int,grams: null == grams ? _self.grams : grams // ignore: cast_nullable_to_non_nullable
-as int,
+as double,
   ));
 }
 

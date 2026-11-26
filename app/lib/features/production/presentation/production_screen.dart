@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cubico_backoffice/app/theme.dart';
+import 'package:cubico_backoffice/core/formatting.dart';
 import 'package:cubico_backoffice/features/costs/domain/filament.dart';
 import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
 import 'package:cubico_backoffice/features/products/domain/product.dart';
@@ -247,7 +248,7 @@ class ProductionScreen extends ConsumerWidget {
         : ([...variant.filaments]..sort((a, b) => b.grams.compareTo(a.grams)))
             .map((l) {
               final f = filaments.where((f) => f.id == l.filamentId).firstOrNull;
-              return f == null ? null : "${f.colorName} ${l.grams * job.quantity} g";
+              return f == null ? null : "${f.colorName} ${gramsText(l.grams * job.quantity)}";
             })
             .whereType<String>()
             .join(" · ");

@@ -281,4 +281,12 @@ void main() {
           costPerHour: 0, colorFilamentId: 8, color2FilamentId: 7), closeTo(4.00, 0.0001));
     });
   });
+
+  test("as gramas com decimais contam no custo", () {
+    // 86,4 g de PLA a 22,50 €/kg = 1,944 € (com 86 g dava 1,935 €)
+    const piece = Variant(id: 9, productId: 1, name: "", sku: "Z", salePrice: 1,
+        filaments: [VariantFilament(filamentId: 1, grams: 86.4)]);
+    expect(calc.variantProductionCost(variant: piece, filaments: const [pla], components: const [], costPerHour: 0),
+        closeTo(1.944, 0.0001));
+  });
 }

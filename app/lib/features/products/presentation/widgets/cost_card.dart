@@ -84,17 +84,17 @@ class CostCardState extends ConsumerState<CostCard> {
     final v = widget.variant;
     // a receita cor a cor (usada com as cores fixas): as linhas gravadas, ou uma vazia
     for (final f in v?.filaments ?? const <VariantFilament>[]) {
-      _recipe.add(_RecipeLine(f.filamentId, f.grams));
+      _recipe.add(_RecipeLine(f.filamentId, f.grams.round()));
     }
     if (_recipe.isEmpty) _recipe.add(_RecipeLine(null, 0));
     if (v == null) return; // produto novo: campos vazios
 
     // as gramas: a soma da receita (receitas antigas podiam ter várias cores);
     // sem receita, o peso que estava gravado
-    final grams = v.filaments.fold<int>(0, (sum, f) => sum + f.grams);
+    final grams = v.filaments.fold<double>(0, (sum, f) => sum + f.grams).round();
     final total = grams > 0 ? grams : v.weightG;
     // a receita guarda o total; a Cor 1 é o total menos a Cor 2
-    final second = v.gramsColor2.clamp(0, total);
+    final second = v.gramsColor2.round().clamp(0, total);
     final first = total - second;
     _gramsController.text = first > 0 ? "$first" : "";
     _grams2Controller.text = second > 0 ? "$second" : "";
@@ -145,14 +145,14 @@ class CostCardState extends ConsumerState<CostCard> {
       // vazio = o próprio produto ("Modelo único"); o SKU é a API que o calcula a partir do nome
       name: widget.showName ? _nameController.text.trim() : base.name,
       weightG: grams, // o peso da peça é o filamento que leva
-      gramsColor2: widget.fixedColors ? 0 : _grams2,
+      gramsColor2: widget.fixedColors ? 0 : _grams2.toDouble(),
       salePrice: _read(_priceController),
       printTimeMin: _read(_minutesController).round(),
       // uma linha: as gramas, na cor mais cara (a da encomenda escolhe-se ao vender)
       // (com as cores fixas: a receita como está, cor a cor)
       filaments: widget.fixedColors
-          ? [for (final e in _recipeGrams.entries) VariantFilament(filamentId: e.key, grams: e.value)]
-          : [if (filament != null && grams > 0) VariantFilament(filamentId: filament.id, grams: grams)],
+          ? [for (final e in _recipeGrams.entries) VariantFilament(filamentId: e.key, grams: e.value.toDouble())]
+          : [if (filament != null && grams > 0) VariantFilament(filamentId: filament.id, grams: grams.toDouble())],
       components: [
         for (final entry in _componentQty.entries)
           if (entry.value > 0) VariantComponent(componentId: entry.key, quantity: entry.value),

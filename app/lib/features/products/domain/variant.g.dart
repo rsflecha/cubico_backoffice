@@ -18,7 +18,7 @@ _Variant _$VariantFromJson(Map<String, dynamic> json) => _Variant(
   printTimeMin: (json['print_time_min'] as num?)?.toInt() ?? 0,
   plateCount: (json['plate_count'] as num?)?.toInt() ?? 1,
   weightG: (json['weight_g'] as num?)?.toInt() ?? 0,
-  gramsColor2: (json['grams_color_2'] as num?)?.toInt() ?? 0,
+  gramsColor2: (json['grams_color_2'] as num?)?.toDouble() ?? 0,
   isActive: json['is_active'] as bool? ?? true,
   filaments:
       (json['filaments'] as List<dynamic>?)
@@ -53,7 +53,7 @@ Map<String, dynamic> _$VariantToJson(_Variant instance) => <String, dynamic>{
 _VariantFilament _$VariantFilamentFromJson(Map<String, dynamic> json) =>
     _VariantFilament(
       filamentId: (json['filament_id'] as num).toInt(),
-      grams: (json['grams'] as num).toInt(),
+      grams: (json['grams'] as num).toDouble(),
     );
 
 Map<String, dynamic> _$VariantFilamentToJson(_VariantFilament instance) =>
