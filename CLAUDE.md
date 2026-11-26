@@ -116,6 +116,7 @@ API (dentro de `api/`):
 
 - v0.3.0 publicada (Windows e Android) a 2026-11-16, ligada à API do servidor.
 - v0.3.1 a 2026-11-22: associar à mão um artigo da Etsy a uma variante (migração 012, `etsy_links`; a sincronização procura SKU → associação → anúncio) e cartão Histórico no detalhe da encomenda (`order_events`, `GET /api/orders/{id}/events`). Conferir os SKU pela linha de comandos: `api/bin/etsy-listings-check.php` (sai com 1 se houver artigos por ligar).
+- v0.3.2 a 2026-11-26: gramas com décimas no Windows e na APK; 1.ª APK com a chave própria (obriga a desinstalar a antiga). Notas em `docs/release-v0.3.2.md`, ficheiros em `dist/`.
 - APK assinada com chave própria (2026-11-25): `C:\Users\PC\chaves-android\cubico-upload.jks` (alias `cubico`),
   lida do `app/android/key.properties` (fora do Git; nunca ler nem mostrar). Sem esse ficheiro a build usa a
   chave de testes. Conferir: `apksigner verify --print-certs` → `CN=Rui Santos`. A 1.ª APK com esta chave
@@ -125,5 +126,5 @@ API (dentro de `api/`):
 - Encomenda paga vai sozinha para produção; taxas da Etsy como a Etsy as cobra. Provado com a primeira venda verdadeira da Etsy (confirmado pelo Rui a 2026-11-25).
 - Clientes: telemóvel validado e localidade pelo código postal (tabela `postal_codes`, migração 005).
 - Android com permissão de internet; versão web, iPad e iPhone revistos.
-- Gramas com 2 casas decimais (migração 014, 2026-11-26): 86,4 g já não se grava como 86 g. Passo 1 do stock de filamento (`docs/superpowers/specs/2026-11-26-stock-filamento-design.md`). A app de Windows e a APK anteriores leem as gramas sem décimas e, se gravarem uma variante, cortam-nas: até haver versões novas, os produtos editam-se só no site.
+- Gramas com 2 casas decimais (migração 014, 2026-11-26): 86,4 g já não se grava como 86 g. Passo 1 do stock de filamento (`docs/superpowers/specs/2026-11-26-stock-filamento-design.md`). A v0.3.1 (Windows e APK) lê as gramas sem décimas e, se gravar uma variante, corta-as: só a v0.3.2 ou a web devem editar produtos.
 - Avisos de encomendas novas (Web Push, migração 013, 2026-11-24): só administradores, só na web; no iPhone/iPad só com o site no ecrã principal. Chaves VAPID no `.env`, criadas uma vez pelo `api/bin/vapid-setup.php` (nunca as mostra). A web tem um `web/flutter_bootstrap.js` próprio, sem o service worker do Flutter (apagava o `push_sw.js`). No PC, a API arranca com `OPENSSL_CONF=C:\php\extras\ssl\openssl.cnf` (chaves EC) e `php -d curl.cainfo="C:\Program Files\Git\mingw64\etc\ssl\certs\ca-bundle.crt"` (senão o envio dá cURL error 60). Provado no Chrome do PC e no iPhone do Rui (servidor) a 2026-11-24.
