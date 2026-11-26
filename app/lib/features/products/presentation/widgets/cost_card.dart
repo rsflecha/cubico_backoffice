@@ -91,11 +91,11 @@ class CostCardState extends ConsumerState<CostCard> {
 
     // as gramas: a soma da receita (receitas antigas podiam ter várias cores);
     // sem receita, o peso que estava gravado
-    final grams = _round2(v.filaments.fold<double>(0, (sum, f) => sum + f.grams));
+    final grams = roundGrams(v.filaments.fold<double>(0, (sum, f) => sum + f.grams));
     final total = grams > 0 ? grams : v.weightG.toDouble();
     // a receita guarda o total; a Cor 1 é o total menos a Cor 2
     final second = v.gramsColor2.clamp(0.0, total);
-    final first = _round2(total - second);
+    final first = roundGrams(total - second);
     // com 2 casas e sem zeros a mais: 86,4 (e 120, não 120,00)
     _gramsController.text = first > 0 ? gramsField(first) : "";
     _grams2Controller.text = second > 0 ? gramsField(second) : "";
@@ -118,18 +118,17 @@ class CostCardState extends ConsumerState<CostCard> {
   }
 
   /// As gramas da Cor 2 (0 num produto de 1 cor).
-  double get _grams2 => widget.twoColors ? _round2(_read(_grams2Controller)) : 0;
+  double get _grams2 => widget.twoColors ? roundGrams(_read(_grams2Controller)) : 0;
 
   /// Gramas com 2 casas, como a base as guarda (86,456 → 86,46). Arredondar aqui, e não só
   /// na API, faz o cartão comparar com o que fica gravado: senão dizia "por gravar" para sempre.
-  static double _round2(double grams) => (grams * 100).round() / 100;
 
   /// A receita das cores fixas: filamento → gramas (a mesma cor duas vezes soma).
   /// Ficam de fora as linhas sem filamento ou sem gramas.
   Map<int, double> get _recipeGrams {
     final out = <int, double>{};
     for (final line in _recipe) {
-      final grams = _round2(_read(line.grams));
+      final grams = roundGrams(_read(line.grams));
       if (line.filamentId == null || grams <= 0) continue;
       out[line.filamentId!] = (out[line.filamentId!] ?? 0) + grams;
     }
@@ -137,9 +136,9 @@ class CostCardState extends ConsumerState<CostCard> {
   }
 
   /// O total de gramas da peça: Cor 1 + Cor 2, ou a soma da receita (cores fixas).
-  double get _totalGrams => _round2(widget.fixedColors
+  double get _totalGrams => roundGrams(widget.fixedColors
       ? _recipeGrams.values.fold(0.0, (a, b) => a + b)
-      : _round2(_read(_gramsController)) + _grams2);
+      : roundGrams(_read(_gramsController)) + _grams2);
 
   /// A variante [base] com o que está escrito no cartão (ainda por gravar).
   Variant applyTo(Variant base) {

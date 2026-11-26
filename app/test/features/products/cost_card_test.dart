@@ -115,6 +115,20 @@ void main() {
       }
     });
 
+    testWidgets("2 cores com décimas: total 100 e Cor 2 33,33 → Cor 1 66,67, sem alterações por gravar", (tester) async {
+      final key = GlobalKey<CostCardState>();
+      const saved = Variant(id: 1, productId: 1, name: "", sku: "CD3-NAT-01", salePrice: 20,
+          weightG: 100, gramsColor2: 33.33, filaments: [VariantFilament(filamentId: 1, grams: 100)]);
+      await show(tester, 900, card: CostCard(key: key, variant: saved, twoColors: true));
+      expect(find.widgetWithText(TextField, "66,67"), findsOneWidget);
+      expect(find.widgetWithText(TextField, "33,33"), findsOneWidget);
+      expect(find.textContaining("Total: 100 g"), findsOneWidget);
+      expect(key.currentState!.isChangedFrom(saved), isFalse);
+      final again = key.currentState!.applyTo(saved);
+      expect(again.filaments.single.grams, 100);
+      expect(again.gramsColor2, 33.33);
+    });
+
     testWidgets("uma receita gravada com 86,4 g aparece 86,4 no campo", (tester) async {
       const saved = Variant(id: 1, productId: 1, name: "", sku: "CD3-NAT-01", salePrice: 20,
           weightG: 87, filaments: [VariantFilament(filamentId: 1, grams: 86.4)]);

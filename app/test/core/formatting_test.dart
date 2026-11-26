@@ -44,6 +44,16 @@ void main() {
     });
   });
 
+  group("roundGrams", () {
+    test("arredonda a 2 casas, como a base guarda", () {
+      expect(roundGrams(86.456), 86.46);
+      expect(roundGrams(120), 120);
+    });
+    test("arruma o lixo das somas de double: 0,1 + 0,2 = 0,3", () {
+      expect(roundGrams(0.1 + 0.2), 0.3);
+    });
+  });
+
   group("gramsField", () {
     test("para os campos: sem zeros a mais, no máximo 2 casas", () {
       expect(gramsField(120), "120");

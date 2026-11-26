@@ -342,7 +342,7 @@ function saveRecipe(int $variantId, array $body): void
         $insert = db()->prepare('INSERT INTO variant_filaments (variant_id, filament_id, grams) VALUES (?, ?, ?)');
         foreach ((array) $body['filaments'] as $f) {
             // gramas com 2 casas: 86,456 → 86,46 (arredonda; antes o (int) cortava para 86)
-            $grams = round((float) ($f['grams'] ?? 0), 2);
+            $grams = cleanGrams($f['grams'] ?? 0);
             if ($grams > 0) {
                 $insert->execute([$variantId, (int) $f['filament_id'], $grams]);
             }
@@ -407,7 +407,7 @@ $app->post('/api/variants', function (Request $request, Response $response) {
             $first['print_time_min'] ?? 0,
             $first['plate_count'] ?? 1,
             $first['weight_g'] ?? 0,
-            $first['grams_color_2'] ?? 0,
+            cleanGrams($first['grams_color_2'] ?? 0),
             $first['printer_id'] ?? null,
         ]);
         $id = (int) $pdo->lastInsertId();
@@ -438,10 +438,10 @@ $app->put('/api/variants/{id}', function (Request $request, Response $response, 
         'printer_id', 'model_file', 'etsy_listing_id', 'is_active'];
     $columns = array_values(array_filter($writable, fn ($c) => array_key_exists($c, $body)));
     $values = array_map(fn ($c) => dbValue($body[$c], VARIANT_TYPES[$c]), $columns);
-    // as gramas da Cor 2 com 2 casas: 12,345 → 12,35
+    // as gramas da Cor 2 com 2 casas e nunca negativas: 12,345 → 12,35; -5 → 0
     if (in_array('grams_color_2', $columns, true)) {
         $i = array_search('grams_color_2', $columns, true);
-        $values[$i] = round((float) $values[$i], 2);
+        $values[$i] = cleanGrams($values[$i]);
     }
 
     if (array_key_exists('name', $body)) {

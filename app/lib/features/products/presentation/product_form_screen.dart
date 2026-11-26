@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:cubico_backoffice/app/theme.dart';
 import 'package:cubico_backoffice/core/api/api_exception.dart';
 import 'package:cubico_backoffice/core/colors.dart';
+import 'package:cubico_backoffice/core/formatting.dart';
 import 'package:cubico_backoffice/core/photos.dart';
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
 import 'package:cubico_backoffice/features/costs/domain/cost_calculator.dart';
@@ -264,7 +265,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         // (com as cores fixas, cada variante tem a sua receita: não se mexe nas outras)
         if (priciest != null && _colorsPerPiece != 0) {
           for (final other in list.where((v) => v.id != target!.id)) {
-            final grams = other.filaments.fold<double>(0, (sum, f) => sum + f.grams);
+            final grams = roundGrams(other.filaments.fold<double>(0, (sum, f) => sum + f.grams));
             if (grams <= 0) continue; // sem receita: fica para quando a abrires
             final same = other.filaments.length == 1 && other.filaments.single.filamentId == priciest.id;
             if (same) continue;

@@ -22,6 +22,10 @@ double parseDecimal(String text) {
   return double.tryParse(text.trim().replaceAll(",", ".")) ?? 0;
 }
 
+/// Gramas com 2 casas, como a base as guarda (migração 014): 86,456 → 86,46.
+/// Também arruma o lixo das somas de double (0,1 + 0,2 = 0,30000000000000004).
+double roundGrams(double grams) => (grams * 100).round() / 100;
+
 /// Gramas para um campo de texto: no máximo 2 casas e sem zeros a mais.
 /// 120.0 → "120", 86.4 → "86,4", 86.456 → "86,46".
 String gramsField(double grams) {

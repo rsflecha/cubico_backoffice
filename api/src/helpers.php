@@ -106,3 +106,12 @@ function dbValue(mixed $value, string $type): mixed
         default => trim((string) $value),
     };
 }
+
+/**
+ * Gramas prontas para gravar: 2 casas, como a coluna guarda (migração 014), e nunca
+ * negativas (a coluna DECIMAL deixou de ser UNSIGNED). 12,345 → 12,35; -5 → 0.
+ */
+function cleanGrams(mixed $value): float
+{
+    return max(0.0, round((float) ($value ?? 0), 2));
+}
