@@ -223,7 +223,7 @@ class CostCardState extends ConsumerState<CostCard> {
           helperText: widget.twoColors ? null : "O peso da peça. Conta para os portes.",
           helperMaxLines: 2,
         ),
-        keyboardType: TextInputType.number,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
         onChanged: (_) => setState(() {}),
       );
 
@@ -282,7 +282,7 @@ class CostCardState extends ConsumerState<CostCard> {
                   child: TextField(
                     controller: line.grams,
                     style: AppTextStyles.mono,
-                    keyboardType: TextInputType.number,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(labelText: "Gramas", suffixText: "g", isDense: true),
                     onChanged: (_) => setState(() {}),
                   ),

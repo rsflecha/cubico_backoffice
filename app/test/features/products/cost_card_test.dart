@@ -107,6 +107,14 @@ void main() {
       expect(key.currentState!.applyTo(base).weightG, 101);
     });
 
+    testWidgets("os campos de gramas pedem o teclado com vírgula (iPhone e Android)", (tester) async {
+      await show(tester, 900, card: const CostCard(variant: base, twoColors: true));
+      for (final label in ["Gramas · Cor 1", "Gramas · Cor 2"]) {
+        final field = tester.widget<TextField>(find.widgetWithText(TextField, label));
+        expect(field.keyboardType, const TextInputType.numberWithOptions(decimal: true), reason: label);
+      }
+    });
+
     testWidgets("uma receita gravada com 86,4 g aparece 86,4 no campo", (tester) async {
       const saved = Variant(id: 1, productId: 1, name: "", sku: "CD3-NAT-01", salePrice: 20,
           weightG: 87, filaments: [VariantFilament(filamentId: 1, grams: 86.4)]);
