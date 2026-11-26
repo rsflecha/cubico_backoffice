@@ -1,8 +1,8 @@
 # Stock de filamento — desenho
 
-> Estado: **por aprovar pelo Rui.** Escrito a 2026-11-26, a partir da conversa desse dia.
-> As decisões marcadas *(decisão do Rui)* foram tomadas por ele; as marcadas *(proposta do Claude)*
-> são escolhas minhas para ele confirmar ao ler.
+> Estado: **aprovado pelo Rui a 2026-11-26.** Escrito nesse dia, a partir da conversa.
+> As decisões marcadas *(decisão do Rui)* foram tomadas por ele; as marcadas *(proposta do Claude, aprovada pelo Rui)*
+> eram escolhas minhas, e o Rui aprovou-as todas a 2026-11-26.
 
 ## 1. Porquê
 
@@ -60,7 +60,7 @@ Hoje `86,4 g` grava-se como `86 g` sem aviso, em três sítios:
 - `api/routes/products.php:345` (e a leitura em `:325`) — `(int)`;
 - `variant_filaments.grams INT`, `variants.grams_color_2 SMALLINT`, `print_failures.wasted_grams INT`.
 
-Passam a `DECIMAL(8,2)` *(proposta do Claude, aceite pelo Rui)*, e o modelo Dart `VariantFilament.grams` e
+Passam a `DECIMAL(8,2)` *(proposta do Claude, aprovada pelo Rui)*, e o modelo Dart `VariantFilament.grams` e
 `Variant.gramsColor2` a `double`. As contas em `costs.php` e `cost_calculator.dart` deixam de converter
 para inteiro. `variants.weight_g` (peso para os portes) fica inteiro: os escalões dos CTT são em gramas redondos.
 
@@ -96,7 +96,7 @@ CREATE TABLE filament_movements (
 ```
 
 **Regra:** os movimentos **nunca se editam nem se apagam**. Um engano corrige-se com um movimento novo
-(`reversal` ou `adjustment`), como num extrato bancário *(proposta do Claude)*.
+(`reversal` ou `adjustment`), como num extrato bancário *(proposta do Claude, aprovada pelo Rui)*.
 
 **Stock de um filamento** = `SUM(grams)`. Em rolos = stock ÷ `spool_weight_g`, com uma casa decimal.
 
@@ -116,16 +116,16 @@ por filamento, com os gramas da receita × quantidade **desse momento** (fotogra
 - `colors_per_piece` 1 ou 2: a cor escolhida na linha da encomenda (`filament_id`, `filament_id_2`) e os
   `grams_color_2` passados para a 2.ª cor;
 - `colors_per_piece` 0: a receita da variante, cor a cor;
-- tarefa manual (teste, protótipo, sem encomenda): a receita da variante *(proposta do Claude)*.
+- tarefa manual (teste, protótipo, sem encomenda): a receita da variante *(proposta do Claude, aprovada pelo Rui)*.
 
 Se a tarefa **sair** de `done` (arrastada para trás no quadro), grava-se um `reversal` de cada consumo dela.
 Se voltar a `done`, consome de novo. Assim, arrastar para trás e para a frente nunca desconta duas vezes
-*(proposta do Claude)*.
+*(proposta do Claude, aprovada pelo Rui)*.
 
 **Falha.** Hoje a tabela `print_failures` existe, mas **nada a usa**: nem ecrã, nem rota da API (procurado
 a 2026-11-26). Este trabalho acrescenta um botão **"Registar falha"** no cartão da tarefa, no quadro de
 Produção: filamento (por omissão o principal da tarefa), gramas desperdiçados, minutos perdidos e motivo
-*(proposta do Claude)*. Ao gravar, a API escreve a falha e o movimento `−wasted_grams`, na mesma transação.
+*(proposta do Claude, aprovada pelo Rui)*. Ao gravar, a API escreve a falha e o movimento `−wasted_grams`, na mesma transação.
 
 **Acerto** (só administrador). O Rui pesa o que tem e escreve o total real. A app grava a diferença
 (`real − stock atual`), com uma nota opcional. O **stock inicial** de cada filamento entra assim: no
@@ -167,9 +167,9 @@ PLA preto · Bambu                     2 380 g        [ Acertar ]
 ```
 
 - O colaborador vê o stock e o histórico, mas **sem preços**, e não regista compras nem acertos
-  *(proposta do Claude)*: precisa de saber se há filamento para imprimir, não quanto custou.
+  *(proposta do Claude, aprovada pelo Rui)*: precisa de saber se há filamento para imprimir, não quanto custou.
 - O stock também aparece no cartão da tarefa no quadro de Produção, ao lado dos gramas que ela vai gastar
-  *(proposta do Claude)*.
+  *(proposta do Claude, aprovada pelo Rui)*.
 
 ### 5.6 API
 
