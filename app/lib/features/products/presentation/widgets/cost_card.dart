@@ -84,20 +84,21 @@ class CostCardState extends ConsumerState<CostCard> {
     final v = widget.variant;
     // a receita cor a cor (usada com as cores fixas): as linhas gravadas, ou uma vazia
     for (final f in v?.filaments ?? const <VariantFilament>[]) {
-      _recipe.add(_RecipeLine(f.filamentId, f.grams.round()));
+      _recipe.add(_RecipeLine(f.filamentId, f.grams));
     }
     if (_recipe.isEmpty) _recipe.add(_RecipeLine(null, 0));
     if (v == null) return; // produto novo: campos vazios
 
     // as gramas: a soma da receita (receitas antigas podiam ter várias cores);
     // sem receita, o peso que estava gravado
-    final grams = v.filaments.fold<double>(0, (sum, f) => sum + f.grams).round();
-    final total = grams > 0 ? grams : v.weightG;
+    final grams = _round2(v.filaments.fold<double>(0, (sum, f) => sum + f.grams));
+    final total = grams > 0 ? grams : v.weightG.toDouble();
     // a receita guarda o total; a Cor 1 é o total menos a Cor 2
-    final second = v.gramsColor2.round().clamp(0, total);
-    final first = total - second;
-    _gramsController.text = first > 0 ? "$first" : "";
-    _grams2Controller.text = second > 0 ? "$second" : "";
+    final second = v.gramsColor2.clamp(0.0, total);
+    final first = _round2(total - second);
+    // com 2 casas e sem zeros a mais: 86,4 (e 120, não 120,00)
+    _gramsController.text = first > 0 ? gramsField(first) : "";
+    _grams2Controller.text = second > 0 ? gramsField(second) : "";
     _minutesController.text = "${v.printTimeMin}";
     _priceController.text = decimalField(v.salePrice);
     _nameController.text = v.name;
@@ -117,14 +118,18 @@ class CostCardState extends ConsumerState<CostCard> {
   }
 
   /// As gramas da Cor 2 (0 num produto de 1 cor).
-  int get _grams2 => widget.twoColors ? _read(_grams2Controller).round() : 0;
+  double get _grams2 => widget.twoColors ? _round2(_read(_grams2Controller)) : 0;
+
+  /// Gramas com 2 casas, como a base as guarda (86,456 → 86,46). Arredondar aqui, e não só
+  /// na API, faz o cartão comparar com o que fica gravado: senão dizia "por gravar" para sempre.
+  static double _round2(double grams) => (grams * 100).round() / 100;
 
   /// A receita das cores fixas: filamento → gramas (a mesma cor duas vezes soma).
   /// Ficam de fora as linhas sem filamento ou sem gramas.
-  Map<int, int> get _recipeGrams {
-    final out = <int, int>{};
+  Map<int, double> get _recipeGrams {
+    final out = <int, double>{};
     for (final line in _recipe) {
-      final grams = _read(line.grams).round();
+      final grams = _round2(_read(line.grams));
       if (line.filamentId == null || grams <= 0) continue;
       out[line.filamentId!] = (out[line.filamentId!] ?? 0) + grams;
     }
@@ -132,9 +137,9 @@ class CostCardState extends ConsumerState<CostCard> {
   }
 
   /// O total de gramas da peça: Cor 1 + Cor 2, ou a soma da receita (cores fixas).
-  int get _totalGrams => widget.fixedColors
-      ? _recipeGrams.values.fold(0, (a, b) => a + b)
-      : _read(_gramsController).round() + _grams2;
+  double get _totalGrams => _round2(widget.fixedColors
+      ? _recipeGrams.values.fold(0.0, (a, b) => a + b)
+      : _round2(_read(_gramsController)) + _grams2);
 
   /// A variante [base] com o que está escrito no cartão (ainda por gravar).
   Variant applyTo(Variant base) {
@@ -144,15 +149,17 @@ class CostCardState extends ConsumerState<CostCard> {
     return base.copyWith(
       // vazio = o próprio produto ("Modelo único"); o SKU é a API que o calcula a partir do nome
       name: widget.showName ? _nameController.text.trim() : base.name,
-      weightG: grams, // o peso da peça é o filamento que leva
-      gramsColor2: widget.fixedColors ? 0 : _grams2.toDouble(),
+      // o peso da peça é o filamento que leva; para os portes, arredondado para cima
+      // (100,4 g conta como 101 g: não pode cair num escalão dos CTT abaixo)
+      weightG: grams.ceil(),
+      gramsColor2: widget.fixedColors ? 0 : _grams2,
       salePrice: _read(_priceController),
       printTimeMin: _read(_minutesController).round(),
       // uma linha: as gramas, na cor mais cara (a da encomenda escolhe-se ao vender)
       // (com as cores fixas: a receita como está, cor a cor)
       filaments: widget.fixedColors
-          ? [for (final e in _recipeGrams.entries) VariantFilament(filamentId: e.key, grams: e.value.toDouble())]
-          : [if (filament != null && grams > 0) VariantFilament(filamentId: filament.id, grams: grams.toDouble())],
+          ? [for (final e in _recipeGrams.entries) VariantFilament(filamentId: e.key, grams: e.value)]
+          : [if (filament != null && grams > 0) VariantFilament(filamentId: filament.id, grams: grams)],
       components: [
         for (final entry in _componentQty.entries)
           if (entry.value > 0) VariantComponent(componentId: entry.key, quantity: entry.value),
@@ -302,7 +309,7 @@ class CostCardState extends ConsumerState<CostCard> {
             label: const Text("Adicionar cor"),
           ),
         ),
-        Text("Total: $_totalGrams g (o peso da peça, para os portes)",
+        Text("Total: ${gramsText(_totalGrams)} (o peso da peça, para os portes)",
             style: Theme.of(context).textTheme.bodySmall),
       ],
     );
@@ -324,7 +331,7 @@ class CostCardState extends ConsumerState<CostCard> {
     final rounding = settings?.rounding ?? 0.50;
 
     // 1. ler o que está escrito (com 2 cores, as gramas são Cor 1 + Cor 2)
-    final grams = _totalGrams.toDouble();
+    final grams = _totalGrams;
     final minutes = _read(_minutesController);
     final price = _read(_priceController);
 
@@ -335,7 +342,7 @@ class CostCardState extends ConsumerState<CostCard> {
     final filamentCost = widget.fixedColors
         ? _recipeGrams.entries.fold<double>(0, (sum, e) {
             final f = filaments.where((f) => f.id == e.key).firstOrNull;
-            return f == null ? sum : sum + _calc.filamentCost(grams: e.value.toDouble(), filament: f);
+            return f == null ? sum : sum + _calc.filamentCost(grams: e.value, filament: f);
           })
         : costFilament == null
             ? 0.0
@@ -429,7 +436,7 @@ class CostCardState extends ConsumerState<CostCard> {
             ),
             if (widget.twoColors) ...[
               const SizedBox(height: 4),
-              Text("Total: ${grams.round()} g (o peso da peça, para os portes)",
+              Text("Total: ${gramsText(grams)} (o peso da peça, para os portes)",
                   style: Theme.of(context).textTheme.bodySmall),
               const SizedBox(height: 12),
               _minutesField(),
@@ -702,7 +709,8 @@ class CostCardState extends ConsumerState<CostCard> {
 
 /// Uma linha da receita das cores fixas: o filamento e as gramas dessa cor.
 class _RecipeLine {
-  _RecipeLine(this.filamentId, int grams) : grams = TextEditingController(text: grams > 0 ? "$grams" : "");
+  _RecipeLine(this.filamentId, double grams)
+      : grams = TextEditingController(text: grams > 0 ? gramsField(grams) : "");
 
   int? filamentId;
   final TextEditingController grams;

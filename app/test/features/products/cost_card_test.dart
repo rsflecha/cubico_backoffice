@@ -78,6 +78,43 @@ void main() {
     expect(key.currentState!.isChangedFrom(base), isTrue);
   });
 
+  group("gramas com décimas (migração 014)", () {
+    const base = Variant(id: 1, productId: 1, name: "", sku: "CD3-NAT-01", salePrice: 20,
+        weightG: 100, filaments: [VariantFilament(filamentId: 1, grams: 100)]);
+
+    Future<GlobalKey<CostCardState>> typeGrams(WidgetTester tester, String text) async {
+      final key = GlobalKey<CostCardState>();
+      await show(tester, 900, card: CostCard(key: key, variant: base));
+      await tester.enterText(find.widgetWithText(TextField, "100"), text);
+      await tester.pump();
+      return key;
+    }
+
+    testWidgets("as gramas guardam as décimas: 86,4 não passa a 86", (tester) async {
+      final key = await typeGrams(tester, "86,4");
+      expect(key.currentState!.applyTo(base).filaments.single.grams, 86.4);
+    });
+
+    testWidgets("mais de 2 casas arredonda a 2, e depois de gravar não há alterações por gravar", (tester) async {
+      final key = await typeGrams(tester, "86,456");
+      final saved = key.currentState!.applyTo(base);
+      expect(saved.filaments.single.grams, 86.46);
+      expect(key.currentState!.isChangedFrom(saved), isFalse);
+    });
+
+    testWidgets("o peso dos portes arredonda para cima", (tester) async {
+      final key = await typeGrams(tester, "100,4");
+      expect(key.currentState!.applyTo(base).weightG, 101);
+    });
+
+    testWidgets("uma receita gravada com 86,4 g aparece 86,4 no campo", (tester) async {
+      const saved = Variant(id: 1, productId: 1, name: "", sku: "CD3-NAT-01", salePrice: 20,
+          weightG: 87, filaments: [VariantFilament(filamentId: 1, grams: 86.4)]);
+      await show(tester, 900, card: const CostCard(variant: saved));
+      expect(find.widgetWithText(TextField, "86,4"), findsOneWidget);
+    });
+  });
+
   testWidgets("1 cor: um só campo de gramas, e a Cor 2 fica a 0", (tester) async {
     final key = GlobalKey<CostCardState>();
     await show(tester, 900, card: CostCard(key: key));
