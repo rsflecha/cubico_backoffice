@@ -21,14 +21,22 @@ class FilamentStockScreen extends ConsumerWidget {
     final filaments = ref.watch(filamentsProvider);
     final stocks = ref.watch(filamentStockProvider);
     final movements = ref.watch(filamentMovementsProvider(filamentId));
-    final isAdmin = ref.watch(sessionProvider)?.isAdmin ?? false;
+    final user = ref.watch(sessionProvider);
+    final isAdmin = user?.isAdmin ?? false; // botões de compra e acerto
+    final canSeeCosts = user?.canSeeCosts ?? false; // preços
 
     final Filament? filament = filaments.value?.where((f) => f.id == filamentId).firstOrNull;
     final stock = stocks.value?.where((s) => s.filamentId == filamentId).firstOrNull;
 
     return Scaffold(
       appBar: AppBar(title: Text(filament == null ? "Stock" : filamentLabel(filament))),
-      body: movements.when(
+      body: (filaments.hasError || stocks.hasError)
+          ? _LoadError(onRetry: () {
+              ref.invalidate(filamentsProvider);
+              ref.invalidate(filamentStockProvider);
+              ref.invalidate(filamentMovementsProvider(filamentId));
+            })
+          : movements.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text("Erro: $error")),
         data: (list) => ListView(
@@ -54,7 +62,7 @@ class FilamentStockScreen extends ConsumerWidget {
               const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Text("Ainda não há movimentos."))
             else
               Card(
-                child: Column(children: [for (final m in list) _tile(m, isAdmin)]),
+                child: Column(children: [for (final m in list) _tile(m, canSeeCosts)]),
               ),
           ],
         ),
@@ -81,13 +89,13 @@ class FilamentStockScreen extends ConsumerWidget {
     return "${g > 0 ? "+" : "−"}${gramsText(g.abs())}";
   }
 
-  Widget _tile(FilamentMovement m, bool isAdmin) {
+  Widget _tile(FilamentMovement m, bool canSeeCosts) {
     final d = m.createdAt.toLocal();
     final date = "${d.day.toString().padLeft(2, "0")}/${d.month.toString().padLeft(2, "0")}/${d.year}";
     final parts = <String>[date, m.userName ?? "automático"];
     // preços só para o administrador (a API também os esconde ao colaborador)
     final spools = m.spools ?? 0;
-    if (isAdmin && m.type == MovementType.purchase && m.paidPrice != null && spools > 0) {
+    if (canSeeCosts && m.type == MovementType.purchase && m.paidPrice != null && spools > 0) {
       parts.add(euroPer(m.paidPrice! / spools, "rolo"));
     }
     final note = (m.note ?? "").trim();
@@ -96,6 +104,27 @@ class FilamentStockScreen extends ConsumerWidget {
       subtitle: Text([parts.join(" · "), if (note.isNotEmpty) note].join("\n")),
       isThreeLine: note.isNotEmpty,
       trailing: Text(_signed(m.grams), style: AppTextStyles.mono.copyWith(fontWeight: FontWeight.w700)),
+    );
+  }
+}
+
+/// O que se mostra quando os filamentos ou o stock não carregam.
+class _LoadError extends StatelessWidget {
+  const _LoadError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text("Não foi possível carregar o stock."),
+          const SizedBox(height: 12),
+          FilledButton(onPressed: onRetry, child: const Text("Tentar outra vez")),
+        ],
+      ),
     );
   }
 }

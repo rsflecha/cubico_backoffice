@@ -38,7 +38,7 @@ class StockScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(right: 12),
               child: FilledButton.icon(
-                onPressed: filaments.hasValue
+                onPressed: filaments.hasValue && filaments.requireValue.isNotEmpty
                     ? () => showPurchaseDialog(context, filaments: filaments.requireValue)
                     : null,
                 icon: const Icon(Icons.add),

@@ -1,9 +1,12 @@
 import 'package:cubico_backoffice/features/auth/domain/app_user.dart';
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
+import 'package:cubico_backoffice/features/costs/domain/filament.dart';
+import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
 import 'package:cubico_backoffice/features/stock/presentation/filament_stock_screen.dart';
 import 'package:cubico_backoffice/features/stock/presentation/stock_providers.dart';
 import 'package:cubico_backoffice/features/stock/presentation/stock_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -25,7 +28,7 @@ class _Staff extends SessionNotifier {
 }
 
 /// Abre [home] com o utilizador pedido; devolve o container para espreitar o estado.
-Future<ProviderContainer> _open(WidgetTester tester, Widget home, {bool admin = true}) async {
+Future<ProviderContainer> _open(WidgetTester tester, Widget home, {bool admin = true, List<Override> extra = const []}) async {
   tester.view.physicalSize = const Size(1400, 2400);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -34,6 +37,7 @@ Future<ProviderContainer> _open(WidgetTester tester, Widget home, {bool admin = 
       overrides: [
         demoModeProvider.overrideWith(_Demo.new),
         sessionProvider.overrideWith(admin ? _Admin.new : _Staff.new),
+        ...extra,
       ],
       child: MaterialApp(home: home),
     ),
@@ -57,6 +61,7 @@ Future<void> _type(WidgetTester tester, String label, String text) async {
 }
 
 void main() {
+  fixRound1();
   testWidgets("lista: cada filamento com rolos e gramas; o administrador vê «Registar compra»", (tester) async {
     await _open(tester, const StockScreen());
     expect(find.text("PLA Black Basic · Bambu Lab"), findsOneWidget);
@@ -162,5 +167,39 @@ void main() {
     }
     final movements = (await tester.runAsync(() => container.read(stockRepositoryProvider).fetchMovements(1)))!;
     expect(movements.length, 1);
+  });
+}
+
+/// Fix round 1: erros de carregamento e lista de filamentos vazia.
+void fixRound1() {
+  testWidgets("histórico: filamentos que falham mostram erro com «Tentar outra vez»", (tester) async {
+    await _open(
+      tester,
+      const FilamentStockScreen(filamentId: 1),
+      extra: [filamentsProvider.overrideWith((ref) async => throw Exception("sem rede"))],
+    );
+    expect(find.textContaining("Não foi possível carregar o stock"), findsOneWidget);
+    expect(find.text("Tentar outra vez"), findsOneWidget);
+  });
+
+  testWidgets("histórico: stock que falha mostra erro com «Tentar outra vez»", (tester) async {
+    await _open(
+      tester,
+      const FilamentStockScreen(filamentId: 1),
+      extra: [filamentStockProvider.overrideWith((ref) async => throw Exception("sem rede"))],
+    );
+    expect(find.textContaining("Não foi possível carregar o stock"), findsOneWidget);
+    expect(find.text("Tentar outra vez"), findsOneWidget);
+  });
+
+  testWidgets("lista sem filamentos: «Registar compra» fica desligado e não rebenta", (tester) async {
+    await _open(
+      tester,
+      const StockScreen(),
+      extra: [filamentsProvider.overrideWith((ref) async => <Filament>[])],
+    );
+    final button = tester.widget<FilledButton>(find.byWidgetPredicate((w) => w is FilledButton));
+    expect(button.onPressed, isNull);
+    expect(tester.takeException(), isNull);
   });
 }

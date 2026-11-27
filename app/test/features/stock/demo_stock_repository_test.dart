@@ -1,9 +1,11 @@
+import 'package:cubico_backoffice/features/costs/domain/filament.dart';
 import 'package:cubico_backoffice/features/costs/data/demo_filament_repository.dart';
 import 'package:cubico_backoffice/features/stock/data/demo_stock_repository.dart';
 import 'package:cubico_backoffice/features/stock/domain/filament_movement.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  inactiveRule();
   DemoStockRepository make() => DemoStockRepository(DemoFilamentRepository());
 
   Future<double> stockOf(DemoStockRepository r, int id) async =>
@@ -53,5 +55,22 @@ void main() {
     expect(m.shippingCost, isNull);
     expect(m.type, MovementType.consumption);
     expect(m.grams, -12.5);
+  });
+}
+
+/// Um repositório de filamentos com um inativo, para a regra "só os ativos têm linha de stock".
+class _WithInactive extends DemoFilamentRepository {
+  @override
+  Future<List<Filament>> fetchAll() async {
+    final all = await super.fetchAll();
+    return [for (final f in all) f.id == 2 ? f.copyWith(isActive: false) : f];
+  }
+}
+
+void inactiveRule() {
+  test("filamento inativo não tem linha de stock (como na API)", () async {
+    final r = DemoStockRepository(_WithInactive());
+    final ids = (await r.fetchStock()).map((s) => s.filamentId).toList();
+    expect(ids, [1, 3]);
   });
 }

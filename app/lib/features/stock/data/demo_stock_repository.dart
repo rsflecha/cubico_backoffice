@@ -53,6 +53,8 @@ class DemoStockRepository implements StockRepository {
     final filaments = await _sync();
     return [
       for (final f in filaments)
+        // como na API: só os filamentos ativos têm linha de stock
+        if (f.isActive)
         FilamentStock(
           filamentId: f.id,
           stockG: _stockOf(f.id),
