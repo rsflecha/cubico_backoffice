@@ -3,6 +3,7 @@ import 'package:cubico_backoffice/core/colors.dart';
 import 'package:cubico_backoffice/core/formatting.dart';
 import 'package:cubico_backoffice/features/costs/domain/cost_calculator.dart';
 import 'package:cubico_backoffice/features/costs/domain/filament.dart';
+import 'package:cubico_backoffice/features/costs/domain/same_brand.dart';
 import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
@@ -286,6 +287,9 @@ class _FilamentFormState extends ConsumerState<_FilamentForm> {
   late final _weight = TextEditingController(
     text: "${widget.initial?.spoolWeightG ?? 1000}",
   );
+  late final _emptySpool = TextEditingController(
+    text: "${widget.initial?.emptySpoolG ?? 0}",
+  );
   late final _listPrice = TextEditingController(
     text: widget.initial == null ? "" : decimalField(widget.initial!.listPrice),
   );
@@ -309,6 +313,7 @@ class _FilamentFormState extends ConsumerState<_FilamentForm> {
       _colorName,
       _colorHex,
       _weight,
+      _emptySpool,
       _listPrice,
       _paidPrice,
       _shipping,
@@ -334,6 +339,7 @@ class _FilamentFormState extends ConsumerState<_FilamentForm> {
       colorName: _colorName.text.trim(),
       colorHex: hex.isEmpty ? null : hex,
       spoolWeightG: parseDecimal(_weight.text).round(),
+      emptySpoolG: parseDecimal(_emptySpool.text).round(), // vazio = 0
       listPrice: list > 0
           ? list
           : paid, // sem preço normal, conta como sem desconto
@@ -351,6 +357,7 @@ class _FilamentFormState extends ConsumerState<_FilamentForm> {
     if (d.material.isEmpty) return "Escreve o tipo (PLA, PETG…).";
     if (d.colorName.isEmpty) return "Escreve o nome da cor.";
     if (d.spoolWeightG <= 0) return "O peso do rolo tem de ser maior do que 0.";
+    if (d.emptySpoolG < 0) return "O carretel vazio não pode ser negativo.";
     if (d.paidPrice <= 0) return "Escreve o preço que pagaste.";
     return null;
   }
@@ -378,6 +385,36 @@ class _FilamentFormState extends ConsumerState<_FilamentForm> {
 
     ref.invalidate(filamentsProvider);
     if (!mounted) return;
+
+    // a tara costuma ser igual para a mesma marca: oferece copiá-la
+    final all = await ref.read(filamentsProvider.future);
+    if (!mounted) return;
+    final others = sameBrandOthers(all, draft);
+    if (others.isNotEmpty) {
+      final copy = await showDialog<bool>(
+        context: context,
+        builder: (_) => _CopyTareDialog(
+          tare: draft.emptySpoolG,
+          count: others.length,
+          brand: draft.brand!,
+        ),
+      );
+      if (!mounted) return;
+      if (copy == true) {
+        try {
+          for (final f in others) {
+            await repository.update(f.copyWith(emptySpoolG: draft.emptySpoolG));
+          }
+        } catch (error) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Não foi possível guardar: $error")),
+          );
+        }
+        ref.invalidate(filamentsProvider);
+        if (!mounted) return;
+      }
+    }
     widget.onClose();
   }
 
@@ -440,6 +477,13 @@ class _FilamentFormState extends ConsumerState<_FilamentForm> {
                 ),
               );
               final weight = _number(_weight, "Peso do rolo", "g");
+              final emptySpool = _number(
+                _emptySpool,
+                "Carretel vazio",
+                "g",
+                hint:
+                    "Pesa um carretel vazio desta marca. Serve para acertar o stock.",
+              );
               final listPrice = _number(
                 _listPrice,
                 "Preço normal",
@@ -474,6 +518,7 @@ class _FilamentFormState extends ConsumerState<_FilamentForm> {
                   [colorName],
                   [colorHex],
                   [weight],
+                  [emptySpool],
                   [listPrice],
                   [paidPrice],
                   [shipping],
@@ -484,15 +529,15 @@ class _FilamentFormState extends ConsumerState<_FilamentForm> {
                 rows = [
                   [material, brand],
                   [colorName, colorHex],
-                  [weight, listPrice],
-                  [paidPrice, shipping],
-                  [spools],
+                  [weight, emptySpool],
+                  [listPrice, paidPrice],
+                  [shipping, spools],
                 ];
               } else {
                 // computador: como estava
                 rows = [
                   [material, brand, colorName, colorHex],
-                  [weight, listPrice, paidPrice],
+                  [weight, emptySpool, listPrice, paidPrice],
                   [shipping, spools],
                 ];
               }
@@ -643,6 +688,37 @@ class _FilamentFormState extends ConsumerState<_FilamentForm> {
         helperText: hint,
       ),
       onChanged: (_) => setState(() {}),
+    );
+  }
+}
+
+/// A pergunta depois de gravar: usar a mesma tara nos outros filamentos da marca?
+/// Devolve true se o Rui carregar em "Usar".
+class _CopyTareDialog extends StatelessWidget {
+  const _CopyTareDialog({
+    required this.tare,
+    required this.count,
+    required this.brand,
+  });
+
+  final int tare;
+  final int count;
+  final String brand;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text("Usar $tare g nos outros $count filamentos $brand?"),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text("Agora não"),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text("Usar"),
+        ),
+      ],
     );
   }
 }
