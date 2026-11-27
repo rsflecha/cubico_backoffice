@@ -45,15 +45,20 @@ function stockFilamentExists(int $id): bool
     return $st->fetchColumn() !== false;
 }
 
-/** O movimento acabado de gravar, na forma que a app recebe (com preços: só o administrador chega aqui). */
+/** O movimento acabado de gravar (com preços: só o administrador chega aqui); null se não aparecer. */
 function stockMovementById(int $filamentId, int $movementId): ?array
 {
-    foreach (filamentMovements($filamentId, true) as $movement) {
-        if ($movement['id'] === $movementId) {
-            return $movement;
-        }
+    return filamentMovements($filamentId, true, $movementId)[0] ?? null;
+}
+
+/** Responde 201 com o movimento; se não o encontrar, é erro do servidor, nunca um 201 vazio. */
+function stockCreated(Response $response, int $filamentId, int $movementId): Response
+{
+    $movement = stockMovementById($filamentId, $movementId);
+    if ($movement === null) {
+        return fail($response, 'O movimento foi gravado mas não foi possível lê-lo. Atualize a página e confirme o histórico.', 500);
     }
-    return null;
+    return json($response, $movement, 201);
 }
 
 // GET /api/filaments/stock → [{filament_id, stock_g, spools, min_stock_g}] (todos com sessão)
@@ -94,7 +99,7 @@ $app->post('/api/filaments/{id}/purchases', function (Request $request, Response
     } catch (InvalidArgumentException $e) {
         return fail($response, $e->getMessage(), 422);
     }
-    return json($response, stockMovementById($id, $movementId), 201);
+    return stockCreated($response, $id, $movementId);
 })->add($requireAdmin)->add($requireAuth);
 
 // POST /api/filaments/{id}/adjustments → acerto por pesagem (só administrador)
@@ -131,5 +136,5 @@ $app->post('/api/filaments/{id}/adjustments', function (Request $request, Respon
     } catch (InvalidArgumentException $e) {
         return fail($response, $e->getMessage(), 422);
     }
-    return json($response, stockMovementById($id, $movementId), 201);
+    return stockCreated($response, $id, $movementId);
 })->add($requireAdmin)->add($requireAuth);

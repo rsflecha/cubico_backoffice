@@ -62,13 +62,16 @@ $before = $pdo->query("SELECT empty_spool_g, paid_price, shipping_cost, spools_i
 
 try {
     // Função: limite de rolos (o campo spools_in_order é TINYINT UNSIGNED)
-    $threw = false;
+    // Fica à parte: se rebentar com outra coisa, conta como falha mas não impede os casos das rotas.
+    $threw = null;
     try {
         recordPurchase($filamentId, 256, 15.0, 0.0, null);
     } catch (InvalidArgumentException $e) {
-        $threw = true;
+        $threw = 'InvalidArgumentException';
+    } catch (Throwable $e) {
+        $threw = get_class($e) . ': ' . $e->getMessage();
     }
-    check('recordPurchase com 256 rolos recusada', $threw);
+    check('recordPurchase com 256 rolos recusada', $threw === 'InvalidArgumentException', $threw);
 
     $pdo->prepare('UPDATE filaments SET empty_spool_g = 250 WHERE id = ?')->execute([$filamentId]);
 

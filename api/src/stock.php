@@ -193,8 +193,9 @@ function recordAdjustment(int $filamentId, int $closedSpools, array $openGrossG,
 /**
  * Os movimentos de um filamento, o mais recente primeiro. Sem $withPrices, as compras não trazem
  * paid_price nem shipping_cost (o colaborador não vê o que a loja pagou).
+ * Com $onlyMovementId devolve só esse movimento (ou lista vazia se não for deste filamento).
  */
-function filamentMovements(int $filamentId, bool $withPrices): array
+function filamentMovements(int $filamentId, bool $withPrices, ?int $onlyMovementId = null): array
 {
     $st = db()->prepare(
         'SELECT m.id, m.filament_id, m.movement_type, m.grams, m.spools, m.paid_price, m.shipping_cost,
@@ -202,10 +203,10 @@ function filamentMovements(int $filamentId, bool $withPrices): array
                 u.name AS user_name
            FROM filament_movements m
            LEFT JOIN users u ON u.id = m.user_id
-          WHERE m.filament_id = ?
+          WHERE m.filament_id = ? AND (? IS NULL OR m.id = ?)
           ORDER BY m.created_at DESC, m.id DESC'
     );
-    $st->execute([$filamentId]);
+    $st->execute([$filamentId, $onlyMovementId, $onlyMovementId]);
 
     $out = [];
     foreach ($st->fetchAll() as $r) {
