@@ -93,6 +93,7 @@ CREATE TABLE filaments (
   color_name     VARCHAR(60) NOT NULL,
   color_hex      CHAR(7),
   spool_weight_g INT UNSIGNED NOT NULL DEFAULT 1000,
+  empty_spool_g  SMALLINT UNSIGNED NOT NULL DEFAULT 0, -- tara: peso do carretel vazio (0 = por saber)
   list_price     DECIMAL(10,2) NOT NULL,          -- preco de tabela, so para referencia
   paid_price     DECIMAL(10,2) NOT NULL,          -- o que foi mesmo pago, com desconto
   shipping_cost  DECIMAL(10,2) NOT NULL DEFAULT 0,   -- portes totais dessa compra
@@ -383,27 +384,31 @@ CREATE TABLE print_failures (
   FOREIGN KEY (filament_id)  REFERENCES filaments(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- ───────────── Stock (v2, ja preparado) ─────────────
+-- ───────────── Stock (migração 015) ─────────────
+-- Stock de um filamento = SUM(grams). Os movimentos nunca se editam nem se apagam.
 
-CREATE TABLE spools (
+CREATE TABLE filament_movements (
   id               INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   filament_id      SMALLINT UNSIGNED NOT NULL,
-  initial_weight_g INT UNSIGNED NOT NULL DEFAULT 1000,
-  remaining_g      INT NOT NULL,
-  status           ENUM('sealed','in_use','empty') NOT NULL DEFAULT 'sealed',
-  purchased_on     DATE,
-  FOREIGN KEY (filament_id) REFERENCES filaments(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE stock_movements (
-  id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  spool_id     INT UNSIGNED NOT NULL,
-  grams        INT NOT NULL,                        -- negativo = consumo, positivo = acerto
-  movement_type ENUM('production','failure','adjustment') NOT NULL,
-  print_job_id INT UNSIGNED,
-  created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (spool_id)     REFERENCES spools(id) ON DELETE CASCADE,
-  FOREIGN KEY (print_job_id) REFERENCES print_jobs(id) ON DELETE SET NULL
+  movement_type    ENUM('purchase','consumption','failure','adjustment','reversal') NOT NULL,
+  grams            DECIMAL(10,2) NOT NULL,        -- positivo entra, negativo sai
+  -- só nas compras: a "fotografia" do que foi pago
+  spools           SMALLINT UNSIGNED,
+  paid_price       DECIMAL(10,2),                 -- por rolo
+  shipping_cost    DECIMAL(10,2),                 -- total da compra
+  -- de onde veio
+  print_job_id     INT UNSIGNED,
+  print_failure_id INT UNSIGNED,
+  reverses_id      INT UNSIGNED,                  -- o movimento que este anula
+  note             VARCHAR(255),
+  user_id          INT UNSIGNED,                  -- quem fez (NULL = automático)
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX (filament_id, created_at),
+  FOREIGN KEY (filament_id)      REFERENCES filaments(id),
+  FOREIGN KEY (print_job_id)     REFERENCES print_jobs(id) ON DELETE SET NULL,
+  FOREIGN KEY (print_failure_id) REFERENCES print_failures(id) ON DELETE SET NULL,
+  FOREIGN KEY (reverses_id)      REFERENCES filament_movements(id),
+  FOREIGN KEY (user_id)          REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ───────────── Etsy ─────────────
