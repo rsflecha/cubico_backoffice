@@ -21,6 +21,7 @@ abstract class Filament with _$Filament {
     @Default(0) double shippingCost, // se nao vier, assume este valor
     @Default(1) int spoolsInOrder, // se nao vier, assume este valor
     @Default(250) int minStockG, // se nao vier, assume este valor
+    @Default(0) int emptySpoolG, // tara do carretel vazio; 0 = por preencher
     @Default(true) bool isActive, // se nao vier, assume este valor
   }) = _Filament;
 

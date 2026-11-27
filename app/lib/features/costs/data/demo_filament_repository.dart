@@ -11,6 +11,7 @@ class DemoFilamentRepository implements FilamentRepository {
       colorHex: "#1F2937",   // Black Basic
       listPrice: 26.86,
       paidPrice: 13.43,
+      emptySpoolG: 250,
     ),
     Filament(
       id: 2,
