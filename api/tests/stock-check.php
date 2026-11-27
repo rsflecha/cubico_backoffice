@@ -18,6 +18,7 @@ Dotenv\Dotenv::createImmutable(__DIR__ . '/..')->load();
 require __DIR__ . '/../src/db.php';
 require __DIR__ . '/../src/helpers.php';
 require __DIR__ . '/../src/stock.php';
+require __DIR__ . '/../src/costs.php';
 
 $failures = 0;
 
@@ -83,6 +84,26 @@ try {
         'compra com preço negativo recusada',
         thrownMessage(fn() => recordPurchase($filamentId, 1, -1.0, 0.0, null)) !== null
     );
+
+    // O preço da compra é POR ROLO: o €/kg é o mesmo que o de um filamento posto à mão a 15 €/rolo.
+    $afterPurchase = $pdo->query("SELECT * FROM filaments WHERE id = $filamentId")->fetch();
+    $pdo->prepare('UPDATE filaments SET paid_price = 15, shipping_cost = 4.9, spools_in_order = 2 WHERE id = ?')->execute([$filamentId]);
+    $byHand = $pdo->query("SELECT * FROM filaments WHERE id = $filamentId")->fetch();
+    check(
+        'compra de 2 rolos a 15 €/rolo: paid_price 15.00 (por rolo) e 2 rolos na encomenda',
+        (float) $afterPurchase['paid_price'] === 15.0 && (int) $afterPurchase['spools_in_order'] === 2,
+        $afterPurchase
+    );
+    check(
+        'compra: €/kg igual ao do filamento posto à mão a 15 €/rolo',
+        abs(filamentPricePerKg($afterPurchase) - filamentPricePerKg($byHand)) < 0.00001
+            && abs(filamentPricePerKg($afterPurchase) - 17.45) < 0.00001,
+        [filamentPricePerKg($afterPurchase), filamentPricePerKg($byHand)]
+    );
+    $before = (int) $pdo->query("SELECT COUNT(*) FROM filament_movements WHERE filament_id = $filamentId")->fetchColumn();
+    $m = thrownMessage(fn() => recordPurchase($filamentId, 1, 0.0, 0.0, null));
+    $after = (int) $pdo->query("SELECT COUNT(*) FROM filament_movements WHERE filament_id = $filamentId")->fetchColumn();
+    check('compra com preço 0 recusada, sem gravar nada', $m !== null && str_contains($m, 'maior que zero') && $before === $after, [$m, $before, $after]);
 
     // weighedTotal
     $t = weighedTotal(2, 1000, [712], 250);

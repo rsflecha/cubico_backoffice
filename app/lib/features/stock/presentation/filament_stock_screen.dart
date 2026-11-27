@@ -96,7 +96,7 @@ class FilamentStockScreen extends ConsumerWidget {
     // preços só para o administrador (a API também os esconde ao colaborador)
     final spools = m.spools ?? 0;
     if (canSeeCosts && m.type == MovementType.purchase && m.paidPrice != null && spools > 0) {
-      parts.add(euroPer(m.paidPrice! / spools, "rolo"));
+      parts.add(euroPer(m.paidPrice!, "rolo")); // paidPrice já é por rolo
     }
     final note = (m.note ?? "").trim();
     return ListTile(

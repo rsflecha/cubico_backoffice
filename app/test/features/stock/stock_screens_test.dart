@@ -1,7 +1,9 @@
 import 'package:cubico_backoffice/features/auth/domain/app_user.dart';
 import 'package:cubico_backoffice/features/auth/presentation/auth_providers.dart';
+import 'package:cubico_backoffice/features/costs/data/demo_filament_repository.dart';
 import 'package:cubico_backoffice/features/costs/domain/filament.dart';
 import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
+import 'package:cubico_backoffice/features/stock/data/demo_stock_repository.dart';
 import 'package:cubico_backoffice/features/stock/presentation/filament_stock_screen.dart';
 import 'package:cubico_backoffice/features/stock/presentation/stock_providers.dart';
 import 'package:cubico_backoffice/features/stock/presentation/stock_screen.dart';
@@ -58,6 +60,14 @@ Finder _field(String label) => find.byWidgetPredicate((w) => w is TextField && w
 Future<void> _type(WidgetTester tester, String label, String text) async {
   await tester.enterText(_field(label), text);
   await tester.pump();
+}
+
+/// Escolhe no menu da janela de compra o filamento [label] (por omissão o primeiro: id 1).
+Future<void> _pickFilament(WidgetTester tester, {String label = "PLA Black Basic · Bambu Lab"}) async {
+  await tester.tap(find.byType(DropdownButtonFormField<int>));
+  await _settle(tester);
+  await tester.tap(find.text(label).last);
+  await _settle(tester);
 }
 
 void main() {
@@ -138,7 +148,8 @@ void main() {
     await tester.tap(find.text("Registar compra"));
     await _settle(tester);
     await _type(tester, "Rolos", "2");
-    await _type(tester, "Preço pago (total dos rolos)", "26,86");
+    await _pickFilament(tester);
+    await _type(tester, "Preço pago por rolo", "13,43");
     await _type(tester, "Portes", "0");
     await tester.tap(find.text("Gravar"));
     await tester.tap(find.text("Gravar"));
@@ -148,25 +159,85 @@ void main() {
     expect(find.text("Gravar"), findsNothing); // a janela fechou
   });
 
-  testWidgets("compra: recusa rolos a 0 ou acima de 255 e preços negativos", (tester) async {
+  testWidgets("compra: recusa rolos a 0 ou acima de 255 e preços negativos ou a zero", (tester) async {
     final container = await _open(tester, const StockScreen());
     await tester.tap(find.text("Registar compra"));
     await _settle(tester);
+    await _pickFilament(tester);
     for (final bad in [
       ["0", "10", "0"],
       ["256", "10", "0"],
       ["1", "-5", "0"],
       ["1", "10", "-1"],
+      ["1", "0", "0"],
+      ["1", "", "0"],
     ]) {
       await _type(tester, "Rolos", bad[0]);
-      await _type(tester, "Preço pago (total dos rolos)", bad[1]);
+      await _type(tester, "Preço pago por rolo", bad[1]);
       await _type(tester, "Portes", bad[2]);
       await tester.tap(find.text("Gravar"));
       await _settle(tester);
       expect(find.text("Gravar"), findsOneWidget, reason: "$bad devia ser recusado");
     }
+    expect(find.textContaining("maior que zero"), findsOneWidget); // o último caso: preço vazio
     final movements = (await tester.runAsync(() => container.read(stockRepositoryProvider).fetchMovements(1)))!;
     expect(movements.length, 1);
+  });
+
+  testWidgets("compra: sem escolher o filamento mostra «Escolhe o filamento.» e não grava", (tester) async {
+    final container = await _open(tester, const StockScreen());
+    await tester.tap(find.text("Registar compra"));
+    await _settle(tester);
+    await _type(tester, "Rolos", "2");
+    await _type(tester, "Preço pago por rolo", "15,00");
+    await tester.tap(find.text("Gravar"));
+    await _settle(tester);
+    expect(find.text("Escolhe o filamento."), findsOneWidget);
+    for (final id in [1, 2, 3]) {
+      final movements = (await tester.runAsync(() => container.read(stockRepositoryProvider).fetchMovements(id)))!;
+      expect(movements.length, 1, reason: "filamento $id não devia ter compras novas");
+    }
+  });
+
+  testWidgets("compra de 2 rolos a 15,00 € por rolo: grava 15.0 por rolo e o histórico mostra «15,00 €/rolo»", (tester) async {
+    final repo = DemoStockRepository(DemoFilamentRepository());
+    await _open(tester, const StockScreen(), extra: [stockRepositoryProvider.overrideWithValue(repo)]);
+    await tester.tap(find.text("Registar compra"));
+    await _settle(tester);
+    await _pickFilament(tester);
+    await _type(tester, "Rolos", "2");
+    await _type(tester, "Preço pago por rolo", "15,00");
+    expect(find.textContaining("Total: 30,00"), findsOneWidget); // preço × rolos
+    await tester.tap(find.text("Gravar"));
+    await _settle(tester);
+    final movements = (await tester.runAsync(() => repo.fetchMovements(1)))!;
+    expect(movements.first.paidPrice, 15.0);
+    expect(movements.first.spools, 2);
+
+    await _open(tester, const FilamentStockScreen(filamentId: 1), extra: [stockRepositoryProvider.overrideWithValue(repo)]);
+    expect(find.textContaining("15,00 €/rolo"), findsOneWidget);
+  });
+
+  testWidgets("compra: os filamentos são relidos (o preço novo chega a Custos e preços)", (tester) async {
+    final filaments = DemoFilamentRepository();
+    final repo = DemoStockRepository(filaments);
+    final container = await _open(tester, const StockScreen(), extra: [
+      filamentRepositoryProvider.overrideWithValue(filaments),
+      stockRepositoryProvider.overrideWithValue(repo),
+    ]);
+    expect(container.read(filamentsProvider).requireValue.first.paidPrice, 13.43);
+    await tester.tap(find.text("Registar compra"));
+    await _settle(tester);
+    await _pickFilament(tester);
+    await _type(tester, "Rolos", "2");
+    await _type(tester, "Preço pago por rolo", "15,00");
+    await _type(tester, "Portes", "4,90");
+    await tester.tap(find.text("Gravar"));
+    await _settle(tester);
+    final f = container.read(filamentsProvider).requireValue.first;
+    expect(f.paidPrice, 15.0);
+    expect(f.shippingCost, 4.9);
+    expect(f.spoolsInOrder, 2);
   });
 }
 

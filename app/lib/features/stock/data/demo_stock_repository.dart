@@ -84,6 +84,7 @@ class DemoStockRepository implements StockRepository {
     await _latency();
     final f = await _filament(filamentId);
     if (spools <= 0) throw StateError("Tem de comprar pelo menos 1 rolo.");
+    if (paidPrice <= 0) throw StateError("O preço por rolo tem de ser maior que zero.");
     final movement = FilamentMovement(
       id: _nextId++,
       type: MovementType.purchase,
@@ -95,6 +96,8 @@ class DemoStockRepository implements StockRepository {
       createdAt: DateTime.now(),
     );
     _movements[filamentId]!.add(movement);
+    // como a API: o preço da última compra passa a ser o do filamento (a calculadora de custo usa estes campos)
+    await _filaments.update(f.copyWith(paidPrice: paidPrice, shippingCost: shippingCost, spoolsInOrder: spools));
     return movement;
   }
 

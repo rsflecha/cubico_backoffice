@@ -1,6 +1,7 @@
 import 'package:cubico_backoffice/core/api/api_exception.dart';
 import 'package:cubico_backoffice/core/formatting.dart';
 import 'package:cubico_backoffice/features/costs/domain/filament.dart';
+import 'package:cubico_backoffice/features/costs/presentation/costs_providers.dart';
 import 'package:cubico_backoffice/features/stock/presentation/stock_providers.dart';
 import 'package:cubico_backoffice/features/stock/presentation/stock_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,7 +34,8 @@ class _PurchaseDialogState extends ConsumerState<PurchaseDialog> {
   final _spools = TextEditingController(text: "1");
   final _price = TextEditingController();
   final _shipping = TextEditingController(text: "0");
-  late int _filamentId = widget.filamentId ?? widget.filaments.first.id;
+  // Sem filamento escolhido até o Rui o escolher (ou quem abre a janela o indicar).
+  late int? _filamentId = widget.filamentId;
   var _saving = false;
   String? _error;
 
@@ -53,12 +55,13 @@ class _PurchaseDialogState extends ConsumerState<PurchaseDialog> {
 
   /// O que está mal no formulário, ou null. Valida aqui porque o modo demo não o faz.
   String? _problem() {
+    if (_filamentId == null) return "Escolhe o filamento.";
     final spools = int.tryParse(_spools.text.trim());
     if (spools == null || spools < 1 || spools > 255) {
       return "Os rolos têm de ser um número inteiro entre 1 e 255.";
     }
     final price = _number(_price.text);
-    if (price == null || price < 0) return "O preço pago tem de ser um número, zero ou mais.";
+    if (price == null || price <= 0) return "O preço por rolo tem de ser um número maior que zero.";
     final shipping = _number(_shipping.text);
     if (shipping == null || shipping < 0) return "Os portes têm de ser um número, zero ou mais.";
     return null;
@@ -76,14 +79,16 @@ class _PurchaseDialogState extends ConsumerState<PurchaseDialog> {
       _error = null;
     });
     try {
+      final filamentId = _filamentId!; // _problem() garantiu que há filamento
       await ref.read(stockRepositoryProvider).recordPurchase(
-        _filamentId,
+        filamentId,
         spools: int.parse(_spools.text.trim()),
         paidPrice: parseDecimal(_price.text),
         shippingCost: parseDecimal(_shipping.text),
       );
       ref.invalidate(filamentStockProvider);
-      ref.invalidate(filamentMovementsProvider(_filamentId));
+      ref.invalidate(filamentsProvider); // a compra mudou o preço do filamento (paid_price, portes, rolos)
+      ref.invalidate(filamentMovementsProvider(filamentId));
       if (!mounted) return;
       Navigator.pop(context, true);
     } on ApiException catch (e) {
@@ -124,7 +129,7 @@ class _PurchaseDialogState extends ConsumerState<PurchaseDialog> {
                   for (final f in widget.filaments)
                     DropdownMenuItem(value: f.id, child: Text(filamentLabel(f), overflow: TextOverflow.ellipsis)),
                 ],
-                onChanged: _saving ? null : (value) => setState(() => _filamentId = value ?? _filamentId),
+                onChanged: _saving ? null : (value) => setState(() => _filamentId = value),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -137,19 +142,19 @@ class _PurchaseDialogState extends ConsumerState<PurchaseDialog> {
               TextField(
                 controller: _price,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: "Preço pago (total dos rolos)", suffixText: "€"),
+                decoration: const InputDecoration(labelText: "Preço pago por rolo", suffixText: "€"),
                 onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _shipping,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: "Portes", suffixText: "€"),
+                decoration: const InputDecoration(labelText: "Portes", helperText: "O total da encomenda, não por rolo", suffixText: "€"),
               ),
               if (spools != null && spools > 0 && price != null && price > 0)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
-                  child: Text("Preço por rolo: ${euro(price / spools)}"),
+                  child: Text("Total: ${euro(price * spools)}"),
                 ),
               if (_error != null)
                 Padding(

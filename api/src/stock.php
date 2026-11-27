@@ -97,7 +97,8 @@ function weighedTotal(int $closedSpools, int $spoolWeightG, array $openGrossG, i
 }
 
 /**
- * Compra de rolos: grava +rolos × peso do rolo e passa o preço da última compra para o filamento
+ * Compra de rolos: $paidPrice é o preço POR ROLO (como filaments.paid_price), $shippingCost os portes
+ * da encomenda toda (a calculadora divide-os pelos rolos). Grava +rolos × peso do rolo e passa o preço da última compra para o filamento
  * (paid_price, shipping_cost, spools_in_order). Devolve o id do movimento.
  */
 function recordPurchase(int $filamentId, int $spools, float $paidPrice, float $shippingCost, ?int $userId): int
@@ -106,8 +107,11 @@ function recordPurchase(int $filamentId, int $spools, float $paidPrice, float $s
         // 255 é o máximo de filaments.spools_in_order (TINYINT UNSIGNED).
         throw new InvalidArgumentException('O número de rolos tem de estar entre 1 e 255.');
     }
-    if ($paidPrice < 0 || $shippingCost < 0) {
-        throw new InvalidArgumentException('O preço e os portes não podem ser negativos.');
+    if ($paidPrice <= 0) {
+        throw new InvalidArgumentException('O preço por rolo tem de ser maior que zero.');
+    }
+    if ($shippingCost < 0) {
+        throw new InvalidArgumentException('Os portes não podem ser negativos.');
     }
 
     return stockInTransaction(function (PDO $pdo) use ($filamentId, $spools, $paidPrice, $shippingCost, $userId): int {

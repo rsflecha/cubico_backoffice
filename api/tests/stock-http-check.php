@@ -95,6 +95,8 @@ try {
     check('256 rolos: 422', $c === 422, $c);
     [$c] = call('POST', "/filaments/$filamentId/purchases", ['spools' => 1, 'paid_price' => -1, 'shipping_cost' => 0], $adminToken);
     check('preço negativo: 422', $c === 422, $c);
+    [$c] = call('POST', "/filaments/$filamentId/purchases", ['spools' => 1, 'paid_price' => 0, 'shipping_cost' => 0], $adminToken);
+    check('preço 0: 422', $c === 422, $c);
     [$c, , $j] = call('POST', "/filaments/$filamentId/purchases", ['spools' => 'abc', 'paid_price' => 15, 'shipping_cost' => 0], $adminToken);
     check('rolos "abc": 422 com mensagem', $c === 422 && !empty($j['error']), [$c, $j]);
     [$c] = call('POST', "/filaments/$filamentId/purchases", ['spools' => 1, 'paid_price' => 'xyz', 'shipping_cost' => 0], $adminToken);
