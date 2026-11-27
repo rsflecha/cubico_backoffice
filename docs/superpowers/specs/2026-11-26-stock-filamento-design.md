@@ -3,6 +3,7 @@
 > Estado: **aprovado pelo Rui a 2026-11-26.** Escrito nesse dia, a partir da conversa.
 > As decisões marcadas *(decisão do Rui)* foram tomadas por ele; as marcadas *(proposta do Claude, aprovada pelo Rui)*
 > eram escolhas minhas, e o Rui aprovou-as todas a 2026-11-26.
+> **Alterado a 2026-11-27** (decisão do Rui): a pesagem inclui o carretel — tara por filamento (secção 5.3, Acerto).
 
 ## 1. Porquê
 
@@ -127,9 +128,20 @@ a 2026-11-26). Este trabalho acrescenta um botão **"Registar falha"** no cartã
 Produção: filamento (por omissão o principal da tarefa), gramas desperdiçados, minutos perdidos e motivo
 *(proposta do Claude, aprovada pelo Rui)*. Ao gravar, a API escreve a falha e o movimento `−wasted_grams`, na mesma transação.
 
-**Acerto** (só administrador). O Rui pesa o que tem e escreve o total real. A app grava a diferença
-(`real − stock atual`), com uma nota opcional. O **stock inicial** de cada filamento entra assim: no
-primeiro dia, um acerto por filamento com o que está na prateleira.
+**Acerto** (só administrador). A balança pesa o filamento **com o carretel** e não há forma de pesar só o
+filamento *(o Rui, a 2026-11-27)*. Por isso *(decisão do Rui, a 2026-11-27)*:
+- cada filamento ganha a **tara**, `filaments.empty_spool_g` ("Carretel vazio", em gramas inteiros,
+  `0` = por saber). O Rui pesa um carretel vazio uma vez e escreve o valor na ficha do filamento, em
+  Custos e preços. Ao gravar, a app oferece copiar a mesma tara para os outros filamentos **da mesma marca**;
+- no acerto, o Rui escreve os **rolos fechados** (contam `spool_weight_g` cada um) e o **peso na balança
+  de cada rolo aberto** (um ou mais). Total real = `fechados × spool_weight_g + Σ (peso na balança − tara)`;
+- um rolo aberto mais leve do que a tara é um engano e não se grava; com a tara a `0`, só se podem
+  acertar rolos fechados, e a app diz onde preencher a tara.
+
+A API refaz a conta (as contas oficiais ficam na API), grava a diferença (`real − stock atual`, mesmo que
+seja 0: fica a data da pesagem) e escreve na nota o que foi pesado ("2 fechados + 712 g na balança − 250 g"),
+mais a nota opcional do Rui. O **stock inicial** de cada filamento entra assim: no primeiro dia, um acerto
+por filamento com o que está na prateleira.
 
 ### 5.4 Aviso de "1 rolo ou menos"
 
@@ -176,7 +188,7 @@ PLA preto · Bambu                     2 380 g        [ Acertar ]
 - `GET /api/filaments/stock` — stock, rolos e limite de cada filamento (sem preços para o colaborador).
 - `GET /api/filaments/{id}/movements` — o histórico (sem preços para o colaborador).
 - `POST /api/filaments/{id}/purchases` — admin.
-- `POST /api/filaments/{id}/adjustments` — admin; recebe o total pesado.
+- `POST /api/filaments/{id}/adjustments` — admin; recebe os rolos fechados e o peso na balança de cada rolo aberto, e faz a conta com a tara.
 - O consumo e a falha gravam-se **dentro da mesma transação** que muda a tarefa ou grava a falha
   (`api/routes/production.php`): ou fica tudo, ou nada.
 
