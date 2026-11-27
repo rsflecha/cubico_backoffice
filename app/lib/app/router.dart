@@ -12,6 +12,8 @@ import 'package:cubico_backoffice/features/orders/presentation/orders_screen.dar
 import 'package:cubico_backoffice/features/production/presentation/production_screen.dart';
 import 'package:cubico_backoffice/features/products/presentation/products_screen.dart';
 import 'package:cubico_backoffice/features/settings/presentation/settings_screen.dart';
+import 'package:cubico_backoffice/features/stock/presentation/filament_stock_screen.dart';
+import 'package:cubico_backoffice/features/stock/presentation/stock_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -157,6 +159,24 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: "etsy-skus", // /settings/etsy-skus (só o administrador, pelo redirect)
                     builder: (context, state) => const EtsyListingsCheckScreen(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          // no fim, para não renumerar os outros ramos (o menu tem a sua própria ordem)
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: "/stock",
+                builder: (context, state) => const StockScreen(),
+                routes: [
+                  GoRoute(
+                    path: ":id", // /stock/1
+                    builder: (context, state) {
+                      final id = int.parse(state.pathParameters["id"]!);
+                      return FilamentStockScreen(filamentId: id);
+                    },
                   ),
                 ],
               ),

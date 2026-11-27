@@ -11,7 +11,7 @@ class _Section {
   const _Section(this.branch, this.icon, this.label, {this.costsOnly = false});
 
   final int
-  branch; // a posição no StatefulShellRoute (0 = Dashboard … 6 = Definições)
+  branch; // a posição no StatefulShellRoute (0 = Dashboard … 7 = Stock)
   final IconData icon;
   final String label;
   final bool costsOnly; // só para quem pode ver custos (o administrador)
@@ -23,6 +23,7 @@ const _sections = [
   _Section(1, Icons.receipt_long_outlined, "Encomendas"),
   _Section(2, Icons.print_outlined, "Produção"),
   _Section(3, Icons.inventory_2_outlined, "Produtos"),
+  _Section(7, Icons.inventory_outlined, "Stock"),
   _Section(4, Icons.people_outline, "Clientes"),
   _Section(5, Icons.calculate_outlined, "Custos e preços", costsOnly: true),
   _Section(6, Icons.settings_outlined, "Definições", costsOnly: true),
@@ -330,6 +331,12 @@ class AppShell extends ConsumerWidget {
                       title: Text("Produtos"),
                       selected: navigationShell.currentIndex == 3,
                       onTap: () => navigationShell.goBranch(3),
+                    ),
+                    ListTile(
+                      leading: Icon(Icons.inventory_outlined),
+                      title: Text("Stock"),
+                      selected: navigationShell.currentIndex == 7,
+                      onTap: () => navigationShell.goBranch(7),
                     ),
                     ListTile(
                       leading: Icon(Icons.people_outline),

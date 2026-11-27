@@ -50,6 +50,8 @@ const _adminRoutes = [
   "/products",
   "/products/new",
   "/products/1",
+  "/stock",
+  "/stock/1",
   "/customers",
   "/customers/new",
   "/customers/1",
@@ -58,7 +60,7 @@ const _adminRoutes = [
   "/settings",
 ];
 
-const _staffRoutes = ["/dashboard", "/orders", "/orders/1", "/production", "/products", "/products/1"];
+const _staffRoutes = ["/dashboard", "/orders", "/orders/1", "/production", "/products", "/products/1", "/stock", "/stock/1"];
 
 Future<void> _settle(WidgetTester tester) async {
   for (var i = 0; i < 8; i++) {
