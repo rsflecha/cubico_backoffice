@@ -387,9 +387,22 @@ class _FilamentFormState extends ConsumerState<_FilamentForm> {
     if (!mounted) return;
 
     // a tara costuma ser igual para a mesma marca: oferece copiá-la
-    final all = await ref.read(filamentsProvider.future);
-    if (!mounted) return;
-    final others = sameBrandOthers(all, draft);
+    // só se a tara foi mexida e tem valor (0 = por preencher, não se espalha)
+    final tareChanged =
+        draft.emptySpoolG > 0 &&
+        draft.emptySpoolG != (widget.initial?.emptySpoolG ?? 0);
+    var others = <Filament>[];
+    if (tareChanged) {
+      try {
+        others = sameBrandOthers(
+          await ref.read(filamentsProvider.future),
+          draft,
+        );
+      } catch (_) {
+        // a gravação já correu bem: se a releitura falhar, só não há oferta
+      }
+      if (!mounted) return;
+    }
     if (others.isNotEmpty) {
       final copy = await showDialog<bool>(
         context: context,
