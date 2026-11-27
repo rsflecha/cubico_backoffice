@@ -252,7 +252,7 @@ Para correr no PC: `php -S localhost:8080 -t public` dentro de `api` (ou o `inic
 | 18 | Produtos: ficha única com um só Guardar; cores disponíveis (migração 006) | ✅ |
 | 19 | Produtos: cartão só com gramas e tempo; custo pela cor mais cara; cor obrigatória na encomenda | ✅ |
 | 20 | Avisos de encomendas novas no telemóvel (Web Push, migração 013) | ✅ |
-| 21 | Stock de filamento, passo 2: compras e acertos por pesagem (migração 015) | ✅ no PC; falta publicar |
+| 21 | Stock de filamento, passo 2: compras e acertos por pesagem (migração 015) | ✅ publicado (API e web, 2026-11-27) |
 
 **Limitações conhecidas:** um filamento por variante no cartão de custo (a cor mais cara das disponíveis); nas encomendas manuais, os portes reais usam só a zona Portugal; a produção ainda não desconta filamento do stock nem regista falhas; na API, "enviar para produção" à mão e "encomenda pronta sozinha" ainda correm na app, pelo ProductionService.
 
