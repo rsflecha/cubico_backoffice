@@ -17,6 +17,7 @@ tableRoutes($app, '/api/filaments', 'filaments', [
     'color_name' => 'string',
     'color_hex' => 'string',
     'spool_weight_g' => 'int',
+    'empty_spool_g' => 'int', // a tara: peso do carretel vazio (0 = por saber); o colaborador também a vê
     'list_price' => 'float',
     'paid_price' => 'float',
     'shipping_cost' => 'float',

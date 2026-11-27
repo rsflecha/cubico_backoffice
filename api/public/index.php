@@ -44,6 +44,7 @@ require __DIR__ . '/../routes/auth.php';
 require __DIR__ . '/../routes/passkeys.php';
 require __DIR__ . '/../routes/categories.php';
 require __DIR__ . '/../routes/costs.php';
+require __DIR__ . '/../routes/stock.php';
 require __DIR__ . '/../routes/products.php';
 require __DIR__ . '/../routes/customers.php';
 require __DIR__ . '/../routes/postal_codes.php';

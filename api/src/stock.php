@@ -102,8 +102,9 @@ function weighedTotal(int $closedSpools, int $spoolWeightG, array $openGrossG, i
  */
 function recordPurchase(int $filamentId, int $spools, float $paidPrice, float $shippingCost, ?int $userId): int
 {
-    if ($spools < 1) {
-        throw new InvalidArgumentException('Tem de comprar pelo menos 1 rolo.');
+    if ($spools < 1 || $spools > 255) {
+        // 255 é o máximo de filaments.spools_in_order (TINYINT UNSIGNED).
+        throw new InvalidArgumentException('O número de rolos tem de estar entre 1 e 255.');
     }
     if ($paidPrice < 0 || $shippingCost < 0) {
         throw new InvalidArgumentException('O preço e os portes não podem ser negativos.');

@@ -76,6 +76,10 @@ try {
         thrownMessage(fn() => recordPurchase($filamentId, 0, 15.0, 0.0, null)) !== null
     );
     check(
+        'compra com 256 rolos recusada (máximo 255)',
+        thrownMessage(fn() => recordPurchase($filamentId, 256, 15.0, 0.0, null)) !== null
+    );
+    check(
         'compra com preço negativo recusada',
         thrownMessage(fn() => recordPurchase($filamentId, 1, -1.0, 0.0, null)) !== null
     );
